@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide DatePickerTheme;
+import 'package:hcms_revived2/theme/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
 // import 'package:hcms_revived2/models/firebase/pushnotifmodel.dart';
@@ -251,17 +252,13 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'HCMS',
           color: Colors.white,
-          theme: ThemeData(
-            primaryColor: fPrimaryColour,
-            visualDensity: VisualDensity.adaptivePlatformDensity,
+          theme: AppTheme.lightTheme.copyWith(
             textTheme: Theme.of(context).textTheme.apply(bodyColor: Colors.black),
-            fontFamily: "Roboto",
           ),
           home: Splash(),
           routes: {
             IndexPage.routeName: (ctx) => IndexPage(),
             ViewReport.routeName: (ctx) => ViewReport(),
-            DetailDisplayIncomplete.routeName: (ctx) => DetailDisplayIncomplete(),
             ViewSeedlingMonitoringDetails.routeName: (ctx) => ViewSeedlingMonitoringDetails(),
             ViewAlternativeLivelihoodDetails.routeName: (ctx) => ViewAlternativeLivelihoodDetails(),
             ViewLMBMonitoringDetails.routeName: (ctx) => ViewLMBMonitoringDetails(),
