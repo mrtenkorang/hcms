@@ -1,0 +1,606 @@
+[
+    {
+        "code": 187,
+        "species": "Ngo Ne Nkyene"
+    },
+    {
+        "code": 154,
+        "species": "Abesebuo"
+    },
+    {
+        "code": 155,
+        "species": "Adasama"
+    },
+    {
+        "code": 156,
+        "species": "Afena"
+    },
+    {
+        "code": 157,
+        "species": "African Blackwood"
+    },
+    {
+        "code": 158,
+        "species": "Afromosia/ Kokrodua"
+    },
+    {
+        "code": 159,
+        "species": "Afrostyrax"
+    },
+    {
+        "code": 160,
+        "species": "Akasa"
+    },
+    {
+        "code": 161,
+        "species": "Akata"
+    },
+    {
+        "code": 162,
+        "species": "Akonkodie"
+    },
+    {
+        "code": 163,
+        "species": "Akye"
+    },
+    {
+        "code": 164,
+        "species": "Albizia"
+    },
+    {
+        "code": 165,
+        "species": "Ananta"
+    },
+    {
+        "code": 166,
+        "species": "Anokye-Hyedua"
+    },
+    {
+        "code": 167,
+        "species": "Aprokuma"
+    },
+    {
+        "code": 168,
+        "species": "Asamfena"
+    },
+    {
+        "code": 169,
+        "species": "Asamfenanini"
+    },
+    {
+        "code": 170,
+        "species": "Asiama/Asoma"
+    },
+    {
+        "code": 171,
+        "species": "Atabene"
+    },
+    {
+        "code": 172,
+        "species": "Avodire/Apapaye"
+    },
+    {
+        "code": 173,
+        "species": "Awiefo Samina"
+    },
+    {
+        "code": 174,
+        "species": "Bako"
+    },
+    {
+        "code": 175,
+        "species": "Bakunini"
+    },
+    {
+        "code": 176,
+        "species": "Bediwonua"
+    },
+    {
+        "code": 177,
+        "species": "Benkyi"
+    },
+    {
+        "code": 178,
+        "species": "Bese"
+    },
+    {
+        "code": 179,
+        "species": "Besetoro"
+    },
+    {
+        "code": 180,
+        "species": "Bodwe"
+    },
+    {
+        "code": 181,
+        "species": "Bompagya"
+    },
+    {
+        "code": 182,
+        "species": "Bonsamdua/Ayan"
+    },
+    {
+        "code": 183,
+        "species": "Caribbean Pine"
+    },
+    {
+        "code": 184,
+        "species": "Cedrella"
+    },
+    {
+        "code": 185,
+        "species": "Ceiba/Onyina"
+    },
+    {
+        "code": 188,
+        "species": "Dahoma"
+    },
+    {
+        "code": 189,
+        "species": "Dahoma-Nua"
+    },
+    {
+        "code": 190,
+        "species": "Danta/ Apro"
+    },
+    {
+        "code": 191,
+        "species": "Denya/Okan"
+    },
+    {
+        "code": 192,
+        "species": "Duabankye"
+    },
+    {
+        "code": 193,
+        "species": "Duamako"
+    },
+    {
+        "code": 194,
+        "species": "Duapompo"
+    },
+    {
+        "code": 195,
+        "species": "Dubinibiri"
+    },
+    {
+        "code": 196,
+        "species": "Ebony"
+    },
+    {
+        "code": 197,
+        "species": "Edinam"
+    },
+    {
+        "code": 198,
+        "species": "Efoodedwo/Utile"
+    },
+    {
+        "code": 199,
+        "species": "Emire"
+    },
+    {
+        "code": 200,
+        "species": "Entedua"
+    },
+    {
+        "code": 201,
+        "species": "Esa"
+    },
+    {
+        "code": 202,
+        "species": "Esa-Kokoo"
+    },
+    {
+        "code": 203,
+        "species": "Esakosua"
+    },
+    {
+        "code": 204,
+        "species": "Esereso Dubini"
+    },
+    {
+        "code": 205,
+        "species": "Esia"
+    },
+    {
+        "code": 206,
+        "species": "Eucalyptus"
+    },
+    {
+        "code": 207,
+        "species": "Fotie/Hotrohotro"
+    },
+    {
+        "code": 208,
+        "species": "Foto"
+    },
+    {
+        "code": 209,
+        "species": "Funtum"
+    },
+    {
+        "code": 210,
+        "species": "Hotrohotro"
+    },
+    {
+        "code": 211,
+        "species": "Hyedua/Ogea"
+    },
+    {
+        "code": 212,
+        "species": "Kaku/Ekki"
+    },
+    {
+        "code": 213,
+        "species": "Kankabim"
+    },
+    {
+        "code": 214,
+        "species": "Kokote"
+    },
+    {
+        "code": 215,
+        "species": "Kokote-Akoa"
+    },
+    {
+        "code": 216,
+        "species": "Konkroma"
+    },
+    {
+        "code": 217,
+        "species": "Kontan"
+    },
+    {
+        "code": 218,
+        "species": "Koto/Kyere"
+    },
+    {
+        "code": 219,
+        "species": "Kotreamfo"
+    },
+    {
+        "code": 220,
+        "species": "Krayie (Rosewood)"
+    },
+    {
+        "code": 221,
+        "species": "Krokrodua"
+    },
+    {
+        "code": 222,
+        "species": "Kroma"
+    },
+    {
+        "code": 223,
+        "species": "Kube"
+    },
+    {
+        "code": 224,
+        "species": "Kumfana"
+    },
+    {
+        "code": 225,
+        "species": "Kumnini"
+    },
+    {
+        "code": 226,
+        "species": "Kuokuonisuo"
+    },
+    {
+        "code": 227,
+        "species": "Kusia/Opepe"
+    },
+    {
+        "code": 228,
+        "species": "Kwabohoro"
+    },
+    {
+        "code": 229,
+        "species": "Kwadwuma"
+    },
+    {
+        "code": 230,
+        "species": "Kwakuobese"
+    },
+    {
+        "code": 231,
+        "species": "Kwatafompaboa"
+    },
+    {
+        "code": 232,
+        "species": "Kwatafompaboabere"
+    },
+    {
+        "code": 233,
+        "species": "Kyenkyen"
+    },
+    {
+        "code": 234,
+        "species": "Lecaniodiscus"
+    },
+    {
+        "code": 235,
+        "species": "Mahogany"
+    },
+    {
+        "code": 236,
+        "species": "Mahogany"
+    },
+    {
+        "code": 237,
+        "species": "Mahogany/ Dubini"
+    },
+    {
+        "code": 238,
+        "species": "Makore"
+    },
+    {
+        "code": 239,
+        "species": "Mangium"
+    },
+    {
+        "code": 240,
+        "species": "Mansonia/Oprono"
+    },
+    {
+        "code": 241,
+        "species": "Neem"
+    },
+    {
+        "code": 242,
+        "species": "Neolemonniera"
+    },
+    {
+        "code": 244,
+        "species": "Nyiango/ Nyankon"
+    },
+    {
+        "code": 245,
+        "species": "Ocomea"
+    },
+    {
+        "code": 246,
+        "species": "Odum"
+    },
+    {
+        "code": 247,
+        "species": "Odum-Nua"
+    },
+    {
+        "code": 248,
+        "species": "Odum/Iroko"
+    },
+    {
+        "code": 249,
+        "species": "Ofram"
+    },
+    {
+        "code": 250,
+        "species": "Ohaa"
+    },
+    {
+        "code": 251,
+        "species": "Okae"
+    },
+    {
+        "code": 252,
+        "species": "Okoro"
+    },
+    {
+        "code": 253,
+        "species": "Okuo"
+    },
+    {
+        "code": 254,
+        "species": "Onakwa"
+    },
+    {
+        "code": 255,
+        "species": "Onyinakoben"
+    },
+    {
+        "code": 256,
+        "species": "Opam"
+    },
+    {
+        "code": 257,
+        "species": "Otie"
+    },
+    {
+        "code": 258,
+        "species": "Oyaa"
+    },
+    {
+        "code": 259,
+        "species": "Oyaa"
+    },
+    {
+        "code": 260,
+        "species": "Pampina"
+    },
+    {
+        "code": 261,
+        "species": "Papao"
+    },
+    {
+        "code": 262,
+        "species": "Papao-Nua"
+    },
+    {
+        "code": 263,
+        "species": "Penkwa-Akoa"
+    },
+    {
+        "code": 264,
+        "species": "Penkwa/Sapele"
+    },
+    {
+        "code": 265,
+        "species": "Pierreodendron"
+    },
+    {
+        "code": 266,
+        "species": "Placodiscus"
+    },
+    {
+        "code": 267,
+        "species": "Potrodom"
+    },
+    {
+        "code": 268,
+        "species": "Prekese"
+    },
+    {
+        "code": 269,
+        "species": "Pteleopsis"
+    },
+    {
+        "code": 270,
+        "species": "Rosewood/Krayie"
+    },
+    {
+        "code": 271,
+        "species": "Rubber"
+    },
+    {
+        "code": 272,
+        "species": "Samfena"
+    },
+    {
+        "code": 273,
+        "species": "Sanza-Mulika/Ebony"
+    },
+    {
+        "code": 274,
+        "species": "Sapium"
+    },
+    {
+        "code": 275,
+        "species": "Sasramasa"
+    },
+    {
+        "code": 276,
+        "species": "Senya"
+    },
+    {
+        "code": 277,
+        "species": "Sesedua"
+    },
+    {
+        "code": 278,
+        "species": "Sinuro/ Nyamedua"
+    },
+    {
+        "code": 279,
+        "species": "Sofo"
+    },
+    {
+        "code": 280,
+        "species": "Sonkyi"
+    },
+    {
+        "code": 281,
+        "species": "Sopi"
+    },
+    {
+        "code": 282,
+        "species": "Subaha"
+    },
+    {
+        "code": 283,
+        "species": "Subaha-Akoa"
+    },
+    {
+        "code": 284,
+        "species": "Subaha-Akoa"
+    },
+    {
+        "code": 285,
+        "species": "Synsepalum"
+    },
+    {
+        "code": 286,
+        "species": "S\u03b5s\u03b5masa"
+    },
+    {
+        "code": 287,
+        "species": "Talbotiella"
+    },
+    {
+        "code": 288,
+        "species": "Tannuru"
+    },
+    {
+        "code": 289,
+        "species": "Tannuru"
+    },
+    {
+        "code": 290,
+        "species": "Tanuronini"
+    },
+    {
+        "code": 291,
+        "species": "Teak"
+    },
+    {
+        "code": 292,
+        "species": "Tetedua"
+    },
+    {
+        "code": 293,
+        "species": "Tetekon"
+    },
+    {
+        "code": 294,
+        "species": "Tiabutuo"
+    },
+    {
+        "code": 295,
+        "species": "Trichilia"
+    },
+    {
+        "code": 296,
+        "species": "Trichoscypha"
+    },
+    {
+        "code": 297,
+        "species": "Tweneboa"
+    },
+    {
+        "code": 298,
+        "species": "Tweneboabere"
+    },
+    {
+        "code": 299,
+        "species": "Walnut"
+    },
+    {
+        "code": 300,
+        "species": "Wama"
+    },
+    {
+        "code": 301,
+        "species": "Watapuo"
+    },
+    {
+        "code": 302,
+        "species": "Wawa"
+    },
+    {
+        "code": 303,
+        "species": "Wawabima"
+    },
+    {
+        "code": 304,
+        "species": "White Teak"
+    },
+    {
+        "code": 305,
+        "species": "Yaya"
+    },
+    {
+        "code": 306,
+        "species": "Yaya-Akoa"
+    }
+]

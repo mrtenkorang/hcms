@@ -1,0 +1,33 @@
+{
+    "trainingDetails": {
+        "communityName": "Lapaz",
+        "trainingTopic": "Keeping Forests from Fires",
+        "dateEventBegan": "2020-02-1",
+        "eventDuration": "14 hours",
+        "trainerName": "Paul John",
+        "trainerOrganisation": "CERSGIS"
+    },
+    "participantDetails": [
+        {
+            "name": "Sandra Casko",
+            "community": "Barrier",
+            "gender": "Female",
+            "phoneNumber": "0256786532",
+            "signatureOrThumbprintBase64String": ""
+        },
+        {
+            "name": "Peter Simpa",
+            "community": "Dome",
+            "gender": "Male",
+            "phoneNumber": "0256786532",
+            "signatureOrThumbprintBase64String": ""
+        },
+        {
+            "name": "Chad Bossman",
+            "community": "Legon",
+            "gender": "Male",
+            "phoneNumber": "0256786532",
+            "signatureOrThumbprintBase64String": ""
+        }
+    ]
+}

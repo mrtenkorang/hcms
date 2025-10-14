@@ -1,0 +1,24 @@
+{
+    "visitDetails": {
+        "communityName": "LanMa",
+        "enumerator": "Isaac Aboagye",
+        "visitNum": "2nd",
+        "dateOfVisit": "2020-02-1"
+    },
+    "farmerDetails": {
+        "farmerName": "Paul Mensah",
+        "gender": "Male"
+    },
+    "treeFarmInformation": {
+        "treeSpecies": ["Mahogany","Emire"],
+        "dateReceived": "2020-02-10",
+        "datePlanted": "2020-04-01",
+        "qntyReceived": "13",
+        "qntyPlanted": "13",
+        "qntySurvived": "10",
+        "plantingAreaType": "Fallow_land",
+        "areaSize": 45,
+        "noOfTreesRegistered": 9,
+        "farmLocation": "Accra"
+    }
+}

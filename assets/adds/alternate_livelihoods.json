@@ -1,0 +1,25 @@
+{
+    "visitDetails": {
+        "communityName": "LanMa",
+        "enumerator": "Isaac Aboagye",
+        "visitNum": "2nd",
+        "dateOfVisit": "2020-02-1"
+    },
+    "farmerDetails": {
+        "farmerName": "Paul Mensah",
+        "gender": "Male"
+    },
+    "activityDetails": {
+        "additionalLivelihood": 3,
+        "trainerOrganisation": "CERSGIS",
+        "dateOperationsStarted": "2020-04-01",
+        "amounts": {
+            "invested": "2323",
+            "sixMonths": "913",
+            "oneYear": "913",
+            "twoYears": "809",
+            "lmbContrib": "221"
+        },
+        "activitiesSupported": "School Fees"
+    }
+}

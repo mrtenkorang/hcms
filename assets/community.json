@@ -1,0 +1,306 @@
+[
+    {
+        "comcode": 1,
+        "name": "Tanokrom"
+    },
+    {
+        "comcode": 2,
+        "name": "Akontombra"
+    },
+    {
+        "comcode": 3,
+        "name": "Nkrah"
+    },
+    {
+        "comcode": 4,
+        "name": "Wuruwuru"
+    },
+    {
+        "comcode": 5,
+        "name": "Nyame Nnae"
+    },
+    {
+        "comcode": 6,
+        "name": "Essase"
+    },
+    {
+        "comcode": 7,
+        "name": "Wansampo"
+    },
+    {
+        "comcode": 8,
+        "name": "Chorichori"
+    },
+    {
+        "comcode": 9,
+        "name": "Kramokrom"
+    },
+    {
+        "comcode": 10,
+        "name": "Asantekrom"
+    },
+    {
+        "comcode": 11,
+        "name": "Bopa"
+    },
+    {
+        "comcode": 12,
+        "name": "Attakrom"
+    },
+    {
+        "comcode": 13,
+        "name": "Besibema"
+    },
+    {
+        "comcode": 14,
+        "name": "Asanteman"
+    },
+    {
+        "comcode": 15,
+        "name": "Aburonahia"
+    },
+    {
+        "comcode": 16,
+        "name": "Fawoman"
+    },
+    {
+        "comcode": 17,
+        "name": "Bokaiso"
+    },
+    {
+        "comcode": 18,
+        "name": "Nsawora"
+    },
+    {
+        "comcode": 19,
+        "name": "Bopa Nkwanta"
+    },
+    {
+        "comcode": 20,
+        "name": "Nkwadum"
+    },
+    {
+        "comcode": 21,
+        "name": "Edumafua"
+    },
+    {
+        "comcode": 22,
+        "name": "Alavanyo"
+    },
+    {
+        "comcode": 23,
+        "name": "Nkrumahkrom"
+    },
+    {
+        "comcode": 24,
+        "name": "Aboboyaa"
+    },
+    {
+        "comcode": 25,
+        "name": "Bronikrom"
+    },
+    {
+        "comcode": 26,
+        "name": "Asiekrom"
+    },
+    {
+        "comcode": 27,
+        "name": "Bosomoiso"
+    },
+    {
+        "comcode": 28,
+        "name": "Penakrom"
+    },
+    {
+        "comcode": 29,
+        "name": "Fantraline"
+    },
+    {
+        "comcode": 30,
+        "name": "Aprutu"
+    },
+    {
+        "comcode": 31,
+        "name": "Nyamebekyere"
+    },
+    {
+        "comcode": 32,
+        "name": "Amafie"
+    },
+    {
+        "comcode": 33,
+        "name": "Kojokrom"
+    },
+    {
+        "comcode": 34,
+        "name": "Old Adiembra"
+    },
+    {
+        "comcode": 35,
+        "name": "Ahwiam"
+    },
+    {
+        "comcode": 36,
+        "name": "Ackaakrom"
+    },
+    {
+        "comcode": 37,
+        "name": "Atta Ne Atta"
+    },
+    {
+        "comcode": 38,
+        "name": "Aboduam"
+    },
+    {
+        "comcode": 39,
+        "name": "Apenti"
+    },
+    {
+        "comcode": 40,
+        "name": "Yayaso"
+    },
+    {
+        "comcode": 41,
+        "name": "Futa"
+    },
+    {
+        "comcode": 42,
+        "name": "Yawkrom"
+    },
+    {
+        "comcode": 43,
+        "name": "Datano"
+    },
+    {
+        "comcode": 44,
+        "name": "Ayerikrom"
+    },
+    {
+        "comcode": 45,
+        "name": "Sui"
+    },
+    {
+        "comcode": 46,
+        "name": "Pewodie"
+    },
+    {
+        "comcode": 47,
+        "name": "Apentemadi"
+    },
+    {
+        "comcode": 48,
+        "name": "Kyeamekrom"
+    },
+    {
+        "comcode": 49,
+        "name": "Kwafukaa"
+    },
+    {
+        "comcode": 50,
+        "name": "Domeabra"
+    },
+    {
+        "comcode": 51,
+        "name": "Ahokwaa"
+    },
+    {
+        "comcode": 52,
+        "name": "Bowobra"
+    },
+    {
+        "comcode": 53,
+        "name": "Kama"
+    },
+    {
+        "comcode": 54,
+        "name": "Nkonya"
+    },
+    {
+        "comcode": 55,
+        "name": "Abrabra"
+    },
+    {
+        "comcode": 56,
+        "name": "Nkranfuom / Aboagyekrom No. 2"
+    },
+    {
+        "comcode": 57,
+        "name": "Punikrom"
+    },
+    {
+        "comcode": 58,
+        "name": "Puakrom"
+    },
+    {
+        "comcode": 59,
+        "name": "Suhenso"
+    },
+    {
+        "comcode": 60,
+        "name": "Kwasiadukrom"
+    },
+    {
+        "comcode": 61,
+        "name": "Mensahline"
+    },
+    {
+        "comcode": 62,
+        "name": "Bepoase"
+    },
+    {
+        "comcode": 63,
+        "name": "Amprompi/Mmoframfadwene"
+    },
+    {
+        "comcode": 64,
+        "name": "Akurafu"
+    },
+    {
+        "comcode": 65,
+        "name": "Kwasiaddaikrom"
+    },
+    {
+        "comcode": 66,
+        "name": "Benchema"
+    },
+    {
+        "comcode": 67,
+        "name": "Asawinso"
+    },
+    {
+        "comcode": 68,
+        "name": "Madina"
+    },
+    {
+        "comcode": 69,
+        "name": "Nkateaso"
+    },
+    {
+        "comcode": 70,
+        "name": "Larbikrom"
+    },
+    {
+        "comcode": 71,
+        "name": "Essakrom"
+    },
+    {
+        "comcode": 72,
+        "name": "Kojina"
+    },
+    {
+        "comcode": 73,
+        "name": "Nyetina/Fawoman"
+    },
+    {
+        "comcode": 74,
+        "name": "Aboagyekrom No.1"
+    },
+    {
+        "comcode": 75,
+        "name": "Gyampokrom"
+    },
+    {
+        "comcode": 76,
+        "name": "Brekuline"
+    }
+]
