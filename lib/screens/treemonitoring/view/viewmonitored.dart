@@ -5,7 +5,7 @@ import 'package:hcms_revived2/screens/treemonitoring/initialpage.dart';
 import 'package:hcms_revived2/screens/treemonitoring/view/alternativelihoodviewinit.dart';
 import 'package:hcms_revived2/screens/treemonitoring/view/alternativelivelihoodview.dart';
 import 'package:hcms_revived2/screens/treemonitoring/view/lmbmonitoringview.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/seedlingmonitoringviewinit.dart';
+// import 'package:hcms_revived2/screens/seedlingmonitoring/history/seedling_monitoring_history';
 import 'package:hcms_revived2/screens/treemonitoring/view/traininglogview.dart';
 
 class ViewMonitoredTrees extends StatefulWidget {
@@ -35,15 +35,15 @@ class ViewMonitoredTreesState extends State<ViewMonitoredTrees>
 
   int? _tabIndex;
   final List<Tab> myTabs = <Tab>[
-    new Tab(
-      child: SeedlingMonitoringViewInit(),
-    ),
+    // new Tab(
+    //   child: SeedlingMonitoringViewInit(),
+    // ),
     new Tab(
       child: LMBMonitoringView(),
     ),
-    new Tab(
-      child: AlternativeLivelihoodViewInit(),
-    ),
+    // new Tab(
+    //   child: AlternativeLivelihoodViewInit(),
+    // ),
     new Tab(
       child: TrainingLogView(),
     ),

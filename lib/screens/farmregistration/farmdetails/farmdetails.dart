@@ -8,7 +8,6 @@ import 'package:hcms_revived2/models/apimodels/stool.dart';
 import 'package:hcms_revived2/services/serverurls.dart';
 import 'package:hcms_revived2/utils/constants/colours.dart';
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
-import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
@@ -28,12 +27,14 @@ class FarmDetails extends StatefulWidget {
 }
 
 class _FarmDetailsState extends State<FarmDetails> {
+  // URLs
   var districtsUrl = "$stageBaseUrl/districtapi/";
   var forestdistrictsUrl = "$stageBaseUrl/forestdistapi/";
   var stoolUrl = "$stageBaseUrl/stoolapi/";
   var commUrl = "$stageBaseUrl/communityapi/";
   var regionUrl = "$stageBaseUrl/regionapi/";
 
+  // File management variables
   File? districtjsonFile;
   File? forestdistrictjsonFile;
   File? stooljsonFile;
@@ -55,8 +56,8 @@ class _FarmDetailsState extends State<FarmDetails> {
   var stoolfileContent;
   var commfileContent;
   var regionfileContent;
-  // bool confileContent = false;
 
+  // Data lists
   List<DistrictsJson> _newdistrictValues = [];
   List<DistrictsJson> _districtValues = [];
   List<ForestDistrictsJson> _newforestdistrictValues = [];
@@ -68,6 +69,75 @@ class _FarmDetailsState extends State<FarmDetails> {
   List<RegionJson> _newregionValues = [];
   List<RegionJson> _regionValues = [];
 
+  // Form state variables
+  final _formKey = GlobalKey<FormState>();
+  final _communityName = TextEditingController();
+  final _otherEstablishmentController = TextEditingController();
+
+  String? _regionValue;
+  String? _districtValue;
+  String? _fdisV;
+  String? _stoolV;
+  String? _family;
+  String? _disV;
+  String? _community;
+  int? _mmdV;
+
+  bool boxChecked = false;
+  List<String> _establishment = [];
+  List<String> _commFound = [];
+
+  // Establishment options with icons
+  final List<Map<String, dynamic>> _establishmentOptions = [
+    {
+      'value': 'Woodlot',
+      'label': 'Woodlot',
+      'icon': Icons.forest,
+      'color': Colors.green,
+    },
+    {
+      'value': 'Commercial_Plantation',
+      'label': 'Commercial Plantation',
+      'icon': Icons.business_center,
+      'color': Colors.blue,
+    },
+    {
+      'value': 'Planted_trees_on_farm',
+      'label': 'Planted Trees on Farm',
+      'icon': Icons.agriculture,
+      'color': Colors.orange,
+    },
+    {
+      'value': 'Naturally_Occurring_trees',
+      'label': 'Natural Trees',
+      'icon': Icons.park,
+      'color': Colors.teal,
+    },
+    {
+      'value': 'Fallow',
+      'label': 'Fallow Land',
+      'icon': Icons.grass,
+      'color': Colors.brown,
+    },
+    {
+      'value': 'Sacred_Grove',
+      'label': 'Sacred Grove',
+      'icon': Icons.architecture,
+      'color': Colors.purple,
+    },
+    {
+      'value': 'Other',
+      'label': 'Other',
+      'icon': Icons.more_horiz,
+      'color': Colors.grey,
+    },
+  ];
+
+  // Exclusive establishment groups
+  final List<String> _exclusiveGroup1 = ['Woodlot', 'Commercial_Plantation', 'Other'];
+  final List<String> _exclusiveGroup2 = ['Planted_trees_on_farm', 'Naturally_Occurring_trees', 'Fallow', 'Sacred_Grove'];
+
+  // File creation methods
   void createDistrictFile(var content, Directory dir, String fileName) {
     debugPrint("Creating district file!");
     File file = File(dir.path + "/" + fileName);
@@ -108,437 +178,191 @@ class _FarmDetailsState extends State<FarmDetails> {
     file.writeAsString(json.encode(content));
   }
 
+  // File writing methods
   Future<List<DistrictsJson>> writeToDistrictFile(BuildContext ctx) async {
     debugPrint("Writing to district file!");
     if (districtfileExists) {
       debugPrint("District File exists $districtfileExists");
-
       try {
         var response = await http.get(Uri.parse(districtsUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("district");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          var districtjsonFileContent =
-              await json.decode(await districtjsonFile!.readAsString());
+          var districtjsonFileContent = await json.decode(await districtjsonFile!.readAsString());
           districtjsonFileContent.clear();
           districtjsonFileContent.addAll(items);
           districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
-        } else {
-          debugPrint("didn't work here");
         }
       } on SocketException {
         debugPrint("Error is first district");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("District File does not exist! $districtfileExists");
       try {
         var response = await http.get(Uri.parse(districtsUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("District");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createDistrictFile(items, dir!, districtfileName);
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
         } else {
-          debugPrint("didn't work here");
           getLocalDistricts(ctx);
         }
       } on SocketException {
-        debugPrint("Error is second district");
         getLocalDistricts(ctx);
       }
     }
-    districtfileExists
-        ? districtfileContent =
-            await json.decode(await districtjsonFile!.readAsString())
-        : null;
-    debugPrint(districtfileContent);
-
-    return districtfileExists
-        ? _districtValues = districtfileContent
-            .map<DistrictsJson>(DistrictsJson.fromJson)
-            .toList()
-        : _newdistrictValues;
+    districtfileExists ? districtfileContent = await json.decode(await districtjsonFile!.readAsString()) : null;
+    return districtfileExists ? _districtValues = districtfileContent.map<DistrictsJson>(DistrictsJson.fromJson).toList() : _newdistrictValues;
   }
 
-  Future<List<ForestDistrictsJson>> writeToForestDistrictFile(
-      BuildContext ctx) async {
+  Future<List<ForestDistrictsJson>> writeToForestDistrictFile(BuildContext ctx) async {
     debugPrint("Writing to forest file! $forestdistrictfileExists");
     if (forestdistrictfileExists) {
       debugPrint("Forest file exists $forestdistrictfileExists");
-
       try {
         var response = await http.get(Uri.parse(forestdistrictsUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Forest");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          var forestdistrictjsonFileContent =
-              await json.decode(await forestdistrictjsonFile!.readAsString());
+          var forestdistrictjsonFileContent = await json.decode(await forestdistrictjsonFile!.readAsString());
           forestdistrictjsonFileContent.clear();
           forestdistrictjsonFileContent.addAll(items);
-          forestdistrictjsonFile
-              ?.writeAsString(json.encode(forestdistrictjsonFileContent));
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
-        } else {
-          debugPrint("didn't work here");
+          forestdistrictjsonFile?.writeAsString(json.encode(forestdistrictjsonFileContent));
         }
       } on SocketException {
         debugPrint("Error is ");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("Forest File does not exist! $forestdistrictfileExists");
       try {
         var response = await http.get(Uri.parse(forestdistrictsUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Forest");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createForestDistrictFile(items, dir!, forestdistrictfileName);
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
         } else {
-          debugPrint("didn't work here");
           getLocalForestDistricts(ctx);
         }
       } on SocketException {
-        debugPrint("Error is ");
         getLocalForestDistricts(ctx);
       }
     }
-    forestdistrictfileExists
-        ? forestdistrictfileContent =
-            await json.decode(await forestdistrictjsonFile!.readAsString())
-        : null;
-    debugPrint(forestdistrictfileContent);
-
-    return forestdistrictfileExists
-        ? _forestdistrictValues = forestdistrictfileContent
-            .map<ForestDistrictsJson>(ForestDistrictsJson.fromJson)
-            .toList()
-        : _newforestdistrictValues;
+    forestdistrictfileExists ? forestdistrictfileContent = await json.decode(await forestdistrictjsonFile!.readAsString()) : null;
+    return forestdistrictfileExists ? _forestdistrictValues = forestdistrictfileContent.map<ForestDistrictsJson>(ForestDistrictsJson.fromJson).toList() : _newforestdistrictValues;
   }
 
   Future<List<StoolJson>> writeToStoolFile(BuildContext ctx) async {
     debugPrint("Writing to stool file! $stoolfileExists");
     if (stoolfileExists) {
       debugPrint("Stool File exists $stoolfileExists");
-
       try {
         var response = await http.get(Uri.parse(stoolUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Stool");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          var stooljsonFileContent =
-              await json.decode(await stooljsonFile!.readAsString());
+          var stooljsonFileContent = await json.decode(await stooljsonFile!.readAsString());
           stooljsonFileContent.clear();
           stooljsonFileContent.addAll(items);
           stooljsonFile?.writeAsString(json.encode(stooljsonFileContent));
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
-        } else {
-          debugPrint("didn't work here");
         }
       } on SocketException {
         debugPrint("Error is first stool");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("Stool File does not exist! $stoolfileExists");
       try {
         var response = await http.get(Uri.parse(stoolUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("stool");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createStoolFile(items, dir!, stoolfileName);
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
         } else {
-          debugPrint("didn't work here");
           getLocalStoolValues(ctx);
         }
       } on SocketException {
-        debugPrint("Error is second stool");
         getLocalStoolValues(ctx);
       }
     }
-    stoolfileExists
-        ? stoolfileContent =
-            await json.decode(await stooljsonFile!.readAsString())
-        : null;
-    debugPrint(stoolfileContent);
-
-    return stoolfileExists
-        ? _stoolValues =
-            stoolfileContent.map<StoolJson>(StoolJson.fromJson).toList()
-        : _newstoolValues;
+    stoolfileExists ? stoolfileContent = await json.decode(await stooljsonFile!.readAsString()) : null;
+    return stoolfileExists ? _stoolValues = stoolfileContent.map<StoolJson>(StoolJson.fromJson).toList() : _newstoolValues;
   }
 
   Future<List<CommunityJson>> writeToCommFile(BuildContext ctx) async {
     debugPrint("Writing to community file! $commfileExists");
     if (commfileExists) {
       debugPrint("Community File exists $commfileExists");
-
       try {
         var response = await http.get(Uri.parse(commUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Community");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          var commjsonFileContent =
-              await json.decode(await commjsonFile!.readAsString());
+          var commjsonFileContent = await json.decode(await commjsonFile!.readAsString());
           commjsonFileContent.clear();
           commjsonFileContent.addAll(items);
           commjsonFile?.writeAsString(json.encode(commjsonFileContent));
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
-        } else {
-          debugPrint("didn't work here");
         }
       } on SocketException {
         debugPrint("Error is first community");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("Community File does not exist! $commfileExists");
       try {
         var response = await http.get(Uri.parse(commUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Community");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createCommFile(items, dir!, commfileName);
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
         } else {
-          debugPrint("didn't work here");
           getLocalCommValues(ctx);
         }
       } on SocketException {
-        debugPrint("Error is second comm");
         getLocalCommValues(ctx);
       }
     }
-    commfileExists
-        ? commfileContent =
-            await json.decode(await commjsonFile!.readAsString())
-        : null;
-    debugPrint(commfileContent);
-
-    return commfileExists
-        ? _commValues =
-            commfileContent.map<CommunityJson>(CommunityJson.fromJson).toList()
-        : _newcommValues;
+    commfileExists ? commfileContent = await json.decode(await commjsonFile!.readAsString()) : null;
+    return commfileExists ? _commValues = commfileContent.map<CommunityJson>(CommunityJson.fromJson).toList() : _newcommValues;
   }
 
   Future<List<RegionJson>> writeToRegionFile(BuildContext ctx) async {
     debugPrint("Writing to region file! $regionfileExists");
     if (regionfileExists) {
       debugPrint("Region File exists $regionfileExists");
-
       try {
         var response = await http.get(Uri.parse(regionUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Region");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          var regionjsonFileContent =
-              await json.decode(await regionjsonFile!.readAsString());
+          var regionjsonFileContent = await json.decode(await regionjsonFile!.readAsString());
           regionjsonFileContent.clear();
           regionjsonFileContent.addAll(items);
           regionjsonFile?.writeAsString(json.encode(regionjsonFileContent));
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
-        } else {
-          debugPrint("didn't work here");
         }
       } on SocketException {
         debugPrint("Error is first region");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("Region File does not exist! $regionfileExists");
       try {
         var response = await http.get(Uri.parse(regionUrl));
-
         if (response.statusCode == 200) {
           final items = json.decode(response.body).cast<Map<String, dynamic>>();
-          debugPrint("Region");
-
-          debugPrint("content $items");
-          debugPrint("object");
-
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createRegionFile(items, dir!, regionfileName);
-
-          // debugPrint("contennttss ${listOfRegions.runtimeType}");
         } else {
-          debugPrint("didn't work here");
           getLocalRegionValues(ctx);
         }
       } on SocketException {
-        debugPrint("Error is second region");
         getLocalRegionValues(ctx);
       }
     }
-    regionfileExists
-        ? regionfileContent =
-            await json.decode(await regionjsonFile!.readAsString())
-        : null;
-    debugPrint(regionfileContent);
-
-    return regionfileExists
-        ? _regionValues = regionfileContent
-            .map<RegionJson>(RegionJson.fromRegionJson)
-            .toList()
-        : _newregionValues;
+    regionfileExists ? regionfileContent = await json.decode(await regionjsonFile!.readAsString()) : null;
+    return regionfileExists ? _regionValues = regionfileContent.map<RegionJson>(RegionJson.fromRegionJson).toList() : _newregionValues;
   }
 
-  String? _disV;
-  int? _mmdV;
-  String? _fdisV;
-  String? _stoolV;
-
+  // Local data loading methods
   Future<List<DistrictsJson>> getLocalDistricts(BuildContext context) async {
     final assetBundle = DefaultAssetBundle.of(context);
     final data = await assetBundle.loadString('assets/districts.json');
     final body = json.decode(data);
-
-    _newdistrictValues =
-        body.map<DistrictsJson>(DistrictsJson.fromJson).toList();
-
-    // writeToFile(body);
-
-    // _disV = _districtValues[0].districtName;
+    _newdistrictValues = body.map<DistrictsJson>(DistrictsJson.fromJson).toList();
     return _newdistrictValues;
   }
 
-  Future<List<ForestDistrictsJson>> getLocalForestDistricts(
-      BuildContext context) async {
+  Future<List<ForestDistrictsJson>> getLocalForestDistricts(BuildContext context) async {
     final assetBundle = DefaultAssetBundle.of(context);
     final data = await assetBundle.loadString('assets/forestdistrict.json');
     final body = json.decode(data);
-
-    _newforestdistrictValues =
-        body.map<ForestDistrictsJson>(ForestDistrictsJson.fromJson).toList();
-
-    // writeToFile(body);
-
-    // _disV = _districtValues[0].districtName;
+    _newforestdistrictValues = body.map<ForestDistrictsJson>(ForestDistrictsJson.fromJson).toList();
     return _newforestdistrictValues;
   }
 
@@ -546,12 +370,7 @@ class _FarmDetailsState extends State<FarmDetails> {
     final assetBundle = DefaultAssetBundle.of(context);
     final data = await assetBundle.loadString('assets/stool.json');
     final body = json.decode(data);
-
     _newstoolValues = body.map<StoolJson>(StoolJson.fromJson).toList();
-
-    // writeToFile(body);
-
-    // _disV = _districtValues[0].districtName;
     return _newstoolValues;
   }
 
@@ -560,9 +379,7 @@ class _FarmDetailsState extends State<FarmDetails> {
     final assetBundle = DefaultAssetBundle.of(context);
     final data = await assetBundle.loadString('assets/community.json');
     final body = json.decode(data);
-
     _newcommValues = body.map<CommunityJson>(CommunityJson.fromJson).toList();
-
     return _newcommValues;
   }
 
@@ -571,246 +388,19 @@ class _FarmDetailsState extends State<FarmDetails> {
     final assetBundle = DefaultAssetBundle.of(context);
     final data = await assetBundle.loadString('assets/region.json');
     final body = json.decode(data);
-
     _newregionValues = body.map<RegionJson>(RegionJson.fromRegionJson).toList();
-
     return _newregionValues;
   }
 
-  final _formKey = GlobalKey<FormState>();
-
-  String? _family;
-  String? _community;
-
-// for form validation
-  String? _mmdas;
-  String reg = "";
-  String fD = "";
-
-  bool _isWLchecked = false;
-  bool _isCPchecked = false;
-  bool _isPTchecked = false;
-  bool _isNOchecked = false;
-  bool _isFchecked = false;
-  bool _isSGchecked = false;
-  bool _isOchecked = false;
-
-  String? _regionValue;
-  String? _districtValue;
-  String? _mmdasValue;
-
-  List<String> _establishment = [];
-  // List<String> _regionValues = new List<String>();
-  // List<String> _districtValues = new List<String>();
-  List<String> _mmdasValues = [];
-
-  void setFDValuesT() {
-    regSP?.setString('region', _regionValue ?? "");
-    regSP?.setString('forestDistrict', _districtValue ?? "");
-    regSP?.setString('family', _family ?? "");
-    regSP?.setInt('mddas', _mmdV ?? 0);
-    regSP?.setString('mddasName', _disV ?? "");
-    regSP?.setString(
-        'community', !boxChecked ? _community ?? "" : _communityName.text);
-    regSP?.setStringList("est", _establishment);
-
-    debugPrint("Tree Information values gotten!");
-  }
-
-  void _onRegionChanged(String regVal) {
-    setState(() {
-      _regionValue = regVal;
-    });
-  }
-
-  void _onDistrictChanged(String disVal) {
-    setState(() {
-      _districtValue = disVal;
-    });
-  }
-
-  void _onmmdasChanged(String mmdasVal) {
-    setState(() {
-      _mmdas = mmdasVal;
-    });
-  }
-
-  void _onstoolChanged(String familyVal) {
-    setState(() {
-      _family = familyVal;
-    });
-  }
-
-  void _oncommChanged(String commVal) {
-    setState(() {
-      _community = commVal;
-    });
-  }
-
-  onSelectedRow(bool selected, String selectedEst) async {
-    setState(() {
-      if (selected) {
-        _establishment.add(selectedEst);
-      } else {
-        _establishment.remove(selectedEst);
-      }
-    });
-  }
-
-  void _onWLChanged(bool val) {
-    setState(() {
-      _isWLchecked = val;
-      onSelectedRow(val, "Woodlot");
-
-      if (val) {
-        _isCPchecked = _isCPchecked;
-        _isOchecked = _isOchecked;
-        _isPTchecked = !val;
-        _isNOchecked = !val;
-        _isFchecked = !val;
-        _isSGchecked = !val;
-
-        onSelectedRow(!val, "Sacred_Grove");
-        onSelectedRow(!val, "Fallow");
-        onSelectedRow(!val, "Naturally_Occurring_trees");
-        onSelectedRow(!val, "Planted_trees_on_farm");
-      }
-    });
-  }
-
-  void _onCPChanged(bool val) {
-    setState(() {
-      _isCPchecked = val;
-      onSelectedRow(val, "Commercial_Plantation");
-
-      if (val) {
-        _isWLchecked = _isWLchecked;
-        _isOchecked = _isOchecked;
-        _isPTchecked = !val;
-        _isNOchecked = !val;
-        _isFchecked = !val;
-        _isSGchecked = !val;
-
-        onSelectedRow(!val, "Sacred_Grove");
-        onSelectedRow(!val, "Fallow");
-        onSelectedRow(!val, "Naturally_Occurring_trees");
-        onSelectedRow(!val, "Planted_trees_on_farm");
-      }
-    });
-  }
-
-  void _onOChanged(bool val) {
-    setState(() {
-      _isOchecked = val;
-      onSelectedRow(val, "Other");
-
-      if (val) {
-        _isWLchecked = _isWLchecked;
-        _isCPchecked = _isCPchecked;
-        _isPTchecked = !val;
-        _isNOchecked = !val;
-        _isFchecked = !val;
-        _isSGchecked = !val;
-
-        onSelectedRow(!val, "Sacred_Grove");
-        onSelectedRow(!val, "Fallow");
-        onSelectedRow(!val, "Naturally_Occurring_trees");
-        onSelectedRow(!val, "Planted_trees_on_farm");
-      }
-    });
-  }
-
-  void _onPTChanged(bool val) {
-    setState(() {
-      _isPTchecked = val;
-      onSelectedRow(val, "Planted_trees_on_farm");
-
-      if (val) {
-        _isWLchecked = !val;
-        _isCPchecked = !val;
-        _isOchecked = !val;
-        _isNOchecked = _isNOchecked;
-        _isFchecked = _isFchecked;
-        _isSGchecked = _isSGchecked;
-
-        onSelectedRow(!val, "Woodlot");
-        onSelectedRow(!val, "Commercial_Plantation");
-        onSelectedRow(!val, "Other");
-      }
-    });
-  }
-
-  void _onNOChanged(bool val) {
-    setState(() {
-      _isNOchecked = val;
-      onSelectedRow(val, "Naturally_Occurring_trees");
-
-      if (val) {
-        _isWLchecked = !val;
-        _isCPchecked = !val;
-        _isOchecked = !val;
-        _isPTchecked = _isPTchecked;
-        _isFchecked = _isFchecked;
-        _isSGchecked = _isSGchecked;
-
-        onSelectedRow(!val, "Woodlot");
-        onSelectedRow(!val, "Commercial_Plantation");
-        onSelectedRow(!val, "Other");
-      }
-    });
-  }
-
-  void _onFChanged(bool val) {
-    setState(() {
-      _isFchecked = val;
-      onSelectedRow(val, "Fallow");
-
-      if (val) {
-        _isWLchecked = !val;
-        _isCPchecked = !val;
-        _isOchecked = !val;
-        _isPTchecked = _isPTchecked;
-        _isNOchecked = _isNOchecked;
-        _isSGchecked = _isSGchecked;
-
-        onSelectedRow(!val, "Woodlot");
-        onSelectedRow(!val, "Commercial_Plantation");
-        onSelectedRow(!val, "Other");
-      }
-    });
-  }
-
-  void _onSGChanged(bool val) {
-    setState(() {
-      _isSGchecked = val;
-      onSelectedRow(val, "Sacred_Grove");
-      debugPrint("Val be $val");
-
-      if (val) {
-        _isWLchecked = !val;
-        _isCPchecked = !val;
-        _isOchecked = !val;
-        _isPTchecked = _isPTchecked;
-        _isNOchecked = _isNOchecked;
-        _isFchecked = _isFchecked;
-
-        onSelectedRow(!val, "Woodlot");
-        onSelectedRow(!val, "Commercial_Plantation");
-        onSelectedRow(!val, "Other");
-      }
-    });
-  }
-
+  // File initialization methods
   districtFileInit() {
     getApplicationDocumentsDirectory().then((Directory directory) async {
       dir = directory;
       districtjsonFile = File(dir!.path + "/" + districtfileName);
       districtfileExists = districtjsonFile!.existsSync();
       if (districtfileExists)
-        districtfileContent =
-            await json.decode(await districtjsonFile!.readAsString());
+        districtfileContent = await json.decode(await districtjsonFile!.readAsString());
     });
-
     return districtfileContent;
   }
 
@@ -820,10 +410,8 @@ class _FarmDetailsState extends State<FarmDetails> {
       forestdistrictjsonFile = File(dir!.path + "/" + forestdistrictfileName);
       forestdistrictfileExists = forestdistrictjsonFile!.existsSync();
       if (forestdistrictfileExists)
-        forestdistrictfileContent =
-            await json.decode(await forestdistrictjsonFile!.readAsString());
+        forestdistrictfileContent = await json.decode(await forestdistrictjsonFile!.readAsString());
     });
-
     return forestdistrictfileContent;
   }
 
@@ -833,10 +421,8 @@ class _FarmDetailsState extends State<FarmDetails> {
       stooljsonFile = File(dir!.path + "/" + stoolfileName);
       stoolfileExists = stooljsonFile!.existsSync();
       if (stoolfileExists)
-        stoolfileContent =
-            await json.decode(await stooljsonFile!.readAsString());
+        stoolfileContent = await json.decode(await stooljsonFile!.readAsString());
     });
-
     return stoolfileContent;
   }
 
@@ -848,7 +434,6 @@ class _FarmDetailsState extends State<FarmDetails> {
       if (commfileExists)
         commfileContent = await json.decode(await commjsonFile!.readAsString());
     });
-
     return commfileContent;
   }
 
@@ -858,13 +443,12 @@ class _FarmDetailsState extends State<FarmDetails> {
       regionjsonFile = File(dir!.path + "/" + regionfileName);
       regionfileExists = regionjsonFile!.existsSync();
       if (regionfileExists)
-        regionfileContent =
-            await json.decode(await regionjsonFile!.readAsString());
+        regionfileContent = await json.decode(await regionjsonFile!.readAsString());
     });
-
     return regionfileContent;
   }
 
+  // Futures for async operations
   Future<List<DistrictsJson>>? myDFuture;
   Future<List<ForestDistrictsJson>>? myFDFuture;
   Future<List<StoolJson>>? mySFuture;
@@ -874,1634 +458,733 @@ class _FarmDetailsState extends State<FarmDetails> {
   @override
   void initState() {
     super.initState();
+    // Initialize file systems
     forestdistrictFileInit();
     stoolFileInit();
     districtFileInit();
     commFileInit();
     regionFileInit();
 
+    // Initialize futures
     myDFuture = writeToDistrictFile(this.context);
     myFDFuture = writeToForestDistrictFile(this.context);
     mySFuture = writeToStoolFile(this.context);
     myCFuture = writeToCommFile(this.context);
     myRFuture = writeToRegionFile(this.context);
 
-    // _mmdas = 96;
-    reg = "Western Region";
-    fD = "First";
-
     _establishment = [];
   }
 
-  final _communityName = TextEditingController();
-  List<String> _commFound = [];
-  bool boxChecked = false;
-
-  oncSelectedRow(bool selected, String selectedEst) async {
+  // Establishment selection logic
+  void _toggleEstablishment(String establishment) {
     setState(() {
-      if (selected) {
-        _commFound.add(selectedEst);
+      if (_establishment.contains(establishment)) {
+        _establishment.remove(establishment);
+        if (establishment == 'Other') {
+          _otherEstablishmentController.clear();
+        }
       } else {
-        _commFound.remove(selectedEst);
+        // Handle exclusive groups
+        if (_exclusiveGroup1.contains(establishment)) {
+          _establishment.removeWhere((item) => _exclusiveGroup1.contains(item));
+        } else if (_exclusiveGroup2.contains(establishment)) {
+          _establishment.removeWhere((item) => _exclusiveGroup2.contains(item));
+        }
+
+        _establishment.add(establishment);
       }
     });
   }
 
-  void _onComChanged(bool val) {
-    setState(() {
-      boxChecked = val;
-    });
+  bool _isEstablishmentSelected(String establishment) {
+    return _establishment.contains(establishment);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    return Scaffold(
-      backgroundColor: primaryColour,
-      // appBar: AppBar(
-      //   foregroundColor: fPrimaryWhite,
-      //   automaticallyImplyLeading: false,
-      //   backgroundColor: fPrimaryColour,
-      //   title: Text(
-      //     "Registration of Planted Trees",
-      //     style: TextStyle(color: fPrimaryWhite),
-      //   ),
-      //   actions: [
-      //     PopupMenuButton<String>(
-      //       offset: Offset(2.00, 3.00),
-      //       color: Colors.black,
-      //       onSelected: (String _downChoice) {
-      //         if (_downChoice == Constants.home) {
-      //           Navigator.of(context).pushReplacement(
-      //             MaterialPageRoute(
-      //               builder: (BuildContext context) => IndexPage(),
-      //             ),
-      //           );
-      //         } else if (_downChoice == Constants.load) {
-      //           writeToStoolFile(context);
-      //           writeToForestDistrictFile(context);
-      //           writeToDistrictFile(context);
-      //           writeToCommFile(context);
-      //           writeToRegionFile(context);
-
-      //           Navigator.pushReplacement(
-      //               context,
-      //               MaterialPageRoute(
-      //                   builder: (BuildContext context) => this.widget));
-      //           // setState(() {
-      //           //   getApplicationDocumentsDirectory().then(
-      //           //     (Directory directory) async {
-      //           //       dir = directory;
-      //           //       districtjsonFile =
-      //           //           new File(dir!.path + "/" + districtfileName);
-      //           //       districtfileExists = await districtjsonFile.exists();
-      //           //       forestdistrictjsonFile =
-      //           //           new File(dir!.path + "/" + forestdistrictfileName);
-      //           //       forestdistrictfileExists =
-      //           //           await forestdistrictjsonFile.exists();
-      //           //       stooljsonFile = new File(dir!.path + "/" + stoolfileName);
-      //           //       stoolfileExists = await stooljsonFile.exists();
-
-      //           //       if (forestdistrictfileExists &&
-      //           //           districtfileExists &&
-      //           //           stoolfileExists) {
-      //           //         forestdistrictfileContent = await json.decode(
-      //           //             await forestdistrictjsonFile!.readAsString());
-
-      //           //         districtfileContent = await json
-      //           //             .decode(await districtjsonFile!.readAsString());
-
-      //           //         stoolfileContent = await json
-      //           //             .decode(await stooljsonFile!.readAsString());
-      //           //       }
-      //           //       //else {}
-      //           //       // if (districtfileExists) {
-      //           //       //   districtfileContent =
-      //           //       //       await json.decode(await districtjsonFile!.readAsString());
-      //           //       // } else {}
-      //           //       // if (stoolfileExists) {
-      //           //       //   stoolfileContent =
-      //           //       //       await json.decode(await stooljsonFile!.readAsString());
-      //           //       // } else {}
-      //           //     },
-      //           //   );
-      //           // });
-      //         } else if (_downChoice == Constants.saveskip) {
-      //           regSP?.setBool("farmdetskipped", true);
-      //           if (_establishment.isEmpty) {
-      //             overlayNotification(
-      //                 'Please select type of establishment', "negative");
-      //           } else {
-      //             setFDValuesT();
-      //             Navigator.of(context).push(
-      //               CupertinoPageRoute(
-      //                 builder: (BuildContext context) => FarmCordinates(),
-      //               ),
-      //             );
-
-      //             debugPrint("Selected types are $_establishment");
-      //           }
-      //         } else if (_downChoice == Constants.saveclose) {
-      //           // regSP?.setBool("closed", true);
-      //           // setFDValuesT();
-      //           // Navigator.of(context).push(
-      //           //   CupertinoPageRoute(
-      //           //     builder: (BuildContext context) => FarmCordinates(),
-      //           //   ),
-      //           // );
-      //         }
-      //       },
-      //       itemBuilder: (BuildContext context) {
-      //         return Constants.downChoices.map((String _downChoice) {
-      //           return PopupMenuItem<String>(
-      //             value: _downChoice,
-      //             child: Container(
-      //               margin: EdgeInsets.only(right: 0),
-      //               child: Text(
-      //                 _downChoice,
-      //                 style: TextStyle(color: Color(0xFFFFFFFF)),
-      //               ),
-      //             ),
-      //           );
-      //         }).toList();
-      //       },
-      //     ),
-      //   ],
-      // ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.end,
+  // UI Components
+  Widget _buildModernDropdown({
+    required String title,
+    required String? value,
+    required List<dynamic> items,
+    required Function(String?) onChanged,
+    required String displayKey,
+    bool isRequired = true,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Material(
-                  elevation: 0.0,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(12.0),
-                  ),
-                  color: primaryColour,
-                  child: IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: primaryWhite,
-                        size: 40.0,
-                      )),
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
-                Text(
-                  "Farm Details".toUpperCase(),
-                  style: const TextStyle(
-                    color: primaryWhite,
-                    fontSize: 20.0,
+              ),
+              if (isRequired)
+                const Text(
+                  ' *',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
                   ),
                 ),
-                PopupMenuButton<String>(
-                  offset: const Offset(2.00, 3.00),
-                  color: Colors.black,
-                  icon: Icon(
-                    Icons.more_vert_rounded,
-                    color: primaryWhite,
-                    size: 40.0,
-                  ),
-                  onSelected: (String downChoice) {
-                    if (downChoice == Constants.home) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => const IndexPage(),
-                        ),
-                      );
-                    } else if (downChoice == Constants.load) {
-                      writeToStoolFile(context);
-                      writeToForestDistrictFile(context);
-                      writeToDistrictFile(context);
-                      writeToCommFile(context);
-                      writeToRegionFile(context);
-
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (BuildContext context) => widget));
-                    } else if (downChoice == Constants.saveskip) {
-                      regSP?.setBool("farmdetskipped", true);
-                      if (_establishment.isEmpty) {
-                        overlayNotification(
-                            'Please select type of establishment', "negative");
-                      } else {
-                        setFDValuesT();
-                        Navigator.of(context).push(
-                          CupertinoPageRoute(
-                            builder: (BuildContext context) => FarmCordinates(),
-                          ),
-                        );
-
-                        debugPrint("Selected types are $_establishment");
-                      }
-                    } else if (downChoice == Constants.saveclose) {
-                      // regSP?.setBool("closed", true);
-                      // setFDValuesT();
-                      // Navigator.of(context).push(
-                      //   CupertinoPageRoute(
-                      //     builder: (BuildContext context) => FarmCordinates(),
-                      //   ),
-                      // );
-                    }
-                  },
-                  itemBuilder: (BuildContext context) {
-                    return Constants.downChoices.map((String downChoice) {
-                      return PopupMenuItem<String>(
-                        value: downChoice,
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 0),
-                          child: Text(
-                            downChoice,
-                            style: const TextStyle(color: Color(0xFFFFFFFF)),
-                          ),
-                        ),
-                      );
-                    }).toList();
-                  },
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: size.height * .85,
-              decoration: const BoxDecoration(
-                color: primaryWhite,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25.0),
-                    topRight: Radius.circular(25.0)),
-              ),
-              child: SingleChildScrollView(
-                child: Container(
-                  // height: size.height,
-                  margin: const EdgeInsets.all(0.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    vertical: fDefaultPadding),
-                                child: Center(
-                                  child: Text(
-                                    "Tree Farm Information",
-                                    style: TextStyle(
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                color: const Color(0xFFFFFFFF),
-                                child: Container(
-                                    margin: const EdgeInsets.all(8.0),
-                                    child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          // Row(
-                                          //   children: <Widget>[
-                                          //     Container(
-                                          //       margin: EdgeInsets.only(
-                                          //         bottom: 14.0,
-                                          //       ),
-                                          //       child: Row(
-                                          //         children: <Widget>[
-                                          //           Text("Select Region"),
-                                          //         ],
-                                          //       ),
-                                          //     ),
-                                          //   ],
-                                          // ),
-
-                                          formFieldLabel(width: size.width * .9, "Select region"),
-                                          Row(
-                                            children: <Widget>[
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                      width: 0.50,
-                                                      color: const Color(
-                                                          0xFF000000)),
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(
-                                                              15.0)),
-                                                ),
-                                                // width:
-                                                //     MediaQuery.of(context).size.width /
-                                                //         1.09,
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: FutureBuilder<
-                                                    List<RegionJson>>(
-                                                  future: mounted
-                                                      ? myRFuture
-                                                      : null,
-                                                  builder: (context,
-                                                      AsyncSnapshot<
-                                                              List<RegionJson>>
-                                                          snapshot) {
-                                                    if (!snapshot.hasData) {
-                                                      return const CircularProgressIndicator(
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                                    Color>(
-                                                                fPrimaryColour),
-                                                      );
-                                                    } else if (snapshot
-                                                        .hasData) {
-                                                      return regionfileExists
-                                                          ? SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _regionValue,
-                                                                    items: _regionValues.map(
-                                                                        (RegionJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _onRegionChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            )
-                                                          : SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _regionValue,
-                                                                    items: _newregionValues.map(
-                                                                        (RegionJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _onRegionChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            );
-                                                    } else {
-                                                      return const Text(
-                                                        "Please sync data",
-                                                      );
-                                                    }
-                                                  },
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ])),
-                              ),
-                              Container(
-                                color: const Color(0xFFFFFFFF),
-                                child: Column(
-                                  children: <Widget>[
-                                    Container(
-                                      margin: const EdgeInsets.only(
-                                        top: 8.0,
-                                        left: 8.0,
-                                        right: 8.0,
-                                        bottom: 18.0,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: <Widget>[
-                                          // Row(
-                                          //   children: <Widget>[
-                                          //     Container(
-                                          //       margin: EdgeInsets.only(
-                                          //         bottom: 14.0,
-                                          //       ),
-                                          //       child: Row(
-                                          //         children: <Widget>[
-                                          //           Text("Select Forest District"),
-                                          //         ],
-                                          //       ),
-                                          //     ),
-                                          //   ],
-                                          // ),
-                                          formFieldLabel(width: size.width * .9, 
-                                              "Select Forest District"),
-                                          Row(
-                                            children: <Widget>[
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                      width: 0.50,
-                                                      color: const Color(
-                                                          0xFF000000)),
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(
-                                                              15.0)),
-                                                ),
-                                                // width:
-                                                //     MediaQuery.of(context).size.width /
-                                                //         1.09,
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: FutureBuilder<
-                                                    List<ForestDistrictsJson>>(
-                                                  future: mounted
-                                                      ? myFDFuture
-                                                      : null,
-                                                  builder: (context,
-                                                      AsyncSnapshot<
-                                                              List<
-                                                                  ForestDistrictsJson>>
-                                                          snapshot) {
-                                                    if (!snapshot.hasData)
-                                                      return const CircularProgressIndicator(
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                                    Color>(
-                                                                fPrimaryColour),
-                                                      );
-                                                    else if (snapshot.hasData)
-                                                      return forestdistrictfileExists
-                                                          ? SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _fdisV,
-                                                                    items: _forestdistrictValues.map(
-                                                                        (ForestDistrictsJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _fdisV =
-                                                                          value;
-                                                                      _onDistrictChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            )
-                                                          : SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _fdisV,
-                                                                    items: _newforestdistrictValues.map(
-                                                                        (ForestDistrictsJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _fdisV =
-                                                                          value;
-                                                                      _onDistrictChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            );
-                                                    else
-                                                      return const Text(
-                                                        "Please sync data",
-                                                      );
-                                                  },
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(
-                                height: 30,
-                                child: Divider(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              Container(
-                                color: const Color(0xFFFFFFFF),
-                                child: Column(
-                                  children: <Widget>[
-                                    Container(
-                                      margin: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // Row(
-                                          //   children: <Widget>[
-                                          //     Container(
-                                          //       margin: EdgeInsets.only(
-                                          //         bottom: 14.0,
-                                          //       ),
-                                          //       child: Row(
-                                          //         children: <Widget>[
-                                          //           Text("TA/Stool/Skin/Family"),
-                                          //         ],
-                                          //       ),
-                                          //     ),
-                                          //   ],
-                                          // ),
-
-                                          formFieldLabel(width: size.width * .9, 
-                                              "TA/Stool/Skin/Family"),
-                                          Row(
-                                            children: <Widget>[
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  border: Border.all(
-                                                      width: 0.50,
-                                                      color: const Color(
-                                                          0xFF000000)),
-                                                  borderRadius:
-                                                      const BorderRadius.all(
-                                                          Radius.circular(
-                                                              15.0)),
-                                                ),
-                                                // width: MediaQuery.of(context)
-                                                //         .size
-                                                //         .width /
-                                                //     1.09,
-                                                padding:
-                                                    const EdgeInsets.all(6.0),
-                                                child: FutureBuilder<
-                                                    List<StoolJson>>(
-                                                  future: mounted
-                                                      ? mySFuture
-                                                      : null,
-                                                  builder: (context, snapshot) {
-                                                    if (!snapshot.hasData)
-                                                      return const CircularProgressIndicator(
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                                    Color>(
-                                                                fPrimaryColour),
-                                                      );
-                                                    else if (snapshot.hasData)
-                                                      return stoolfileExists
-                                                          ? SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _stoolV,
-                                                                    items: _stoolValues.map(
-                                                                        (StoolJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _stoolV =
-                                                                          value;
-                                                                      _onstoolChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            )
-                                                          : SizedBox(
-                                                              width: MediaQuery.of(
-                                                                          context)
-                                                                      .size
-                                                                      .width /
-                                                                  1.09,
-                                                              child: StatefulBuilder(
-                                                                  builder:
-                                                                      (context,
-                                                                          state) {
-                                                                return DropdownButtonHideUnderline(
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    value:
-                                                                        _stoolV,
-                                                                    items: _newstoolValues.map(
-                                                                        (StoolJson
-                                                                            dvalue) {
-                                                                      // fD = dvalue;
-                                                                      return DropdownMenuItem<
-                                                                          String>(
-                                                                        value: dvalue
-                                                                            .name,
-                                                                        child:
-                                                                            Row(
-                                                                          children: <Widget>[
-                                                                            Padding(
-                                                                              padding: const EdgeInsets.all(10.0),
-                                                                              child: Text(
-                                                                                "${dvalue.name}",
-                                                                              ),
-                                                                            )
-                                                                          ],
-                                                                        ),
-                                                                      );
-                                                                    }).toList(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            value) {
-                                                                      _stoolV =
-                                                                          value;
-                                                                      _onstoolChanged(
-                                                                          value!);
-                                                                      // fD = value;
-                                                                      // debugPrint(_districtValues
-                                                                      //     .elementAt(_districtValues
-                                                                      //         .indexOf(value))
-                                                                      //     .districtcode);
-                                                                      // _districtValues.map(
-                                                                      //     (DistrictsJson
-                                                                      //         ddvalue) {
-                                                                      //   if (ddvalue.district ==
-                                                                      //       value) {
-                                                                      //     debugPrint(ddvalue
-                                                                      //         .districtcode);
-                                                                      //   }
-                                                                      // }).toString();
-                                                                    },
-                                                                  ),
-                                                                );
-                                                              }),
-                                                            );
-                                                    else
-                                                      return const Text(
-                                                        "Please sync data",
-                                                      );
-                                                  },
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      color: const Color(0xFFFFFFFF),
-                                      child: Column(
-                                        children: <Widget>[
-                                          Container(
-                                            margin: const EdgeInsets.only(
-                                              top: 8.0,
-                                              left: 8.0,
-                                              right: 8.0,
-                                              bottom: 18.0,
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                // Row(
-                                                //   children: <Widget>[
-                                                //     Container(
-                                                //       margin: EdgeInsets.only(
-                                                //         bottom: 14.0,
-                                                //       ),
-                                                //       child: Row(
-                                                //         children: <Widget>[
-                                                //           Text("Select MMDAs"),
-                                                //         ],
-                                                //       ),
-                                                //     ),
-                                                //   ],
-                                                // ),
-                                                formFieldLabel(width: size.width * .9, "Select MMDAs"),
-                                                Row(
-                                                  children: <Widget>[
-                                                    Container(
-                                                      decoration: BoxDecoration(
-                                                        border: Border.all(
-                                                            width: 0.50,
-                                                            color: const Color(
-                                                                0xFF000000)),
-                                                        borderRadius:
-                                                            const BorderRadius
-                                                                .all(
-                                                                Radius.circular(
-                                                                    15.0)),
-                                                      ),
-                                                      // width: MediaQuery.of(context)
-                                                      //         .size
-                                                      //         .width /
-                                                      //     1.09,
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              6.0),
-                                                      child: FutureBuilder<
-                                                          List<DistrictsJson>>(
-                                                        future: mounted
-                                                            ? myDFuture
-                                                            : null,
-                                                        builder: (context,
-                                                            AsyncSnapshot<
-                                                                    List<
-                                                                        DistrictsJson>>
-                                                                snapshot) {
-                                                          if (!snapshot.hasData)
-                                                            return const CircularProgressIndicator(
-                                                              valueColor:
-                                                                  AlwaysStoppedAnimation<
-                                                                          Color>(
-                                                                      fPrimaryColour),
-                                                            );
-                                                          else if (snapshot
-                                                              .hasData)
-                                                            return districtfileExists
-                                                                ? SizedBox(
-                                                                    width: MediaQuery.of(context)
-                                                                            .size
-                                                                            .width /
-                                                                        1.09,
-                                                                    child: StatefulBuilder(builder:
-                                                                        (context,
-                                                                            state) {
-                                                                      return DropdownButtonHideUnderline(
-                                                                        child: DropdownButton<
-                                                                            String>(
-                                                                          value:
-                                                                              _disV,
-                                                                          items:
-                                                                              _districtValues.map((DistrictsJson dvalue) {
-                                                                            // fD = dvalue;
-                                                                            return DropdownMenuItem<String>(
-                                                                              value: dvalue.district,
-                                                                              child: Row(
-                                                                                children: <Widget>[
-                                                                                  Padding(
-                                                                                    padding: const EdgeInsets.all(10.0),
-                                                                                    child: Text(
-                                                                                      "${dvalue.district}",
-                                                                                    ),
-                                                                                  )
-                                                                                ],
-                                                                              ),
-                                                                            );
-                                                                          }).toList(),
-                                                                          onChanged:
-                                                                              (String? value) {
-                                                                            _disV =
-                                                                                value;
-                                                                            _onmmdasChanged(value!);
-                                                                            fD =
-                                                                                value;
-                                                                            _districtValues.map((DistrictsJson
-                                                                                ddvalue) {
-                                                                              if (ddvalue.district == value) {
-                                                                                setState(() {
-                                                                                  _mmdV = ddvalue.districtcode;
-                                                                                });
-                                                                              }
-                                                                              debugPrint("MV"
-                                                                                  "$_mmdV");
-                                                                            }).toString();
-
-                                                                            debugPrint("MVVV"
-                                                                                "$_mmdV");
-                                                                          },
-                                                                        ),
-                                                                      );
-                                                                    }),
-                                                                  )
-                                                                : SizedBox(
-                                                                    width: MediaQuery.of(context)
-                                                                            .size
-                                                                            .width /
-                                                                        1.09,
-                                                                    child: StatefulBuilder(builder:
-                                                                        (context,
-                                                                            state) {
-                                                                      return DropdownButtonHideUnderline(
-                                                                        child: DropdownButton<
-                                                                            String>(
-                                                                          value:
-                                                                              _disV,
-                                                                          items:
-                                                                              _newdistrictValues.map((DistrictsJson dvalue) {
-                                                                            // fD = dvalue;
-                                                                            return DropdownMenuItem<String>(
-                                                                              value: dvalue.district,
-                                                                              child: Row(
-                                                                                children: <Widget>[
-                                                                                  Padding(
-                                                                                    padding: const EdgeInsets.all(10.0),
-                                                                                    child: Text(
-                                                                                      "${dvalue.district}",
-                                                                                    ),
-                                                                                  )
-                                                                                ],
-                                                                              ),
-                                                                            );
-                                                                          }).toList(),
-                                                                          onChanged:
-                                                                              (String? value) {
-                                                                            _disV =
-                                                                                value;
-                                                                            _onmmdasChanged(value!);
-
-                                                                            _newdistrictValues.map((DistrictsJson
-                                                                                ddvalue) {
-                                                                              if (ddvalue.district == value) {
-                                                                                setState(() {
-                                                                                  _mmdV = ddvalue.districtcode;
-                                                                                });
-                                                                              }
-                                                                              debugPrint("MV"
-                                                                                  "$_mmdV");
-                                                                            }).toString();
-
-                                                                            debugPrint("MVVV"
-                                                                                "$_mmdV");
-                                                                          },
-                                                                        ),
-                                                                      );
-                                                                    }),
-                                                                  );
-                                                          else
-                                                            return const Text(
-                                                              "Please sync data",
-                                                            );
-                                                        },
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    !boxChecked
-                                        ? Container(
-                                            color: const Color(0xFFFFFFFF),
-                                            child: Column(
-                                              children: <Widget>[
-                                                Container(
-                                                  margin: const EdgeInsets.only(
-                                                    top: 8.0,
-                                                    left: 8.0,
-                                                    right: 8.0,
-                                                    bottom: 18.0,
-                                                  ),
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: <Widget>[
-                                                      // Row(
-                                                      //   children: <Widget>[
-                                                      //     Container(
-                                                      //       margin: EdgeInsets.only(
-                                                      //         bottom: 14.0,
-                                                      //       ),
-                                                      //       child: Row(
-                                                      //         children: <Widget>[
-                                                      //           Text(
-                                                      //               "Select Community"),
-                                                      //         ],
-                                                      //       ),
-                                                      //     ),
-                                                      //   ],
-                                                      // ),
-                                                      formFieldLabel(width: size.width * .9, 
-                                                          "Select community"),
-                                                      Row(
-                                                        children: <Widget>[
-                                                          Container(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              border: Border.all(
-                                                                  width: 0.50,
-                                                                  color: const Color(
-                                                                      0xFF000000)),
-                                                              borderRadius:
-                                                                  const BorderRadius
-                                                                      .all(
-                                                                      Radius.circular(
-                                                                          15.0)),
-                                                            ),
-                                                            // width: MediaQuery.of(context)
-                                                            //         .size
-                                                            //         .width /
-                                                            //     1.09,
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(6.0),
-                                                            child: FutureBuilder<
-                                                                List<
-                                                                    CommunityJson>>(
-                                                              future: mounted
-                                                                  ? myCFuture
-                                                                  : null,
-                                                              builder: (context,
-                                                                  AsyncSnapshot<
-                                                                          List<
-                                                                              CommunityJson>>
-                                                                      snapshot) {
-                                                                if (!snapshot
-                                                                    .hasData)
-                                                                  return const CircularProgressIndicator(
-                                                                    valueColor:
-                                                                        AlwaysStoppedAnimation<Color>(
-                                                                            fPrimaryColour),
-                                                                  );
-                                                                else if (snapshot
-                                                                    .hasData)
-                                                                  return commfileExists
-                                                                      ? SizedBox(
-                                                                          width:
-                                                                              MediaQuery.of(context).size.width / 1.09,
-                                                                          child:
-                                                                              StatefulBuilder(builder: (context, state) {
-                                                                            return DropdownButtonHideUnderline(
-                                                                              child: DropdownButton<String>(
-                                                                                value: _community,
-                                                                                items: _commValues.map((CommunityJson dvalue) {
-                                                                                  // fD = dvalue;
-                                                                                  return DropdownMenuItem<String>(
-                                                                                    value: dvalue.name,
-                                                                                    child: Row(
-                                                                                      children: <Widget>[
-                                                                                        Padding(
-                                                                                          padding: const EdgeInsets.all(10.0),
-                                                                                          child: Text(
-                                                                                            "${dvalue.name}",
-                                                                                          ),
-                                                                                        )
-                                                                                      ],
-                                                                                    ),
-                                                                                  );
-                                                                                }).toList(),
-                                                                                onChanged: (String? value) {
-                                                                                  _community = value;
-                                                                                  _oncommChanged(value!);
-
-                                                                                  debugPrint("Community"
-                                                                                      "$_community");
-                                                                                },
-                                                                              ),
-                                                                            );
-                                                                          }),
-                                                                        )
-                                                                      : SizedBox(
-                                                                          width:
-                                                                              MediaQuery.of(context).size.width / 1.09,
-                                                                          child:
-                                                                              StatefulBuilder(builder: (context, state) {
-                                                                            return DropdownButtonHideUnderline(
-                                                                              child: DropdownButton<String>(
-                                                                                value: _community,
-                                                                                items: _newcommValues.map((CommunityJson dvalue) {
-                                                                                  // fD = dvalue;
-                                                                                  return DropdownMenuItem<String>(
-                                                                                    value: dvalue.name,
-                                                                                    child: Row(
-                                                                                      children: <Widget>[
-                                                                                        Padding(
-                                                                                          padding: const EdgeInsets.all(10.0),
-                                                                                          child: Text(
-                                                                                            "${dvalue.name}",
-                                                                                          ),
-                                                                                        )
-                                                                                      ],
-                                                                                    ),
-                                                                                  );
-                                                                                }).toList(),
-                                                                                onChanged: (String? value) {
-                                                                                  _community = value;
-                                                                                  _oncommChanged(value!);
-
-                                                                                  debugPrint("Community"
-                                                                                      "$_community");
-                                                                                },
-                                                                              ),
-                                                                            );
-                                                                          }),
-                                                                        );
-                                                                else
-                                                                  return const Text(
-                                                                    "Please sync data",
-                                                                  );
-                                                              },
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        : const SizedBox(),
-                                    CheckboxListTile(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 8),
-                                      title: const Text(
-                                        "Check box if community not found",
-                                        style: TextStyle(
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      value: boxChecked,
-                                      activeColor: fPrimaryColour,
-                                      onChanged: (bool? value) {
-                                        _onComChanged(value!);
-                                      },
-                                    ),
-                                    boxChecked
-                                        ? Container(
-                                            margin: const EdgeInsets.only(
-                                                left: 10.0,
-                                                right: 10.0,
-                                                bottom: 8.0),
-                                            child: TextFieldWidget(
-                                              keyboardType: TextInputType.text,
-                                              decoration: const InputDecoration(
-                                                  labelText:
-                                                      "(Enter community if not found)"),
-                                              controller: _communityName,
-                                              validator: (input) =>
-                                                  input!.trim().isEmpty
-                                                      ? 'Please enter community'
-                                                      : null,
-                                              readonly: boxChecked
-                                                  ? false
-                                                  : boxChecked,
-                                            ),
-                                          )
-                                        : const SizedBox(),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(
-                                height: 30,
-                                child: Divider(
-                                  color: Colors.transparent,
-                                ),
-                              ),
-                              Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                color: const Color(0xFFFFFFFF),
-                                child: Column(
-                                  children: <Widget>[
-                                    Column(
-                                      children: <Widget>[
-                                        Container(
-                                          margin: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              Row(
-                                                children: <Widget>[
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                      bottom: 14.0,
-                                                    ),
-                                                    child: const Row(
-                                                      children: <Widget>[
-                                                        Text(
-                                                            "Type of Establishment"),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Woodlot",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isWLchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onWLChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Commercial plantation",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isCPchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onCPChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Planted trees on farm",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isPTchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onPTChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Naturally Occurring Trees",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isNOchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onNOChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Fallow",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isFchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onFChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Sacred Grove",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isSGchecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onSGChanged(value!);
-                                                  debugPrint("Val be $value");
-                                                },
-                                              ),
-                                              Column(
-                                                children: [
-                                                  CheckboxListTile(
-                                                    title: const Text(
-                                                      "Others",
-                                                      style: TextStyle(
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    value: _isOchecked,
-                                                    activeColor: fPrimaryColour,
-                                                    onChanged: (bool? value) {
-                                                      _onOChanged(value!);
-                                                    },
-                                                  ),
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            left: 10.0,
-                                                            right: 10.0,
-                                                            bottom: 8.0),
-                                                    child: TextFieldWidget(
-                                                      readonly:
-                                                          _isOchecked == true
-                                                              ? false
-                                                              : true,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                        hintText: "(Specify)",
-                                                        hintStyle: TextStyle(
-                                                            fontStyle: FontStyle
-                                                                .italic),
-                                                      ),
-                                                      labelText: "(Specify)",
-                                                      controller:
-                                                          TextEditingController(),
-                                                      validator: (input) =>
-                                                          _establishment
-                                                                  .contains(
-                                                                      "Other")
-                                                              ? input!
-                                                                      .trim()
-                                                                      .isEmpty
-                                                                  ? 'Please specify type of establishment'
-                                                                  : null
-                                                              : null,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          height: 30,
-                                        ),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
-                                          children: [
-                                            SizedBox(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  3,
-                                              height: 50.00,
-                                              child: ElevatedButton(
-                                                style: ElevatedButton.styleFrom(
-                                                  elevation: 0.0,
-                                                  backgroundColor:
-                                                      fPrimaryColour,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10.0),
-                                                  ),
-                                                  textStyle: const TextStyle(
-                                                      color: Colors.white),
-                                                  // shadowColor: fPrimaryColour,
-                                                  side: const BorderSide(
-                                                      width: 1.0,
-                                                      color: fPrimaryColour),
-                                                ),
-                                                child: const Text(
-                                                  "Next",
-                                                  style: TextStyle(
-                                                      color: fPrimaryWhite,
-                                                      fontSize: 17.0,
-                                                      fontWeight:
-                                                          FontWeight.normal),
-                                                ),
-                                                onPressed: () async {
-                                                  if (_regionValue == null) {
-                                                    overlayNotification(
-                                                        'Please select a region',
-                                                        "negative");
-                                                  } else if (_districtValue ==
-                                                      null) {
-                                                    overlayNotification(
-                                                        'Please select a forest district',
-                                                        "negative");
-                                                  } else if (_family == null) {
-                                                    overlayNotification(
-                                                        'Please select a family',
-                                                        "negative");
-                                                  } else if (_mmdas == null) {
-                                                    overlayNotification(
-                                                        'Please select an MMDA',
-                                                        "negative");
-                                                  } else if (_community ==
-                                                          null &&
-                                                      !boxChecked) {
-                                                    overlayNotification(
-                                                        'Please select a community',
-                                                        "negative");
-                                                  } else if (_establishment
-                                                      .isEmpty) {
-                                                    overlayNotification(
-                                                        'Please select type of establishment',
-                                                        "negative");
-                                                  } else if (_formKey
-                                                      .currentState!
-                                                      .validate()) {
-                                                    regSP?.setBool(
-                                                        "farmdetskipped",
-                                                        false);
-                                                    setFDValuesT();
-                                                    Navigator.of(context).push(
-                                                      CupertinoPageRoute(
-                                                        builder: (BuildContext
-                                                                context) =>
-                                                            FarmCordinates(),
-                                                      ),
-                                                    );
-                                                    debugPrint(
-                                                        "Selected types are $_establishment");
-
-                                                    debugPrint(
-                                                        "Selected types are ${_establishment.contains("Woodlot")}");
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                            SizedBox(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  3,
-                                              height: 50.00,
-                                              child: ElevatedButton(
-                                                style: ElevatedButton.styleFrom(
-                                                  elevation: 0.0,
-                                                  backgroundColor:
-                                                      fPrimaryColour,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10.0),
-                                                  ),
-                                                  textStyle: const TextStyle(
-                                                      color: Colors.white),
-                                                  // shadowColor: fPrimaryColour,
-                                                  side: const BorderSide(
-                                                      width: 1.0,
-                                                      color: fPrimaryColour),
-                                                ),
-                                                child: const Text(
-                                                  "Skip",
-                                                  style: TextStyle(
-                                                      color: fPrimaryWhite,
-                                                      fontSize: 17.0,
-                                                      fontWeight:
-                                                          FontWeight.normal),
-                                                ),
-                                                onPressed: () async {
-                                                  regSP?.setBool(
-                                                      "farmdetskipped", true);
-                                                  if (_establishment.isEmpty) {
-                                                    overlayNotification(
-                                                        'Please select type of establishment',
-                                                        "negative");
-                                                  } else {
-                                                    setFDValuesT();
-                                                    Navigator.of(context).push(
-                                                      CupertinoPageRoute(
-                                                        builder: (BuildContext
-                                                                context) =>
-                                                            FarmCordinates(),
-                                                      ),
-                                                    );
-
-                                                    debugPrint(
-                                                        "Selected types are $_establishment");
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                isExpanded: true,
+                icon: Icon(Icons.arrow_drop_down, color: fPrimaryColour),
+                elevation: 2,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+                hint: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Select $title',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 16,
                     ),
                   ),
+                ),
+                items: items.map<DropdownMenuItem<String>>((dynamic item) {
+                  final displayValue = _getDisplayValue(item, displayKey);
+                  return DropdownMenuItem<String>(
+                    value: displayValue,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        displayValue,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDisplayValue(dynamic item, String key) {
+    if (item is Map<String, dynamic>) {
+      return item[key]?.toString() ?? '';
+    }
+    return item.toString();
+  }
+
+  Widget _buildEstablishmentChips() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text(
+                "Type of Establishment",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Select the type of tree establishment (mutually exclusive groups)",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _establishmentOptions.map((option) {
+              final isSelected = _isEstablishmentSelected(option['value']);
+              final color = option['color'] as Color;
+
+              return FilterChip(
+                selected: isSelected,
+                label: Text(
+                  option['label'],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                avatar: Icon(
+                  option['icon'],
+                  color: isSelected ? Colors.white : color,
+                  size: 18,
+                ),
+                backgroundColor: Colors.grey[100],
+                selectedColor: color,
+                checkmarkColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected ? color : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                ),
+                onSelected: (selected) {
+                  _toggleEstablishment(option['value']);
+                },
+              );
+            }).toList(),
+          ),
+          if (_establishment.contains('Other')) ...[
+            const SizedBox(height: 16),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              child: TextFieldWidget(
+                controller: _otherEstablishmentController,
+                decoration: InputDecoration(
+                  labelText: "Specify other establishment type",
+                  hintText: "Enter the type of establishment...",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: fPrimaryColour, width: 2),
+                  ),
+                ),
+                validator: (input) {
+                  if (_establishment.contains('Other') && (input == null || input.trim().isEmpty)) {
+                    return 'Please specify the establishment type';
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommunitySection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Text(
+                "Community",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                ' *',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (!boxChecked)
+            _buildModernDropdown(
+              title: "",
+              value: _community,
+              items: commfileExists ? _commValues : _newcommValues,
+              onChanged: (value) {
+                setState(() {
+                  _community = value;
+                });
+              },
+              displayKey: 'name',
+              isRequired: false,
+            ),
+          if (!boxChecked) const SizedBox(height: 8),
+          Row(
+            children: [
+              Checkbox(
+                value: boxChecked,
+                onChanged: (value) {
+                  setState(() {
+                    boxChecked = value!;
+                    if (!boxChecked) {
+                      _communityName.clear();
+                    }
+                  });
+                },
+                activeColor: fPrimaryColour,
+              ),
+              const Text(
+                "Community not found in list",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          if (boxChecked) ...[
+            const SizedBox(height: 12),
+            TextFieldWidget(
+              controller: _communityName,
+              decoration: InputDecoration(
+                labelText: "Enter Community Name",
+                hintText: "Type the community name...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: fPrimaryColour, width: 2),
+                ),
+              ),
+              validator: (input) {
+                if (boxChecked && (input == null || input.trim().isEmpty)) {
+                  return 'Please enter the community name';
+                }
+                return null;
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        children: [
+          LinearProgressIndicator(
+            value: 0.4, // 40% progress for farm details
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(fPrimaryColour),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Step 2 of 5 - Farm Details",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _validateAndProceed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: fPrimaryColour,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: const Text(
+                "Continue to Farm Coordinates",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                regSP?.setBool("farmdetskipped", true);
+                if (_establishment.isEmpty) {
+                  overlayNotification('Please select type of establishment', "negative");
+                } else {
+                  _saveFormData();
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (BuildContext context) => FarmCordinates(),
+                    ),
+                  );
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                side: BorderSide(color: fPrimaryColour),
+              ),
+              child: Text(
+                "Skip for Now",
+                style: TextStyle(
+                  color: fPrimaryColour,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _validateAndProceed() {
+    if (_regionValue == null) {
+      overlayNotification('Please select a region', "negative");
+      return;
+    }
+    if (_districtValue == null) {
+      overlayNotification('Please select a forest district', "negative");
+      return;
+    }
+    if (_family == null) {
+      overlayNotification('Please select a family', "negative");
+      return;
+    }
+    if (_disV == null) {
+      overlayNotification('Please select an MMDA', "negative");
+      return;
+    }
+    if (_community == null && !boxChecked) {
+      overlayNotification('Please select or enter a community', "negative");
+      return;
+    }
+    if (_establishment.isEmpty) {
+      overlayNotification('Please select type of establishment', "negative");
+      return;
+    }
+    if (_formKey.currentState!.validate()) {
+      regSP?.setBool("farmdetskipped", false);
+      _saveFormData();
+      Navigator.of(context).push(
+        CupertinoPageRoute(
+          builder: (BuildContext context) => FarmCordinates(),
+        ),
+      );
+    }
+  }
+
+  void _saveFormData() {
+    regSP?.setString('region', _regionValue ?? "");
+    regSP?.setString('forestDistrict', _districtValue ?? "");
+    regSP?.setString('family', _family ?? "");
+    regSP?.setInt('mddas', _mmdV ?? 0);
+    regSP?.setString('mddasName', _disV ?? "");
+    regSP?.setString('community', !boxChecked ? _community ?? "" : _communityName.text);
+    regSP?.setStringList("est", _establishment);
+
+    if (_establishment.contains('Other') && _otherEstablishmentController.text.isNotEmpty) {
+      regSP?.setString('otherEstablishment', _otherEstablishmentController.text);
+    }
+
+    debugPrint("Farm details saved: $_establishment");
+  }
+
+  Widget _buildLoadingDropdown(String title) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(fPrimaryColour),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Loading $title...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: fPrimaryColour,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Farm Details",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (String choice) {
+              if (choice == Constants.home) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const IndexPage()),
+                );
+              } else if (choice == Constants.load) {
+                writeToStoolFile(context);
+                writeToForestDistrictFile(context);
+                writeToDistrictFile(context);
+                writeToCommFile(context);
+                writeToRegionFile(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => widget),
+                );
+              }
+            },
+            itemBuilder: (context) {
+              return Constants.downChoices.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            _buildProgressIndicator(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Tree Farm Information",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Provide details about the location and type of your tree farm",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Region Dropdown
+                    FutureBuilder<List<RegionJson>>(
+                      future: myRFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingDropdown("Region");
+                        }
+                        return _buildModernDropdown(
+                          title: "Region",
+                          value: _regionValue,
+                          items: regionfileExists ? _regionValues : _newregionValues,
+                          onChanged: (value) {
+                            setState(() {
+                              _regionValue = value;
+                            });
+                          },
+                          displayKey: 'name',
+                        );
+                      },
+                    ),
+
+                    // Forest District Dropdown
+                    FutureBuilder<List<ForestDistrictsJson>>(
+                      future: myFDFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingDropdown("Forest District");
+                        }
+                        return _buildModernDropdown(
+                          title: "Forest District",
+                          value: _fdisV,
+                          items: forestdistrictfileExists ? _forestdistrictValues : _newforestdistrictValues,
+                          onChanged: (value) {
+                            setState(() {
+                              _fdisV = value;
+                              _districtValue = value;
+                            });
+                          },
+                          displayKey: 'name',
+                        );
+                      },
+                    ),
+
+                    // Family/Stool Dropdown
+                    FutureBuilder<List<StoolJson>>(
+                      future: mySFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingDropdown("Family/Stool");
+                        }
+                        return _buildModernDropdown(
+                          title: "TA/Stool/Skin/Family",
+                          value: _stoolV,
+                          items: stoolfileExists ? _stoolValues : _newstoolValues,
+                          onChanged: (value) {
+                            setState(() {
+                              _stoolV = value;
+                              _family = value;
+                            });
+                          },
+                          displayKey: 'name',
+                        );
+                      },
+                    ),
+
+                    // MMDAs Dropdown
+                    FutureBuilder<List<DistrictsJson>>(
+                      future: myDFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingDropdown("MMDA");
+                        }
+                        return _buildModernDropdown(
+                          title: "MMDA",
+                          value: _disV,
+                          items: districtfileExists ? _districtValues : _newdistrictValues,
+                          onChanged: (value) {
+                            setState(() {
+                              _disV = value;
+                              _districtValues.map((DistrictsJson ddvalue) {
+                                if (ddvalue.district == value) {
+                                  setState(() {
+                                    _mmdV = ddvalue.districtcode;
+                                  });
+                                }
+                              }).toString();
+                            });
+                          },
+                          displayKey: 'district',
+                        );
+                      },
+                    ),
+
+                    // Community Section
+                    FutureBuilder<List<CommunityJson>>(
+                      future: myCFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildLoadingDropdown("Community");
+                        }
+                        return _buildCommunitySection();
+                      },
+                    ),
+
+                    // Establishment Chips
+                    _buildEstablishmentChips(),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+
+            // Action Buttons
+            _buildActionButtons(),
+          ],
+        ),
       ),
     );
   }

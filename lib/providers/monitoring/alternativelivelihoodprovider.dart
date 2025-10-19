@@ -1,44 +1,42 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:hcms_revived2/models/localdbmodel/localdbmodel.dart';
 import '../../helpers/dbhelper.dart';
-
 import 'package:intl/intl.dart';
 
-class AlternativeLivelihoodProvider extends ChangeNotifier {
+class AlternativeLivelihoodProvider extends GetxController {
   static var newdate = DateTime.now();
   static var formatDate = DateFormat('MMM d, y');
   String formattedDat = formatDate.format(newdate);
 
-  List<AlternativeLivelihood> _alLists = [];
+  var _alLists = <AlternativeLivelihood>[].obs;
 
-  List<AlternativeLivelihood> get alLists {
-    return [..._alLists];
-  }
+  List<AlternativeLivelihood> get alLists => _alLists;
 
   AlternativeLivelihood findById(String id) {
     return _alLists.firstWhere((monitoring) => monitoring.alId == id);
   }
 
   void addAlternativeLivelihood(
-    String pickedalCommunity,
-    String pickedalEnumeratorValue,
-    String pickedalVisitDate,
-    String pickedFarmerId,
-    String pickedalFarmerName,
-    String pickedalBasline,
-    String pickedalFarmerContact,
-    String pickedalAdditionalActivity,
-    String pickedalTrainerOrg,
-    String pickedalOperationsStartDate,
-    String pickedalInitialAmount,
-    String pickedalAmountType,
-    String pickedalAmount,
-    String pickedalAmountToLMB,
-    String pickedalActivitySupported,
-    String pickedalConStat,
-  ) {
+      String pickedalCommunity,
+      String pickedalEnumeratorValue,
+      String pickedalVisitDate,
+      String pickedFarmerId,
+      String pickedalFarmerName,
+      String pickedalBasline,
+      String pickedalFarmerContact,
+      String pickedalAdditionalActivity,
+      String pickedalTrainerOrg,
+      String pickedalOperationsStartDate,
+      String pickedalInitialAmount,
+      String pickedalAmountType,
+      String pickedalAmount,
+      String pickedalAmountToLMB,
+      String pickedalActivitySupported,
+      String pickedalConStat,
+      ) {
     final newAlternativeLivelihood = AlternativeLivelihood(
-      alId: DateTime.now().toString(),
+      alId: DateTime.now().millisecondsSinceEpoch.toString(),
       alTimeDisplay: formattedDat,
       alCommunity: pickedalCommunity,
       alEnumeratorValue: pickedalEnumeratorValue,
@@ -57,9 +55,8 @@ class AlternativeLivelihoodProvider extends ChangeNotifier {
       alActivitySupported: pickedalActivitySupported,
       alConStat: pickedalConStat,
     );
-    _alLists.add(newAlternativeLivelihood);
-    // _alLists.insert(0, newAlternativeLivelihood);
-    notifyListeners();
+
+    _alLists.insert(0, newAlternativeLivelihood);
 
     DBHelper.insert('alternative_livelihood', {
       'id': newAlternativeLivelihood.alId,
@@ -85,29 +82,30 @@ class AlternativeLivelihoodProvider extends ChangeNotifier {
 
   Future<void> fetchAndSetAlternativeLivelihood() async {
     final dataList = await DBHelper.fetchData('alternative_livelihood');
-    _alLists = dataList
+    _alLists.assignAll(dataList
         .map((alLists) => AlternativeLivelihood(
-              alId: alLists['id'],
-              alTimeDisplay: alLists['alTimeDisplay'],
-              alCommunity: alLists['alCommunity'],
-              alEnumeratorValue: alLists['alEnumeratorValue'],
-              alVisitDate: alLists['alVisitDate'],
-              alFarmerId: alLists['alFarmerId'],
-              alFarmerName: alLists['alFarmerName'],
-              alBasline: alLists['alBasline'],
-              alFarmerContact: alLists['alFarmerContact'],
-              alAdditionalActivity: alLists['alAdditionalActivity'],
-              alTrainerOrg: alLists['alTrainerOrg'],
-              alOperationsStartDate: alLists['alOperationsStartDate'],
-              alInitialAmount: alLists['alInitialAmount'],
-              alAmountType: alLists['alAmountType'],
-              alAmount: alLists['alAmount'],
-              alAmountToLMB: alLists['alAmountToLMB'],
-              alActivitySupported: alLists['alActivitySupported'],
-              alConStat: alLists['alConStat'],
-            ))
-        .toList();
-    notifyListeners();
+      alId: alLists['id'],
+      alTimeDisplay: alLists['alTimeDisplay'],
+      alCommunity: alLists['alCommunity'],
+      alEnumeratorValue: alLists['alEnumeratorValue'],
+      alVisitDate: alLists['alVisitDate'],
+      alFarmerId: alLists['alFarmerId'],
+      alFarmerName: alLists['alFarmerName'],
+      alBasline: alLists['alBasline'],
+      alFarmerContact: alLists['alFarmerContact'],
+      alAdditionalActivity: alLists['alAdditionalActivity'],
+      alTrainerOrg: alLists['alTrainerOrg'],
+      alOperationsStartDate: alLists['alOperationsStartDate'],
+      alInitialAmount: alLists['alInitialAmount'],
+      alAmountType: alLists['alAmountType'],
+      alAmount: alLists['alAmount'],
+      alAmountToLMB: alLists['alAmountToLMB'],
+      alActivitySupported: alLists['alActivitySupported'],
+      alConStat: alLists['alConStat'],
+    ))
+        .toList());
+
+    debugPrint("THE DATA ::::::::::: $_alLists");
   }
 
   Future<void> fetchAndSetAlternativeLivelihood2(String? fieldname) async {
@@ -115,57 +113,146 @@ class AlternativeLivelihoodProvider extends ChangeNotifier {
       'alternative_livelihood',
       fieldname,
     );
-    _alLists = dataList
+    _alLists.assignAll(dataList
         .map((alLists) => AlternativeLivelihood(
-              alId: alLists['id'],
-              alTimeDisplay: alLists['alTimeDisplay'],
-              alCommunity: alLists['alCommunity'],
-              alEnumeratorValue: alLists['alEnumeratorValue'],
-              alVisitDate: alLists['alVisitDate'],
-              alFarmerId: alLists['alFarmerId'],
-              alFarmerName: alLists['alFarmerName'],
-              alBasline: alLists['alBasline'],
-              alFarmerContact: alLists['alFarmerContact'],
-              alAdditionalActivity: alLists['alAdditionalActivity'],
-              alTrainerOrg: alLists['alTrainerOrg'],
-              alOperationsStartDate: alLists['alOperationsStartDate'],
-              alInitialAmount: alLists['alInitialAmount'],
-              alAmountType: alLists['alAmountType'],
-              alAmount: alLists['alAmount'],
-              alAmountToLMB: alLists['alAmountToLMB'],
-              alActivitySupported: alLists['alActivitySupported'],
-              alConStat: alLists['alConStat'],
-            ))
-        .toList();
-    notifyListeners();
+      alId: alLists['id'],
+      alTimeDisplay: alLists['alTimeDisplay'],
+      alCommunity: alLists['alCommunity'],
+      alEnumeratorValue: alLists['alEnumeratorValue'],
+      alVisitDate: alLists['alVisitDate'],
+      alFarmerId: alLists['alFarmerId'],
+      alFarmerName: alLists['alFarmerName'],
+      alBasline: alLists['alBasline'],
+      alFarmerContact: alLists['alFarmerContact'],
+      alAdditionalActivity: alLists['alAdditionalActivity'],
+      alTrainerOrg: alLists['alTrainerOrg'],
+      alOperationsStartDate: alLists['alOperationsStartDate'],
+      alInitialAmount: alLists['alInitialAmount'],
+      alAmountType: alLists['alAmountType'],
+      alAmount: alLists['alAmount'],
+      alAmountToLMB: alLists['alAmountToLMB'],
+      alActivitySupported: alLists['alActivitySupported'],
+      alConStat: alLists['alConStat'],
+    ))
+        .toList());
   }
 
   Future<void> fetchAndSetAlternativeLivelihoodWhere(
       String? fieldname, String? date) async {
     final dataList = await DBHelper.fetchDataWhere(
         'alternative_livelihood', fieldname, date);
-    _alLists = dataList
+    _alLists.assignAll(dataList
         .map((alLists) => AlternativeLivelihood(
-              alId: alLists['id'],
-              alTimeDisplay: alLists['alTimeDisplay'],
-              alCommunity: alLists['alCommunity'],
-              alEnumeratorValue: alLists['alEnumeratorValue'],
-              alVisitDate: alLists['alVisitDate'],
-              alFarmerId: alLists['alFarmerId'],
-              alFarmerName: alLists['alFarmerName'],
-              alBasline: alLists['alBasline'],
-              alFarmerContact: alLists['alFarmerContact'],
-              alAdditionalActivity: alLists['alAdditionalActivity'],
-              alTrainerOrg: alLists['alTrainerOrg'],
-              alOperationsStartDate: alLists['alOperationsStartDate'],
-              alInitialAmount: alLists['alInitialAmount'],
-              alAmountType: alLists['alAmountType'],
-              alAmount: alLists['alAmount'],
-              alAmountToLMB: alLists['alAmountToLMB'],
-              alActivitySupported: alLists['alActivitySupported'],
-              alConStat: alLists['alConStat'],
-            ))
-        .toList();
-    notifyListeners();
+      alId: alLists['id'],
+      alTimeDisplay: alLists['alTimeDisplay'],
+      alCommunity: alLists['alCommunity'],
+      alEnumeratorValue: alLists['alEnumeratorValue'],
+      alVisitDate: alLists['alVisitDate'],
+      alFarmerId: alLists['alFarmerId'],
+      alFarmerName: alLists['alFarmerName'],
+      alBasline: alLists['alBasline'],
+      alFarmerContact: alLists['alFarmerContact'],
+      alAdditionalActivity: alLists['alAdditionalActivity'],
+      alTrainerOrg: alLists['alTrainerOrg'],
+      alOperationsStartDate: alLists['alOperationsStartDate'],
+      alInitialAmount: alLists['alInitialAmount'],
+      alAmountType: alLists['alAmountType'],
+      alAmount: alLists['alAmount'],
+      alAmountToLMB: alLists['alAmountToLMB'],
+      alActivitySupported: alLists['alActivitySupported'],
+      alConStat: alLists['alConStat'],
+    ))
+        .toList());
+  }
+
+  // Delete a record
+  Future<void> deleteAlternativeLivelihood(String id) async {
+    _alLists.removeWhere((item) => item.alId == id);
+    await DBHelper.delete('alternative_livelihood').where('id = ?', [id]);
+  }
+
+  // Clear all data
+  void clearData() {
+    _alLists.clear();
+  }
+
+
+  void updateAlternativeLivelihood(
+      String recordId,
+      String pickedalCommunity,
+      String pickedalEnumeratorValue,
+      String pickedalVisitDate,
+      String pickedFarmerId,
+      String pickedalFarmerName,
+      String pickedalBasline,
+      String pickedalFarmerContact,
+      String pickedalAdditionalActivity,
+      String pickedalTrainerOrg,
+      String pickedalOperationsStartDate,
+      String pickedalInitialAmount,
+      String pickedalAmountType,
+      String pickedalAmount,
+      String pickedalAmountToLMB,
+      String pickedalActivitySupported,
+      String pickedalConStat,
+      ) {
+    final updatedAlternativeLivelihood = AlternativeLivelihood(
+      alId: recordId,
+      alTimeDisplay: formattedDat,
+      alCommunity: pickedalCommunity,
+      alEnumeratorValue: pickedalEnumeratorValue,
+      alVisitDate: pickedalVisitDate,
+      alFarmerId: pickedFarmerId,
+      alFarmerName: pickedalFarmerName,
+      alBasline: pickedalBasline,
+      alFarmerContact: pickedalFarmerContact,
+      alAdditionalActivity: pickedalAdditionalActivity,
+      alTrainerOrg: pickedalTrainerOrg,
+      alOperationsStartDate: pickedalOperationsStartDate,
+      alInitialAmount: pickedalInitialAmount,
+      alAmountType: pickedalAmountType,
+      alAmount: pickedalAmount,
+      alAmountToLMB: pickedalAmountToLMB,
+      alActivitySupported: pickedalActivitySupported,
+      alConStat: pickedalConStat,
+    );
+
+    // Update in the list
+    final index = _alLists.indexWhere((record) => record.alId == recordId);
+    if (index != -1) {
+      _alLists[index] = updatedAlternativeLivelihood;
+    }
+
+    // Update in database using direct database call
+    _updateInDatabaseDirectly(recordId, {
+      'alTimeDisplay': updatedAlternativeLivelihood.alTimeDisplay,
+      'alCommunity': updatedAlternativeLivelihood.alCommunity,
+      'alEnumeratorValue': updatedAlternativeLivelihood.alEnumeratorValue,
+      'alVisitDate': updatedAlternativeLivelihood.alVisitDate,
+      'alFarmerId': updatedAlternativeLivelihood.alFarmerId,
+      'alFarmerName': updatedAlternativeLivelihood.alFarmerName,
+      'alBasline': updatedAlternativeLivelihood.alBasline,
+      'alFarmerContact': updatedAlternativeLivelihood.alFarmerContact,
+      'alAdditionalActivity': updatedAlternativeLivelihood.alAdditionalActivity,
+      'alTrainerOrg': updatedAlternativeLivelihood.alTrainerOrg,
+      'alOperationsStartDate': updatedAlternativeLivelihood.alOperationsStartDate,
+      'alInitialAmount': updatedAlternativeLivelihood.alInitialAmount,
+      'alAmountType': updatedAlternativeLivelihood.alAmountType,
+      'alAmount': updatedAlternativeLivelihood.alAmount,
+      'alAmountToLMB': updatedAlternativeLivelihood.alAmountToLMB,
+      'alActivitySupported': updatedAlternativeLivelihood.alActivitySupported,
+      'alConStat': updatedAlternativeLivelihood.alConStat,
+    });
+
+  }
+
+  Future<void> _updateInDatabaseDirectly(String recordId, Map<String, dynamic> data) async {
+    final db = await DBHelper.database();
+    await db.update(
+      'alternative_livelihood',
+      data,
+      where: 'id = ?',
+      whereArgs: [recordId],
+    );
   }
 }

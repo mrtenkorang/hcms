@@ -1,0 +1,1047 @@
+import 'dart:async';
+import 'package:dropdown_search/dropdown_search.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_phosphor_icons/flutter_phosphor_icons.dart';
+import 'package:geolocator/geolocator.dart' as gl;
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:get/get.dart';
+import 'package:hcms_revived2/helpers/geo_fence/tree_within_polygon.dart';
+import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/custom_button.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimmer.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/style.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map_controller.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/user_current_location.dart';
+import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_controller.dart';
+import 'package:hcms_revived2/utils/widgets/textFormats/app_text.dart';
+import 'package:location/location.dart';
+import 'dart:ui' as ui;
+
+class PickTreesMap extends StatefulWidget {
+  final Map<String, dynamic> farm;
+  final bool isViewMode;
+  final bool isViewModePolygon;
+  final List? treeData;
+  const PickTreesMap({
+    super.key,
+    required this.farm,
+    required this.survivedSeedlings,
+    this.isViewModePolygon = false,
+    this.isViewMode = false,this.treeData,
+  });
+
+  final List<String> survivedSeedlings;
+
+  @override
+  _PickTreesMapState createState() => _PickTreesMapState();
+}
+
+class _PickTreesMapState extends State<PickTreesMap> {
+  bool? pickingTrees = false;
+  Timer? _locationTimer;
+  final RxString selectedTreeType = ''.obs;
+  bool _isDisposed = false;
+
+  CameraPosition initialCameraPosition = const CameraPosition(
+    target: LatLng(7.9527706, -1.0307118),
+    zoom: 8.0,
+  );
+
+  final GlobalKey _keySelectBasemapButton = const GlobalObjectKey(
+    "_keySelectBasemapButton",
+  );
+
+  final GlobalKey _keyZoomToUserButton = const GlobalObjectKey(
+    "_keyZoomToUserButton",
+  );
+
+  MapType mapType = MapType.normal;
+
+  BitmapDescriptor customIcon = BitmapDescriptor.defaultMarker;
+
+  Future<Uint8List?> _getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: width,
+    );
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    ))?.buffer.asUint8List();
+  }
+
+  PickTreeMapController pickTreeMapController = Get.put(
+    PickTreeMapController(),
+  );
+
+  SeedlingMonitoringController seedlingMonitoringController = Get.put(
+    SeedlingMonitoringController(),
+  );
+  GoogleMapController? mapController;
+  LocationData? _locationData;
+  String? _mapStyle;
+  late Location location;
+  bool? pickingPoints = false;
+  LocationData? locationData;
+  List<Marker> markersList = [];
+  Map<MarkerId, int> markerIdToIndex = {};
+  UserCurrentLocation? userCurrentLocation;
+
+  // Location tracking variables
+  String _locationMessage = "Getting your location...";
+  double accuracy = 1000.0; // Start with poor accuracy
+  double userLat = 0.0;
+  double altitude = 0.0;
+  double userLong = 0.0;
+  bool locationIsEnabled = false;
+  bool _isGettingLocation = false;
+  StreamSubscription<gl.Position>? _positionStreamSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    location = Location();
+
+    rootBundle.loadString('assets/map_style/silver.txt').then((string) {
+      _mapStyle = string;
+    });
+    pickingTrees = true;
+
+    _getBytesFromAsset('assets/images/tt.png', 64).then((onValue) {
+      customIcon = BitmapDescriptor.fromBytes(onValue!);
+    });
+
+    // Start automatic location tracking immediately
+    _startFastLocationTracking();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _locationTimer?.cancel();
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Fast location tracking using stream
+  Future<void> _startFastLocationTracking() async {
+    if (_isGettingLocation) return;
+
+    _isGettingLocation = true;
+
+    try {
+      // Check permissions first
+      gl.LocationPermission permission = await gl.Geolocator.checkPermission();
+      if (permission == gl.LocationPermission.denied) {
+        permission = await gl.Geolocator.requestPermission();
+        if (permission == gl.LocationPermission.denied) {
+          _updateLocationStatus("Location permission denied", 1000.0);
+          _isGettingLocation = false;
+          return;
+        }
+      }
+
+      if (permission == gl.LocationPermission.deniedForever) {
+        _updateLocationStatus("Location permission permanently denied", 1000.0);
+        _isGettingLocation = false;
+        return;
+      }
+
+      // Check if location services are enabled
+      bool serviceEnabled = await gl.Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _updateLocationStatus("Location services disabled", 1000.0);
+        _isGettingLocation = false;
+        return;
+      }
+
+      // Get initial position quickly
+      gl.Position initialPosition =
+          await gl.Geolocator.getCurrentPosition(
+                desiredAccuracy: gl.LocationAccuracy.best,
+                timeLimit: Duration(seconds: 5), // Timeout after 5 seconds
+              )
+              .catchError((error) {
+                // If current position fails, try with lower accuracy
+                return gl.Geolocator.getCurrentPosition(
+                  desiredAccuracy: gl.LocationAccuracy.medium,
+                  timeLimit: Duration(seconds: 3),
+                );
+              })
+              .catchError((error) {
+                // If that also fails, use any available location
+                return gl.Geolocator.getCurrentPosition(
+                  desiredAccuracy: gl.LocationAccuracy.low,
+                );
+              });
+
+      _updateLocationData(initialPosition);
+
+      // Start listening to position stream for continuous updates
+      _positionStreamSubscription =
+          gl.Geolocator.getPositionStream(
+            locationSettings: gl.LocationSettings(
+              accuracy: gl.LocationAccuracy.best,
+              distanceFilter: 1, // Update every 1 meter
+              timeLimit: Duration(seconds: 10), // Timeout for each update
+            ),
+          ).listen(
+            (gl.Position position) {
+              _updateLocationData(position);
+            },
+            onError: (error) {
+              debugPrint("Location stream error: $error");
+              // Try to restart if there's an error
+              if (!_isDisposed) {
+                _restartLocationTracking();
+              }
+            },
+            cancelOnError: true,
+          );
+    } catch (e) {
+      debugPrint("Error starting location tracking: $e");
+      _updateLocationStatus("Error getting location: $e", 1000.0);
+      _isGettingLocation = false;
+
+      // Retry after delay
+      if (!_isDisposed) {
+        Timer(Duration(seconds: 3), _restartLocationTracking);
+      }
+    }
+  }
+
+  void _updateLocationData(gl.Position position) {
+    if (_isDisposed) return;
+
+    if (mounted) {
+      setState(() {
+        accuracy = position.accuracy;
+        userLat = position.latitude;
+        altitude = position.altitude;
+        userLong = position.longitude;
+        locationIsEnabled = true;
+        _locationMessage =
+            "Location accuracy: ${accuracy.truncateToDecimalPlaces(2)}m";
+
+        // Auto-zoom to location when we first get good accuracy
+        if (accuracy < 50 && (mapController != null)) {
+          zoomToCurrentLocation(userLat, userLong);
+        }
+      });
+    }
+  }
+
+  void _updateLocationStatus(String message, double acc) {
+    if (_isDisposed) return;
+
+    if (mounted) {
+      setState(() {
+        _locationMessage = message;
+        accuracy = acc;
+        locationIsEnabled = false;
+      });
+    }
+  }
+
+  void _restartLocationTracking() {
+    if (_isDisposed) return;
+
+    _positionStreamSubscription?.cancel();
+    _isGettingLocation = false;
+    _startFastLocationTracking();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    pickTreeMapController.pickTreesMapScreenContext = context;
+    var safePadding = MediaQuery.of(context).padding.top;
+
+    final GlobalKey _keyGPSStatusPanel = GlobalKey();
+
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) => Future.value(false),
+      child: Scaffold(
+        body: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.only(
+                top: safePadding + 12,
+                bottom: 12,
+                left: 12,
+                right: 15,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Get.back();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Icon(Icons.arrow_back, color: AppColor.primary),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  AppText(
+                    text: 'Capture trees',
+                    color: AppColor.primary,
+                    fontSize: 20,
+                  ),
+                  Spacer(),
+                  // if (_isGettingLocation)
+                  //   SizedBox(
+                  //     width: 20,
+                  //     height: 20,
+                  //     child: CircularProgressIndicator(
+                  //       strokeWidth: 2,
+                  //       valueColor: AlwaysStoppedAnimation<Color>(AppColor.primary),
+                  //     ),
+                  //   ),
+                ],
+              ),
+            ),
+            widget.isViewModePolygon
+                ? Container()
+                : Container(
+                    key: _keyGPSStatusPanel,
+                    width: double.infinity,
+                    color: locationAccuracyColor(accuracy),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (accuracy <= 10)
+                          Icon(Icons.gps_fixed, color: Colors.white, size: 14),
+                        if (accuracy > 10 && accuracy <= 50)
+                          Icon(
+                            Icons.gps_not_fixed,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        if (accuracy > 50)
+                          Icon(Icons.gps_off, color: Colors.white, size: 14),
+                        SizedBox(width: 6),
+                        AppText(
+                          text: _locationMessage,
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
+                        // if (_isGettingLocation)
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(left: 8.0),
+                        //     child: SizedBox(
+                        //       width: 12,
+                        //       height: 12,
+                        //       child: CircularProgressIndicator(
+                        //         strokeWidth: 1,
+                        //         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        //       ),
+                        //     ),
+                        //   ),
+                      ],
+                    ),
+                  ),
+            Expanded(
+              child: Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition:
+                        pickTreeMapController.initialCameraPosition,
+                    mapType: mapType,
+                    compassEnabled: false,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    markers: Set<Marker>.of(markersList),
+                    polygons: pickTreeMapController.polygons,
+                    onMapCreated: (GoogleMapController controller) async {
+                      mapController = controller;
+                      mapController?.setMapStyle(_mapStyle);
+                      await pickTreeMapController.loadFarms(widget.farm);
+
+                      setState(() {
+                        zoomToPolygonCenter(
+                          pickTreeMapController.polygons.first.points,
+                        );
+                      });
+                    },
+                  ),
+                  widget.isViewModePolygon
+                      ? Container()
+                      : Positioned(
+                          bottom: 80,
+                          right: 10,
+                          child: controlButton(
+                            key: _keyZoomToUserButton,
+                            backgroundColor:
+                                (mapType == MapType.hybrid ||
+                                    mapType == MapType.satellite)
+                                ? Colors.white
+                                : AppColor.primary,
+                            child: Icon(
+                              PhosphorIcons.crosshair,
+                              color:
+                                  (mapType == MapType.hybrid ||
+                                      mapType == MapType.satellite)
+                                  ? AppColor.primary
+                                  : Colors.white,
+                              size: 25,
+                            ),
+                            onTap: () =>
+                                zoomToCurrentLocation(userLat, userLong),
+                          ),
+                        ),
+                  widget.isViewModePolygon
+                      ? Container()
+                      : Positioned(
+                          right: 12,
+                          bottom: 140,
+                          child: Column(
+                            children: [
+                              controlButton(
+                                key: _keySelectBasemapButton,
+                                backgroundColor:
+                                    (mapType == MapType.hybrid ||
+                                        mapType == MapType.satellite)
+                                    ? Colors.white
+                                    : AppColor.primary,
+                                child: Icon(
+                                  Icons.map_rounded,
+                                  color:
+                                      (mapType == MapType.hybrid ||
+                                          mapType == MapType.satellite)
+                                      ? AppColor.primary
+                                      : Colors.white,
+                                  size: 25,
+                                ),
+                                onTap: () => selectBasemapStyle(),
+                              ),
+                              SizedBox(height: 12),
+                              // controlButton(
+                              //   backgroundColor:
+                              //   (mapType == MapType.hybrid ||
+                              //       mapType == MapType.satellite)
+                              //       ? Colors.white
+                              //       : AppColor.primary,
+                              //   child: Icon(
+                              //     Icons.save,
+                              //     color:
+                              //     (mapType == MapType.hybrid ||
+                              //         mapType == MapType.satellite)
+                              //         ? AppColor.primary
+                              //         : Colors.white,
+                              //   ),
+                              //   onTap: () {
+                              //     // pickTreeMapController.saveTreeOffline();
+                              //   },
+                              // ),
+                            ],
+                          ),
+                        ),
+                  widget.isViewModePolygon
+                      ? Container()
+                      : Positioned(
+                          bottom: 10,
+                          left: 10,
+                          right: 10,
+                          child: CustomButton(
+                            horizontalPadding: 10,
+                            isFullWidth: true,
+                            backgroundColor:
+                                (mapType == MapType.hybrid ||
+                                    mapType == MapType.satellite)
+                                ? Colors.white
+                                : AppColor.primary,
+                            onTap: () async {
+                              if (accuracy <= 1000) {
+                                LatLng latLng = LatLng(userLat, userLong);
+
+                                bool treeLocationWithinFarm =
+                                    isLocationInsidePolygon(
+                                      latLng,
+                                      pickTreeMapController.polygons,
+                                    );
+
+                                Get.closeAllSnackbars();
+
+                                showLocationPopup(
+                                  context,
+                                  lat: userLat,
+                                  altitude: altitude,
+                                  accuracy: accuracy,
+                                  long: userLong,
+                                  // farmRef: widget.farm["farm_reference"],
+                                );
+                              } else {
+                                Get.closeAllSnackbars();
+                                Get.snackbar(
+                                  "Cannot capture tree",
+                                  "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                  messageText: AppText(
+                                    text:
+                                        "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColor.white,
+                                  ),
+                                  colorText: AppColor.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 20,
+                                    horizontal: 10,
+                                  ),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.error,
+                                  duration: const Duration(seconds: 3),
+                                );
+                              }
+                            },
+                            child: AppText(
+                              text: 'Capture tree',
+                              color:
+                                  (mapType == MapType.hybrid ||
+                                      mapType == MapType.satellite)
+                                  ? AppColor.primary
+                                  : Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget controlButton({
+    Key? key,
+    Color? backgroundColor,
+    Widget? child,
+    Function? onTap,
+    bool disabled = false,
+  }) {
+    return AbsorbPointer(
+      key: key,
+      absorbing: disabled,
+      child: Container(
+        decoration: BoxDecoration(
+          color: disabled ? Colors.grey : backgroundColor,
+          shape: BoxShape.circle,
+          boxShadow: const [
+            BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8.0),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Ink(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: disabled ? Colors.grey : backgroundColor,
+              shape: BoxShape.circle,
+            ),
+            child: InkWell(
+              onTap: () => disabled ? null : onTap!(),
+              customBorder: const CircleBorder(),
+              child: Center(child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color locationAccuracyColor(double? accuracy) {
+    if (accuracy == null) {
+      return Colors.red;
+    } else if (accuracy <= 10) {
+      return Colors.green;
+    } else if (accuracy <= 50) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  void zoomToCurrentLocation(double lat, double long) {
+    if (lat == 0.0 && long == 0.0) return;
+
+    pickTreeMapController.initialCameraPosition = CameraPosition(
+      target: LatLng(lat, long),
+      zoom: 20.0,
+      tilt: 18.0,
+    );
+    mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        pickTreeMapController.initialCameraPosition,
+      ),
+    );
+  }
+
+  selectBasemapStyle() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        MapType selected = mapType;
+        return AlertDialog(
+          scrollable: true,
+          insetPadding: const EdgeInsets.all(10),
+          contentPadding: EdgeInsets.zero,
+          clipBehavior: Clip.none,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20.0)),
+          ),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Container(
+                width: MediaQuery.of(context).size.width,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppText(
+                      text: 'Select basemap style',
+                      fontWeight: FontWeight.w500,
+                    ),
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selected = MapType.normal;
+                        });
+                      },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Radio<MapType>(
+                            value: MapType.normal,
+                            groupValue: selected,
+                            onChanged: (value) {
+                              setState(() {
+                                selected = MapType.normal;
+                              });
+                            },
+                            activeColor: AppColor.primary,
+                          ),
+                          const AppText(text: 'Normal', fontSize: 13),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 0),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selected = MapType.hybrid;
+                        });
+                      },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Radio<MapType>(
+                            value: MapType.hybrid,
+                            groupValue: selected,
+                            onChanged: (value) {
+                              setState(() {
+                                selected = MapType.hybrid;
+                              });
+                            },
+                            activeColor: AppColor.primary,
+                          ),
+                          const AppText(text: 'Hybrid', fontSize: 13),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 0),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selected = MapType.satellite;
+                        });
+                      },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Radio<MapType>(
+                            value: MapType.satellite,
+                            groupValue: selected,
+                            onChanged: (value) {
+                              setState(() {
+                                selected = MapType.satellite;
+                              });
+                            },
+                            activeColor: AppColor.primary,
+                          ),
+                          const AppText(text: 'Satellite', fontSize: 13),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        CustomButton(
+                          isFullWidth: false,
+                          backgroundColor: Colors.transparent,
+                          verticalPadding: 0.0,
+                          horizontalPadding: 8.0,
+                          onTap: () => Navigator.of(context).pop(),
+                          child: const AppText(
+                            text: 'Cancel',
+                            color: Colors.black,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        CustomButton(
+                          isFullWidth: false,
+                          backgroundColor: const Color(0XFF002424),
+                          verticalPadding: 0.0,
+                          horizontalPadding: 8.0,
+                          onTap: () {
+                            setState(() {
+                              mapType = selected;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: const AppText(
+                            text: 'Okay',
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    ).then((val) {
+      setState(() {});
+    });
+  }
+
+  void zoomToPolygonCenter(List<LatLng> polygon) {
+    var totalX = 0.0;
+    var totalY = 0.0;
+    for (var i = 0; i < polygon.length; i++) {
+      totalX += polygon[i].latitude;
+      totalY += polygon[i].longitude;
+    }
+    var center = LatLng(totalX / polygon.length, totalY / polygon.length);
+    pickTreeMapController.initialCameraPosition = CameraPosition(
+      target: center,
+      zoom: 16.0,
+      tilt: 18.0,
+    );
+  }
+
+  void showLocationPopup(
+    BuildContext context, {
+    double? lat,
+    double? long,
+    double? altitude,
+    double? accuracy,
+    // String? farmRef,
+    bool isOpenAgain = false,
+    int? index,
+  }) {
+    showDialog(
+      context: pickTreeMapController.pickTreesMapScreenContext!,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        if (isOpenAgain && index != null) {
+          // Handle reopening logic if needed
+        }
+
+        Map<String, dynamic> tree = {};
+        tree["latitude"] = lat;
+        tree["longitude"] = long;
+
+        return AlertDialog(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          scrollable: false,
+          insetPadding: const EdgeInsets.all(20.0),
+          contentPadding: EdgeInsets.zero,
+          clipBehavior: Clip.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppBorderRadius.sm)),
+          ),
+          title: const AppText(
+            text: 'Tree information',
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          content: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const AppText(text: "Tree Coordinate"),
+                  AppText(
+                    text: "$lat, $long",
+                    color: AppColor.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 5),
+                  const AppText(text: "Tree type"),
+                  const SizedBox(height: 8),
+
+                  // Enhanced Chip Selection Section
+                  Obx(() {
+                    final aliveSpecies = widget.survivedSeedlings;
+
+                    if (aliveSpecies.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          'No tree types available',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                      );
+                    }
+
+                    return SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        spacing: 8.0,
+                        runSpacing: 8.0,
+                        alignment: WrapAlignment.start,
+                        children: aliveSpecies.asMap().entries.map((entry) {
+                          // final index = entry.key;
+                          final species = entry.value;
+
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            child: FilterChip(
+                              label: Text(
+                                species,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: selectedTreeType.value == species
+                                      ? Colors.white
+                                      : AppColor.primary,
+                                ),
+                              ),
+                              selected: selectedTreeType.value == species,
+                              onSelected: (bool selected) {
+                                if (selected) {
+                                  selectedTreeType.value = species;
+                                  HapticFeedback.lightImpact();
+                                }
+                              },
+                              backgroundColor: Colors.grey[100],
+                              selectedColor: AppColor.primary,
+                              checkmarkColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                                side: BorderSide(
+                                  color: selectedTreeType.value == species
+                                      ? AppColor.primary
+                                      : Colors.grey[300]!,
+                                  width: selectedTreeType.value == species
+                                      ? 1.5
+                                      : 1.0,
+                                ),
+                              ),
+                              elevation: selectedTreeType.value == species
+                                  ? 2.0
+                                  : 0.0,
+                              shadowColor: AppColor.primary.withOpacity(0.3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
+                                vertical: 8.0,
+                              ),
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  }),
+
+                  // Enhanced Error Message
+                  Obx(
+                    () => selectedTreeType.value.isEmpty
+                        ? AnimatedContainer(
+                            duration: Duration(milliseconds: 300),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Please select a tree type',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : SizedBox.shrink(),
+                  ),
+
+                  // Clear Selection Option
+                  Obx(
+                    () => selectedTreeType.value.isNotEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                selectedTreeType.value = '';
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.clear,
+                                    color: Colors.grey,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Clear selection',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : SizedBox.shrink(),
+                  ),
+
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            isOpenAgain && index != null
+                ? TextButton(
+                    child: AppText(text: 'Delete', color: AppColor.black),
+                    onPressed: () {
+                      if (index < markersList.length) {
+                        setState(() {
+                          markersList.removeAt(index);
+                        });
+                      }
+                      Navigator.of(context).pop();
+                    },
+                  )
+                : TextButton(
+                    child: AppText(text: 'Cancel', color: AppColor.black),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+            TextButton(
+              child: const AppText(text: 'Done'),
+              onPressed: () async {
+                if (selectedTreeType.value.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please select a tree type'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+
+                if (isOpenAgain && index != null) {
+                  seedlingMonitoringController.treeData.removeAt(index);
+                  tree["latitude"] = lat;
+                  tree["longitude"] = long;
+                  tree["altitude"] = altitude;
+                  tree["accuracy"] = accuracy;
+                  tree["treeType"] = selectedTreeType.value;
+
+                  seedlingMonitoringController.treeData.add(tree);
+                  selectedTreeType.value = '';
+
+                  debugPrint("Tree added: $tree");
+                  debugPrint(
+                    "Tree added FROM CONTROLLER: ${seedlingMonitoringController.treeData}",
+                  );
+                  Navigator.of(context).pop();
+                } else {
+                  LatLng currentLatLng = LatLng(lat!, long!);
+
+                  MarkerId markerId = MarkerId(
+                    currentLatLng.toString() + DateTime.now().toIso8601String(),
+                  );
+
+                  setState(() {
+                    markersList.add(
+                      Marker(
+                        markerId: markerId,
+                        position: currentLatLng,
+                        icon: customIcon,
+                        consumeTapEvents: true,
+                        onTap: () {
+                          // Handle marker tap if needed
+                        },
+                      ),
+                    );
+                    markerIdToIndex[markerId] = markersList.length - 1;
+                  });
+
+                  tree["latitude"] = lat;
+                  tree["longitude"] = long;
+                  tree["altitude"] = altitude;
+                  tree["accuracy"] = accuracy;
+                  tree["treeType"] = selectedTreeType.value;
+
+                  seedlingMonitoringController.treeData.add(tree);
+                  selectedTreeType.value = '';
+
+                  debugPrint("Tree added: $tree");
+                  debugPrint(
+                    "Tree added FROM CONTROLLER: ${seedlingMonitoringController.treeData}",
+                  );
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}

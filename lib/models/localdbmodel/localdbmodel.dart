@@ -355,6 +355,53 @@ class LMBMonitoring {
     this.lmbYouthBenefit = '',
     this.lmbConStat = '',
   });
+
+
+  factory LMBMonitoring.fromJson(Map<String, dynamic> json) {
+    return LMBMonitoring(
+      lmbId: json['id'],
+      lmbTimeDisplay: json['lmbTimeDisplay'],
+      lmbEnumeratorValue: json['lmbEnumeratorValue'],
+      lmbName: json['lmbName'],
+      lmbSector: json['lmbSector'],
+      lmbPrivateName: json['lmbPrivateName'],
+      lmbFirstEngagement: json['lmbFirstEngagement'],
+      lmbPartnershipType: json['lmbPartnershipType'],
+      lmbPartnershipDuration: json['lmbPartnershipDuration'],
+      lmbMou: json['lmbMou'],
+      lmbFinancialName: json['lmbFinancialName'],
+      lmbTypeLoanService: json['lmbTypeLoanService'],
+      lmbLoanDuration: json['lmbLoanDuration'],
+      lmbLoanInterest: json['lmbLoanInterest'],
+      lmbFemaleBenefit: json['lmbFemaleBenefit'],
+      lmbMaleBenefit: json['lmbMaleBenefit'],
+      lmbYouthBenefit: json['lmbYouthBenefit'],
+      lmbConStat: json['lmbConStat'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': lmbId,
+      'lmbTimeDisplay': lmbTimeDisplay,
+      'lmbEnumeratorValue': lmbEnumeratorValue,
+      'lmbName': lmbName,
+      'lmbSector': lmbSector,
+      'lmbPrivateName': lmbPrivateName,
+      'lmbFirstEngagement': lmbFirstEngagement,
+      'lmbPartnershipType': lmbPartnershipType,
+      'lmbPartnershipDuration': lmbPartnershipDuration,
+      'lmbMou': lmbMou,
+      'lmbFinancialName': lmbFinancialName,
+      'lmbTypeLoanService': lmbTypeLoanService,
+      'lmbLoanDuration': lmbLoanDuration,
+      'lmbLoanInterest': lmbLoanInterest,
+      'lmbFemaleBenefit': lmbFemaleBenefit,
+      'lmbMaleBenefit': lmbMaleBenefit,
+      'lmbYouthBenefit': lmbYouthBenefit,
+      'lmbConStat': lmbConStat,
+    };
+  }
 }
 
 class AlternativeLivelihood {

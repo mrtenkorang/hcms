@@ -7,7 +7,7 @@
 // import 'package:hcms_revived2/helpers/dbhelper.dart';
 // import 'package:hcms_revived2/providers/personalfarmerprovider.dart';
 // import 'package:hcms_revived2/screens/home/index.dart';
-// import 'package:hcms_revived2/screens/viewsubmissions/viewpage.dart';
+// import 'package:hcms_revived2/screens/history/viewpage.dart';
 
 // import 'package:provider/provider.dart';
 

@@ -17,12 +17,10 @@ import 'package:intl/intl.dart';
 import 'package:location/location.dart';
 import 'package:uuid/uuid.dart';
 
-
 class MapFarmController extends GetxController {
   late BuildContext mapFarmScreenContext;
 
   final mapFarmFormKey = GlobalKey<FormState>();
-
 
   Globals globals = Globals();
 
@@ -55,16 +53,18 @@ class MapFarmController extends GetxController {
     super.onInit();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      UserCurrentLocation? userCurrentLocation =
-          UserCurrentLocation(context: mapFarmScreenContext);
+      UserCurrentLocation? userCurrentLocation = UserCurrentLocation(
+        context: mapFarmScreenContext,
+      );
       userCurrentLocation.getUserLocation(
-          forceEnableLocation: true,
-          onLocationEnabled: (isEnabled, pos) {
-            if (isEnabled == true) {
-              locationData = pos!;
-              update();
-            }
-          });
+        forceEnableLocation: true,
+        onLocationEnabled: (isEnabled, pos) {
+          if (isEnabled == true) {
+            locationData = pos!;
+            update();
+          }
+        },
+      );
     });
   }
 
@@ -72,51 +72,54 @@ class MapFarmController extends GetxController {
     Set<Polygon> polys = HashSet<Polygon>();
     if (polygon != null) polys.add(polygon!);
     Get.to(
-        () => PolygonDrawingTool(
-              layers: polys,
-              initialPolygon: polygon,
-              viewInitialPolygon: polygon != null,
-              // layers: HashSet<Polygon>(),
-              useBackgroundLayers: false,
-              allowTappingInputMethod: false,
-              allowTracingInputMethod: false,
-              maxAccuracy: MaxLocationAccuracy.max,
-              persistMaxAccuracy: true,
-              onSave: (poly, mkr, area) {
-                if (mkr.isNotEmpty) {
-                  polygon = poly;
-                  markers = mkr;
-                  farmAreaTC?.text = area.truncateToDecimalPlaces(6).toString();
-                  update();
-                  globals.showOkayDialog(
-                    context: mapFarmScreenContext,
-                    title: 'Measurement Result',
-                    image: 'lib/libassets/logos/hcmslogo.jpeg',
-                    content: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('measured area estimates in hectares',
-                              style: TextStyle(color: AppColor.black),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 15),
-                          Text(
-                              '${area.truncateToDecimalPlaces(6).toString()} ha',
-                              style: TextStyle(
-                                  color: AppColor.black,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600),
-                              textAlign: TextAlign.center),
-                        ],
-                      ),
+      () => PolygonDrawingTool(
+        layers: polys,
+        initialPolygon: polygon,
+        viewInitialPolygon: polygon != null,
+        // layers: HashSet<Polygon>(),
+        useBackgroundLayers: false,
+        allowTappingInputMethod: false,
+        allowTracingInputMethod: false,
+        maxAccuracy: MaxLocationAccuracy.max,
+        persistMaxAccuracy: true,
+        onSave: (poly, mkr, area) {
+          if (mkr.isNotEmpty) {
+            polygon = poly;
+            markers = mkr;
+            farmAreaTC?.text = area.truncateToDecimalPlaces(6).toString();
+            update();
+            globals.showOkayDialog(
+              context: mapFarmScreenContext,
+              title: 'Measurement Result',
+              image: 'lib/libassets/logos/hcmslogo.jpeg',
+              content: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'measured area estimates in hectares',
+                      style: TextStyle(color: AppColor.black),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                }
-                
-              },
-            ),
-        transition: Transition.fadeIn);
+                    const SizedBox(height: 15),
+                    Text(
+                      '${area.truncateToDecimalPlaces(6).toString()} ha',
+                      style: TextStyle(
+                        color: AppColor.black,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        },
+      ),
+      transition: Transition.fadeIn,
+    );
   }
-
 }

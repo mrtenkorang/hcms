@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide DatePickerTheme;
+import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
 import 'package:hcms_revived2/theme/app_theme.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
@@ -202,6 +203,10 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Register SeedlingMonitoringService with GetX
+    Get.put(SeedlingMonitoringService(), permanent: true);
+    Get.put(AlternativeLivelihoodProvider(), permanent: true);
+
     return OverlaySupport(
       child: MultiProvider(
         providers: [
@@ -217,9 +222,9 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(
             create: (ctx) => LMBMonitoringProvider(),
           ),
-          ChangeNotifierProvider(
-            create: (ctx) => AlternativeLivelihoodProvider(),
-          ),
+          // ChangeNotifierProvider(
+          //   create: (ctx) => AlternativeLivelihoodProvider(),
+          // ),
           ChangeNotifierProvider(
             create: (ctx) => TrainingLogProvider(),
           ),

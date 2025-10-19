@@ -43,8 +43,9 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
 
   Future<dynamic> getEnumeratorValue(String? table) async {
     final db = await DBHelper.database();
-    var count =
-        await db.rawQuery('SELECT enumeratorValue FROM first_time_user');
+    var count = await db.rawQuery(
+      'SELECT enumeratorValue FROM first_time_user',
+    );
 
     var list = count.toList();
 
@@ -58,34 +59,37 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
 
   void _submissionLoading() {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(7.0),
-            child: Container(
-              // width: 5000,
-              child: const AlertDialog(
-                title: Text(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(fPrimaryColour),
+                ),
+                const SizedBox(height: 20),
+                const Text(
                   "Reporting Deforestation",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
-                content: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(fPrimaryColour),
-                    ),
-                    Text(
-                      "Please wait a minute...",
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w100),
-                    ),
-                  ],
+                const SizedBox(height: 10),
+                const Text(
+                  "Please wait...",
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-              ),
+              ],
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   File? commjsonFile;
@@ -93,29 +97,24 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
   String commfileName = "community.json";
   bool commfileExists = false;
   var commfileContent;
-  // bool confileContent = false;
   List<CommunityJson> _newcommValues = [];
   List<CommunityJson> _commValues = [];
 
   final _pn = TextEditingController();
   final _species = TextEditingController();
   final _whyAction = TextEditingController();
+  final _otherCauseController = TextEditingController();
   final _communityName = TextEditingController();
 
   String? _gfwDirection;
-  int? selectedGFWRadio;
-
   String? _seeDeforestation;
-  int? selectedSeeDeforestationRadio;
-
   String? _actionRequired;
-  int? selectedActionRequiredRadio;
 
   bool _isBBChecked = false;
   bool _isMChecked = false;
   bool _isLChecked = false;
+  bool _isFChecked = false;
   bool _isCPChecked = false;
-  // bool _isCPChecked = false;
   bool _isOchecked = false;
 
   int index = 0;
@@ -173,27 +172,18 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
           print("content $items");
           print("object");
 
-          // var content = {key: items};
-
-          var commjsonFileContent =
-              await json.decode(await commjsonFile!.readAsString());
+          var commjsonFileContent = await json.decode(
+            await commjsonFile!.readAsString(),
+          );
           commjsonFileContent.clear();
           commjsonFileContent.addAll(items);
           commjsonFile?.writeAsString(json.encode(commjsonFileContent));
-
-          // print("contennttss ${listOfRegions.runtimeType}");
         } else {
           debugPrint("didn't work here");
         }
       } on SocketException {
         debugPrint("Error is first community");
       }
-
-      // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-      // districtjsonFileContent.addAll(content);
-      // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
-      // createFile(content, dir, districtfileName);
     } else {
       debugPrint("Community File does not exist! $commfileExists");
       try {
@@ -206,16 +196,7 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
           debugPrint("content $items");
           debugPrint("object");
 
-          // var content = {key: items};
-
-          // var districtjsonFileContent = json.decode(districtjsonFile.readAsStringSync());
-          // districtjsonFileContent.clear();
-          // districtjsonFileContent.addAll(items);
-          // districtjsonFile?.writeAsString(json.encode(districtjsonFileContent));
-
           createCommFile(items, dir!, commfileName);
-
-          // print("contennttss ${listOfRegions.runtimeType}");
         } else {
           debugPrint("didn't work here");
           getLocalCommValues(ctx);
@@ -226,14 +207,16 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
       }
     }
     commfileExists
-        ? commfileContent =
-            await json.decode(await commjsonFile!.readAsString())
+        ? commfileContent = await json.decode(
+            await commjsonFile!.readAsString(),
+          )
         : null;
     debugPrint(commfileContent.toString());
 
     return commfileExists
-        ? _commValues =
-            commfileContent.map<CommunityJson>(CommunityJson.fromJson).toList()
+        ? _commValues = commfileContent
+              .map<CommunityJson>(CommunityJson.fromJson)
+              .toList()
         : _commValues = _newcommValues;
   }
 
@@ -265,18 +248,7 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
     );
   }
 
-  // List<String> _specFound;
   bool boxChecked = false;
-
-  // oncSelectedRow(bool selected, String selectedEst) async {
-  //   setState(() {
-  //     if (selected) {
-  //       _commFound.add(selectedEst);
-  //     } else {
-  //       _commFound.remove(selectedEst);
-  //     }
-  //   });
-  // }
 
   void _onComChanged(bool val) {
     setState(() {
@@ -285,12 +257,13 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
   }
 
   List<String> _deforestationCause = [];
-  onSelectedRow(bool selected, String selectedEst) async {
+
+  void toggleCause(String cause, bool value) {
     setState(() {
-      if (selected) {
-        _deforestationCause.add(selectedEst);
+      if (value) {
+        _deforestationCause.add(cause);
       } else {
-        _deforestationCause.remove(selectedEst);
+        _deforestationCause.remove(cause);
       }
     });
   }
@@ -298,42 +271,42 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
   void _onBBChanged(bool val) {
     setState(() {
       _isBBChecked = val;
-      onSelectedRow(val, "Bush_Burning");
+      toggleCause("Bush_Burning", val);
     });
   }
 
   void _onMChanged(bool val) {
     setState(() {
       _isMChecked = val;
-      onSelectedRow(val, "Mining");
+      toggleCause("Mining", val);
     });
   }
 
   void _onOChanged(bool val) {
     setState(() {
       _isOchecked = val;
-      onSelectedRow(val, "Other");
+      toggleCause("Other", val);
     });
   }
 
   void _onLChanged(bool val) {
     setState(() {
       _isLChecked = val;
-      onSelectedRow(val, "Logging");
+      toggleCause("Logging", val);
     });
   }
 
   void _onFChanged(bool val) {
     setState(() {
-      _isCPChecked = val;
-      onSelectedRow(val, "Farming");
+      _isFChecked = val;
+      toggleCause("Farming", val);
     });
   }
 
   void _onCPChanged(bool val) {
     setState(() {
       _isCPChecked = val;
-      onSelectedRow(val, "Charcoal");
+      toggleCause("Charcoal", val);
     });
   }
 
@@ -347,1177 +320,681 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
   @override
   void initState() {
     super.initState();
-    selectedGFWRadio = 0;
-    selectedSeeDeforestationRadio = 0;
 
     commFileInit();
 
     myCFuture = writeToCommFile(this.context);
 
-    p_nValues.addAll([
-      "Planted",
-      "Natural",
-    ]);
+    p_nValues.addAll(["Planted", "Natural"]);
 
     _deforestationCause = [];
   }
 
-  setGFWSelectedRadio(val) {
-    setState(() {
-      selectedGFWRadio = val;
-    });
+  Widget buildSectionCard({required Widget child, EdgeInsets? padding}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: padding ?? const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
   }
 
-  setDeforestationSelectedRadio(val) {
-    setState(() {
-      selectedSeeDeforestationRadio = val;
-    });
+  Widget buildSectionTitle(String title, {String? subtitle}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+        ],
+      ],
+    );
   }
 
-  void _onPNChanged(String? iTValue) {
-    setState(() {
-      p_nValue = iTValue;
-    });
+  Widget buildChoiceChips({
+    required String label,
+    required List<Map<String, String>> options,
+    required String? selectedValue,
+    required Function(String) onSelected,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: options.map((option) {
+            final value = option['value']!;
+            final displayText = option['label']!;
+            final isSelected = selectedValue == value;
+
+            return InkWell(
+              onTap: () => onSelected(value),
+              borderRadius: BorderRadius.circular(25),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? fPrimaryColour : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: isSelected ? fPrimaryColour : Colors.grey[300]!,
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  displayText,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black87,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 
-  var _lat, _lng, _acc;
+  Widget buildCauseChip({
+    required String label,
+    required bool isSelected,
+    required Function(bool) onChanged,
+    required IconData icon,
+  }) {
+    return InkWell(
+      onTap: () => onChanged(!isSelected),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? fPrimaryColour.withOpacity(0.1) : Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? fPrimaryColour : Colors.grey[300]!,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? fPrimaryColour : Colors.grey[600],
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? fPrimaryColour : Colors.black87,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: fPrimaryColour, size: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoordinateRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: fPrimaryColour,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: primaryColour,
-      // appBar: AppBar(
-      //   foregroundColor: fPrimaryWhite,
-      //   automaticallyImplyLeading: false,
-      //   backgroundColor: fPrimaryColour,
-      //   title: const Text(
-      //     "Deforestation Information",
-      //     style: TextStyle(color: fPrimaryWhite),
-      //   ),
-      //   actions: [
-      //     PopupMenuButton<String>(
-      //       offset: const Offset(2.00, 3.00),
-      //       color: Colors.black,
-      //       onSelected: (String _downChoice) {
-      //         if (_downChoice == Constants.home) {
-      //           Navigator.of(context).pushReplacement(
-      //             MaterialPageRoute(
-      //               builder: (BuildContext context) => const IndexPage(),
-      //             ),
-      //           );
-      //         } else if (_downChoice == Constants.load) {
-      //           writeToCommFile(context);
-
-      //           Navigator.pushReplacement(
-      //               context,
-      //               MaterialPageRoute(
-      //                   builder: (BuildContext context) => this.widget));
-      //         }
-      //       },
-      //       itemBuilder: (BuildContext context) {
-      //         return Constants.exceptiondownChoices.map((String _downChoice) {
-      //           return PopupMenuItem<String>(
-      //             value: _downChoice,
-      //             child: Container(
-      //               margin: const EdgeInsets.only(right: 0),
-      //               child: Text(
-      //                 _downChoice,
-      //                 style: const TextStyle(color: Color(0xFFFFFFFF)),
-      //               ),
-      //             ),
-      //           );
-      //         }).toList();
-      //       },
-      //     ),
-      //   ],
-      // ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Material(
-                  elevation: 0.0,
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(12.0),
-                  ),
-                  color: primaryColour,
-                  child: IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: primaryWhite,
-                        size: 40.0,
-                      )),
-                ),
-                Text(
-                  "Deforestation".toUpperCase(),
-                  style: const TextStyle(
-                    color: primaryWhite,
-                    fontSize: 20.0,
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  offset: const Offset(2.00, 3.00),
-                  color: Colors.black,
-                  icon: const Icon(
-                    Icons.more_vert_rounded,
-                    color: primaryWhite,
-                    size: 40.0,
-                  ),
-                  onSelected: (String _downChoice) {
-                    if (_downChoice == Constants.home) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => const IndexPage(),
-                        ),
-                      );
-                    } else if (_downChoice == Constants.load) {
-                      writeToCommFile(context);
-
-                      Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (BuildContext context) => this.widget));
-                    }
-                  },
-                  itemBuilder: (BuildContext context) {
-                    return Constants.exceptiondownChoices
-                        .map((String _downChoice) {
-                      return PopupMenuItem<String>(
-                        value: _downChoice,
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 0),
-                          child: Text(
-                            _downChoice,
-                            style: const TextStyle(color: Color(0xFFFFFFFF)),
-                          ),
-                        ),
-                      );
-                    }).toList();
-                  },
-                ),
-              ],
-            ),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: fPrimaryColour,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+        ),
+        title: const Text(
+          "Deforestation Report",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20.0,
+            fontWeight: FontWeight.w600,
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: size.height * .83,
-              decoration: const BoxDecoration(
-                color: primaryWhite,
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25.0),
-                    topRight: Radius.circular(25.0)),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        NewLocationService(
-                          onSelectLatLng: _selectLatLng,
-                          // show: true,
-                        ),
-                        _lng != null
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: <Widget>[
-                                  Container(
-                                    // width: 100,
-                                    child: const Text(
-                                      // 'location: ',
-                                      'Picked longitude: ',
-                                      textAlign: TextAlign.left,
-                                    ),
-                                  ),
-                                  Container(
-                                    // width: 70.00,
-                                    child: Text(
-                                      "$_lng",
-                                      style: const TextStyle(
-                                          color: fPrimaryColour),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox(),
-                        _lat != null
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: <Widget>[
-                                  Container(
-                                    // width: 100,
-                                    child: const Text(
-                                      // 'location: ',
-                                      'Picked latitude: ',
-                                      textAlign: TextAlign.left,
-                                    ),
-                                  ),
-                                  Container(
-                                    // width: 70.00,
-                                    child: Text(
-                                      "$_lat",
-                                      style: const TextStyle(
-                                          color: fPrimaryColour),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox(),
-                      ],
-                    ),
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (String choice) {
+              if (choice == Constants.home) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => const IndexPage(),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
+                );
+              } else if (choice == Constants.load) {
+                writeToCommFile(context);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (BuildContext context) => this.widget,
+                  ),
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return Constants.exceptiondownChoices.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // const SizedBox(height: 20),
+                    // Location Section
+                    // buildModernCard(
+                    //   child: Column(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: [
+                    //       // buildSectionTitle(
+                    //       //   "Location Information",
+                    //       //   subtitle:
+                    //       //   "Select your community and capture GPS coordinates",
+                    //       // ),
+                    //       // const SizedBox(height: 24),
+                    //       // Container(
+                    //       //   padding: const EdgeInsets.all(16),
+                    //       //   decoration: BoxDecoration(
+                    //       //     color: Colors.blue[50],
+                    //       //     borderRadius: BorderRadius.circular(12),
+                    //       //     border: Border.all(color: Colors.blue[200]!),
+                    //       //   ),
+                    //       //   child: Row(
+                    //       //     children: [
+                    //       //       Icon(Icons.info_outline,
+                    //       //           color: Colors.blue[700]),
+                    //       //       const SizedBox(width: 12),
+                    //       //       Expanded(
+                    //       //         child: Text(
+                    //       //           "Please use the previous community selection",
+                    //       //           style: TextStyle(
+                    //       //             color: Colors.blue[900],
+                    //       //             fontSize: 14,
+                    //       //           ),
+                    //       //         ),
+                    //       //       ),
+                    //       //     ],
+                    //       //   ),
+                    //       // ),
+                    //     ],
+                    //   ),
+                    // ),
+
+                    // GPS Coordinates
+                    buildSectionCard(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            // width: 170.0,
-                            padding: const EdgeInsets.all(5.0),
-                            child: Form(
-                              key: _formKey,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                color: fPrimaryColour,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                "GPS Coordinates",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          NewLocationService(onSelectLatLng: _selectLatLng),
+                          if (_pickedLocation != null) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.green[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.green[200]!),
+                              ),
                               child: Column(
-                                // mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: <Widget>[
-                                  Container(
-                                    // color: Color(0xFFFFFFFF),
-                                    child: Column(
-                                      children: <Widget>[
-                                        Container(
-                                          margin: const EdgeInsets.only(
-                                            top: 8.0,
-                                            left: 10.0,
-                                            right: .0,
-                                            bottom: 18.0,
-                                          ),
-                                          child: Column(
-                                            children: <Widget>[
-                                              // Row(
-                                              //   children: <Widget>[
-                                              //     Container(
-                                              //       margin: const EdgeInsets.only(
-                                              //         bottom: 14.0,
-                                              //       ),
-                                              //       child: const Row(
-                                              //         children: <Widget>[
-                                              //           Text(
-                                              //               "Name of Community (Please use previous)."),
-                                              //         ],
-                                              //       ),
-                                              //     ),
-                                              //   ],
-                                              // ),
-                                              formFieldLabel(width: size.width * .9, 
-                                                  "Name of Community (Please use previous)."),
-
-                                              // const CommunitySelector(),
-                                              // Row(
-                                              //   mainAxisAlignment:
-                                              //       MainAxisAlignment
-                                              //           .spaceBetween,
-                                              //   children: <Widget>[
-                                              //     Container(
-                                              //       decoration: BoxDecoration(
-                                              //           border: Border.all(
-                                              //               width: 0.50,
-                                              //               color: const Color(
-                                              //                   0xFF000000)),
-                                              //           borderRadius:
-                                              //               const BorderRadius
-                                              //                   .all(
-                                              //                   Radius.circular(
-                                              //                       10.0))),
-                                              //       // width: MediaQuery.of(context)
-                                              //       //         .size
-                                              //       //         .width /
-                                              //       //     1.09,
-                                              //       padding:
-                                              //           const EdgeInsets.all(
-                                              //               6.0),
-                                              //       child: FutureBuilder<
-                                              //           List<CommunityJson>>(
-                                              //         future: myCFuture,
-                                              //         builder: (context,
-                                              //             AsyncSnapshot<
-                                              //                     List<
-                                              //                         CommunityJson>>
-                                              //                 snapshot) {
-                                              //           if (snapshot
-                                              //                   .connectionState !=
-                                              //               ConnectionState
-                                              //                   .done) {
-                                              //             return const CircularProgressIndicator(
-                                              //               valueColor:
-                                              //                   AlwaysStoppedAnimation<
-                                              //                           Color>(
-                                              //                       fPrimaryColour),
-                                              //             );
-                                              //           } else if (!snapshot
-                                              //               .hasData) {
-                                              //             return const Text(
-                                              //                 "No data. Please try again.",
-                                              //                 softWrap: true,
-                                              //                 overflow:
-                                              //                     TextOverflow
-                                              //                         .clip,
-                                              //                 style: TextStyle(
-                                              //                     color:
-                                              //                         primaryError));
-                                              //           } else if (snapshot
-                                              //               .hasError) {
-                                              //             debugPrint(
-                                              //                 "here here 2 list working");
-                                              //             return const Text(
-                                              //                 "Error. Sync to get data.",
-                                              //                 style: TextStyle(
-                                              //                     color:
-                                              //                         fBackgroundColour));
-                                              //           } else if (snapshot
-                                              //               .hasData) {
-                                              //             debugPrint(
-                                              //                 "here here list working");
-                                              //             return commfileExists
-                                              //                 ? Container(
-                                              //                     // width: MediaQuery.of(context).size.width / 1.09,
-                                              //                     child: StatefulBuilder(
-                                              //                         builder:
-                                              //                             (context,
-                                              //                                 state) {
-                                              //                       return DropdownButtonHideUnderline(
-                                              //                         child: DropdownButton<
-                                              //                             String>(
-                                              //                           value:
-                                              //                               _community,
-                                              //                           items: _commValues.map((CommunityJson
-                                              //                               dvalue) {
-                                              //                             // fD = dvalue;
-                                              //                             return DropdownMenuItem<
-                                              //                                 String>(
-                                              //                               value:
-                                              //                                   dvalue.name,
-                                              //                               child:
-                                              //                                   Row(
-                                              //                                 children: <Widget>[
-                                              //                                   Padding(
-                                              //                                     padding: const EdgeInsets.all(10.0),
-                                              //                                     child: Text(
-                                              //                                       "${dvalue.name}",
-                                              //                                     ),
-                                              //                                   )
-                                              //                                 ],
-                                              //                               ),
-                                              //                             );
-                                              //                           }).toList(),
-                                              //                           onChanged:
-                                              //                               (String?
-                                              //                                   value) {
-                                              //                             _community =
-                                              //                                 value;
-                                              //                             _oncommChanged(
-                                              //                                 value!);
-
-                                              //                             print(
-                                              //                                 "Community"
-                                              //                                 "$_community");
-
-                                              //                             _commValues.map((CommunityJson
-                                              //                                 ccvalue) {
-                                              //                               if (ccvalue.name ==
-                                              //                                   value) {
-                                              //                                 print(ccvalue.comcode);
-
-                                              //                                 setState(() {
-                                              //                                   _communityVal = ccvalue.comcode;
-
-                                              //                                   // opdagSP.setString(
-                                              //                                   //     'corptown',
-                                              //                                   //     _communityValue);
-
-                                              //                                   print("Com COm COm $_communityVal");
-
-                                              //                                   // opdagSP.setString(
-                                              //                                   //     'communityvalue',
-                                              //                                   //     _communityValue);
-                                              //                                 });
-                                              //                               }
-                                              //                             }).toString();
-                                              //                           },
-                                              //                         ),
-                                              //                       );
-                                              //                     }),
-                                              //                   )
-                                              //                 : Container(
-                                              //                     width: MediaQuery.of(
-                                              //                                 context)
-                                              //                             .size
-                                              //                             .width /
-                                              //                         1.09,
-                                              //                     child: StatefulBuilder(
-                                              //                         builder:
-                                              //                             (context,
-                                              //                                 state) {
-                                              //                       return DropdownButtonHideUnderline(
-                                              //                         child: DropdownButton<
-                                              //                             String>(
-                                              //                           value:
-                                              //                               _community,
-                                              //                           items: _newcommValues.map((CommunityJson
-                                              //                               dvalue) {
-                                              //                             // fD = dvalue;
-                                              //                             return DropdownMenuItem<
-                                              //                                 String>(
-                                              //                               value:
-                                              //                                   dvalue.name,
-                                              //                               child:
-                                              //                                   Row(
-                                              //                                 children: <Widget>[
-                                              //                                   Padding(
-                                              //                                     padding: const EdgeInsets.all(10.0),
-                                              //                                     child: Text(
-                                              //                                       "${dvalue.name}",
-                                              //                                     ),
-                                              //                                   )
-                                              //                                 ],
-                                              //                               ),
-                                              //                             );
-                                              //                           }).toList(),
-                                              //                           onChanged:
-                                              //                               (String?
-                                              //                                   value) {
-                                              //                             _community =
-                                              //                                 value;
-                                              //                             _oncommChanged(
-                                              //                                 value!);
-
-                                              //                             print(
-                                              //                                 "Community"
-                                              //                                 "$_community");
-
-                                              //                             _newcommValues.map((CommunityJson
-                                              //                                 ccvalue) {
-                                              //                               if (ccvalue.name ==
-                                              //                                   value) {
-                                              //                                 print(ccvalue.comcode);
-
-                                              //                                 setState(() {
-                                              //                                   _communityVal = ccvalue.comcode;
-
-                                              //                                   // opdagSP.setString(
-                                              //                                   //     'corptown',
-                                              //                                   //     _communityValue);
-
-                                              //                                   print("Com COm COm $_communityVal");
-
-                                              //                                   // opdagSP.setString(
-                                              //                                   //     'communityvalue',
-                                              //                                   //     _communityValue);
-                                              //                                 });
-                                              //                               }
-                                              //                             }).toString();
-                                              //                           },
-                                              //                         ),
-                                              //                       );
-                                              //                     }),
-                                              //                   );
-                                              //           } else {
-                                              //             return const Text(
-                                              //               "Please sync data",
-                                              //             );
-                                              //           }
-                                              //         },
-                                              //       ),
-                                              //     ),
-                                              //     IconButton(
-                                              //       icon: const Icon(
-                                              //           Icons.replay),
-                                              //       onPressed: () async {
-                                              //         setState(() {
-                                              //           myCFuture =
-                                              //               writeToCommFile(
-                                              //                   this.context);
-                                              //         });
-                                              //       },
-                                              //     )
-                                              //   ],
-                                              // ),
-                                            ],
-                                          ),
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green[700],
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        "Location Captured",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      // mainAxisAlignment:
-                                      //     MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                        // Row(
-                                        //   children: <Widget>[
-                                        //     Padding(
-                                        //       padding: const EdgeInsets.all(0.0),
-                                        //       child: SizedBox(
-                                        //         width: MediaQuery.of(context)
-                                        //                 .size
-                                        //                 .width *
-                                        //             .8,
-                                        //         child: const Text(
-                                        //           "Were you directed to the place by Global Forest Watch (GFW)?",
-                                        //           softWrap: true,
-                                        //           overflow: TextOverflow.clip,
-                                        //           style: TextStyle(
-                                        //             color: Colors.black,
-                                        //           ),
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        formFieldLabel(width: size.width * .9, 
-                                            "Were you directed to the place by Global Forest Watch (GFW)?"),
-                                        // ButtonBar(
-                                        //   alignment: MainAxisAlignment.start,
-                                        //   children: <Widget>[
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 1,
-                                              group: selectedGFWRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedGFWRadio = val;
-                                                  _gfwDirection = "yes";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "Yes",
-                                              // style: TextStyle(
-                                              //     color: Color(0xFFf9f9f9)),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 2,
-                                              group: selectedGFWRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedGFWRadio = val;
-                                                  _gfwDirection = "no";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "No",
-                                              // style: TextStyle(
-                                              //     color:
-                                              //         Color(0xFFf9f9f9))
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    //   ],
-                                    // ),
+                                  const SizedBox(height: 12),
+                                  _buildCoordinateRow(
+                                    "Latitude",
+                                    _pickedLocation!.latitude.toString(),
                                   ),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      // mainAxisAlignment:
-                                      //     MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                        // const Row(
-                                        //   children: <Widget>[
-                                        //     Padding(
-                                        //       padding: EdgeInsets.all(0.0),
-                                        //       child: Text(
-                                        //         "Do you see deforestation?",
-                                        //         style: TextStyle(
-                                        //           color: Colors.black,
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        // ButtonBar(
-                                        //   alignment: MainAxisAlignment.start,
-                                        // children: <Widget>[
-                                        formFieldLabel(width: size.width * .9, 
-                                            "Do you see deforestation?"),
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 1,
-                                              group:
-                                                  selectedSeeDeforestationRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedSeeDeforestationRadio =
-                                                      val;
-                                                  _seeDeforestation = "yes";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "Yes",
-                                              // style: TextStyle(
-                                              //     color: Color(0xFFf9f9f9)),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 2,
-                                              group:
-                                                  selectedSeeDeforestationRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedSeeDeforestationRadio =
-                                                      val;
-                                                  _seeDeforestation = "no";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "No",
-                                              // style: TextStyle(
-                                              //     color:
-                                              //         Color(0xFFf9f9f9))
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 3,
-                                              group:
-                                                  selectedSeeDeforestationRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedSeeDeforestationRadio =
-                                                      val;
-                                                  _seeDeforestation = "unsure";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "Unsure",
-                                              // style: TextStyle(
-                                              //     color:
-                                              //         Color(0xFFf9f9f9))
-                                            ),
-                                          ],
-                                        ),
-                                        //   ],
-                                        // ),
-                                      ],
-                                    ),
-                                  ),
-                                  _seeDeforestation == "yes"
-                                      ? Container(
-                                          margin: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            children: [
-                                              // Row(
-                                              //   children: <Widget>[
-                                              //     Container(
-                                              //       margin: const EdgeInsets.only(
-                                              //         bottom: 14.0,
-                                              //       ),
-                                              //       child: const Row(
-                                              //         children: <Widget>[
-                                              //           Text(
-                                              //               "What is the cause of the deforestation?"),
-                                              //         ],
-                                              //       ),
-                                              //     ),
-                                              //   ],
-                                              // ),
-                                              formFieldLabel(width: size.width * .9, 
-                                                  "What is the cause of the deforestation?"),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Bush Burning",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isBBChecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onBBChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Mining",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isMChecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onMChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Logging",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isLChecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onLChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Farming",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isCPChecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onFChanged(value!);
-                                                },
-                                              ),
-                                              CheckboxListTile(
-                                                title: const Text(
-                                                  "Charcoal Production",
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                value: _isCPChecked,
-                                                activeColor: fPrimaryColour,
-                                                onChanged: (bool? value) {
-                                                  _onCPChanged(value!);
-                                                },
-                                              ),
-                                              Column(
-                                                children: [
-                                                  CheckboxListTile(
-                                                    title: const Text(
-                                                      "Other",
-                                                      style: TextStyle(
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    value: _isOchecked,
-                                                    activeColor: fPrimaryColour,
-                                                    onChanged: (bool? value) {
-                                                      _onOChanged(value!);
-                                                    },
-                                                  ),
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            left: 10.0,
-                                                            right: 10.0,
-                                                            bottom: 8.0),
-                                                    child: TextFieldWidget(
-                                                      readonly:
-                                                          _isOchecked == true
-                                                              ? false
-                                                              : true,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                        hintText: "(Specify)",
-                                                        hintStyle: TextStyle(
-                                                            fontStyle: FontStyle
-                                                                .italic),
-                                                      ),
-                                                      controller:
-                                                          TextEditingController(),
-                                                      validator: (input) =>
-                                                          _deforestationCause
-                                                                  .contains(
-                                                                      "Other")
-                                                              ? input!
-                                                                      .trim()
-                                                                      .isEmpty
-                                                                  ? 'Please specify type of establishment'
-                                                                  : null
-                                                              : null,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : const SizedBox(),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: <Widget>[
-                                        // const Row(
-                                        //   children: <Widget>[
-                                        //     Padding(
-                                        //       padding: EdgeInsets.all(0.0),
-                                        //       child: Text(
-                                        //         "Do you think further action should be taken?",
-                                        //         style: TextStyle(
-                                        //           color: Colors.black,
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        formFieldLabel(width: size.width * .9, 
-                                            "Do you think further action should be taken?"),
-                                        // ButtonBar(
-                                        //   alignment: MainAxisAlignment.start,
-                                        //   children: <Widget>[
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 1,
-                                              group:
-                                                  selectedActionRequiredRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedActionRequiredRadio =
-                                                      val;
-                                                  _actionRequired = "yes";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "Yes",
-                                              // style: TextStyle(
-                                              //     color: Color(0xFFf9f9f9)),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          children: <Widget>[
-                                            GenderRadioButton(
-                                              value: 2,
-                                              group:
-                                                  selectedActionRequiredRadio,
-                                              selected: (val) {
-                                                print(val);
-                                                setState(() {
-                                                  selectedActionRequiredRadio =
-                                                      val;
-                                                  _actionRequired = "no";
-                                                });
-                                              },
-                                            ),
-                                            const Text(
-                                              "No",
-                                              // style: TextStyle(
-                                              //     color:
-                                              //         Color(0xFFf9f9f9))
-                                            ),
-                                          ],
-                                        ),
-                                        //   ],
-                                        // ),
-                                      ],
-                                    ),
-                                  ),
-                                  _actionRequired == "yes"
-                                      ? Container(
-                                          margin: const EdgeInsets.symmetric(
-                                              horizontal: 8.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Row(
-                                              //   children: <Widget>[
-                                              //     Container(
-                                              //       margin: EdgeInsets.only(
-                                              //         top: 0.0,
-                                              //       ),
-                                              //       child: Row(
-                                              //         children: <Widget>[
-                                              //           Text("Why?"),
-                                              //         ],
-                                              //       ),
-                                              //     ),
-                                              //   ],
-                                              // ),
-                                              formFieldLabel(width: size.width * .9, "Why?"),
-                                              TextFieldWidget(
-                                                // maxLines: 5,
-                                                keyboardType:
-                                                    TextInputType.number,
-                                                decoration: const InputDecoration(
-                                                    labelText: '',
-                                                    focusedBorder:
-                                                        OutlineInputBorder(
-                                                            borderSide:
-                                                                BorderSide(
-                                                                    color: Colors
-                                                                        .black,
-                                                                    width:
-                                                                        0.5)),
-                                                    border: OutlineInputBorder(
-                                                        borderSide: BorderSide(
-                                                            color: Colors.black,
-                                                            width: 2.0))),
-                                                controller: _whyAction,
-                                                validator: (input) =>
-                                                    input!.trim().isEmpty
-                                                        ? 'Please enter a value'
-                                                        : null,
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : const SizedBox(),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 20, horizontal: 10.0),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        // const Row(
-                                        //   children: <Widget>[
-                                        //     Padding(
-                                        //       padding: EdgeInsets.all(0.0),
-                                        //       child: Text(
-                                        //         "Take picture of area",
-                                        //         style: TextStyle(
-                                        //           color: Colors.black,
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   ],
-                                        // ),
-                                        formFieldLabel(width: size.width * .9, "Take picture of area"),
-                                        Row(
-                                          children: [
-                                            SpeciesImage(_selectedImage),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    child: const Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        // RaisedButton(
-                                        //   shape: RoundedRectangleBorder(
-                                        //     borderRadius: BorderRadius.circular(15.0),
-                                        //   ),
-                                        //   textColor: Colors.white,
-                                        //   color: fPrimaryColour,
-                                        //   child: Text("Pick Cordinates"),
-                                        //   onPressed: () async {
-                                        //     if (_pickedLocation != null) {
-                                        //       print(
-                                        //           "Picked is ${_pickedLocation?.latitude}");
-                                        //       print(
-                                        //           "Picked is ${_pickedLocation?.longitude}");
-                                        //       setState(() {
-                                        //         _lat = _pickedLocation?.latitude;
-                                        //         _lng = _pickedLocation?.longitude;
-                                        //         _acc = _pickedLocation?.accuracy;
-                                        //       });
-                                        //       overlayNotification(
-                                        //           'Cordinates saved!', "positive",
-                                        //           position: NotificationPosition.top);
-                                        //     } else {
-                                        //       overlayNotification(
-                                        //           'GPS Accuracy must be 5m or below!',
-                                        //           "negative");
-                                        //     }
-                                        //   },
-                                        // ),
-
-                                        // _pickedLocation != null ?
-                                        // {setState(() {
-                                        //         _lat = _pickedLocation?.latitude;
-                                        //         _lng = _pickedLocation?.longitude;
-                                        //         _acc = _pickedLocation?.accuracy;
-                                        //       });} : SizedBox(),
-
-                                        SizedBox(
-                                          height: 10,
-                                          // child: Divider(),
-                                        )
-                                      ],
-                                    ),
+                                  const SizedBox(height: 8),
+                                  _buildCoordinateRow(
+                                    "Longitude",
+                                    _pickedLocation!.longitude.toString(),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      // new TextButton(
-                      //   onPressed: () async {
-                      //     getspeciesbase64Img();
 
-                      //     if (!boxChecked && _community == null) {
-                      //       overlayNotification(
-                      //           'Please select a community', "negative");
-                      //     } else if (_speciesbase64Image.isEmpty) {
-                      //       overlayNotification(
-                      //           'Please take picture of species', "negative");
-                      //     } else if (_lat == null && _lng == null) {
-                      //       overlayNotification('Please pick cordinates', "negative");
-                      //     } else if (_formKey.currentState!.validate()) {
-                      //       Timer(
-                      //         Duration(seconds: 1),
-                      //         () {
-                      //           setState(() {
-                      //             _lat = null;
-                      //             _lng = null;
-                      //           });
-                      //         },
-                      //       );
-                      //     }
-                      //   },
-                      //   child: new Icon(
-                      //     Icons.add,
-                      //     color: fPrimaryColour,
-                      //     size: 40,
-                      //   ),
-                      // ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5.0, bottom: 15),
-                        child: Container(
-                          width: MediaQuery.of(context).size.width / 3,
-                          height: 50.00,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20.0, vertical: 15.0),
-                              elevation: 0.0,
-                              backgroundColor: fPrimaryColour,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
+                    // Assessment Questions
+                    // buildModernCard(
+                    //   child: Column(
+                    //     crossAxisAlignment: CrossAxisAlignment.start,
+                    //     children: [
+                    //       buildSectionTitle(
+                    //         "Assessment Questions",
+                    //         subtitle:
+                    //         "Help us understand the deforestation situation",
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+
+                    // GFW Question
+                    buildSectionCard(
+                      child: buildChoiceChips(
+                        label:
+                            "Were you directed to this location by Global Forest Watch (GFW)?",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue: _gfwDirection,
+                        onSelected: (value) {
+                          setState(() {
+                            _gfwDirection = value;
+                          });
+                        },
+                      ),
+                    ),
+
+                    // Deforestation Question
+                    buildSectionCard(
+                      child: buildChoiceChips(
+                        label:
+                            "Do you see deforestation at this location?                 ",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue: _seeDeforestation,
+                        onSelected: (value) {
+                          setState(() {
+                            _seeDeforestation = value;
+                          });
+                        },
+                      ),
+                    ),
+
+                    // Causes Section
+                    if (_seeDeforestation == "yes") ...[
+                      buildSectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            buildSectionTitle(
+                              "Deforestation Causes",
+                              subtitle: "Select all causes that apply",
+                            ),
+                          ],
+                        ),
+                      ),
+                      buildSectionCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            buildCauseChip(
+                              label: "Bush Burning",
+                              isSelected: _isBBChecked,
+                              onChanged: _onBBChanged,
+                              icon: Icons.local_fire_department,
+                            ),
+                            const SizedBox(height: 12),
+                            buildCauseChip(
+                              label: "Mining",
+                              isSelected: _isMChecked,
+                              onChanged: _onMChanged,
+                              icon: Icons.landscape,
+                            ),
+                            const SizedBox(height: 12),
+                            buildCauseChip(
+                              label: "Logging",
+                              isSelected: _isLChecked,
+                              onChanged: _onLChanged,
+                              icon: Icons.park,
+                            ),
+                            const SizedBox(height: 12),
+                            buildCauseChip(
+                              label: "Farming",
+                              isSelected: _isFChecked,
+                              onChanged: _onFChanged,
+                              icon: Icons.agriculture,
+                            ),
+                            const SizedBox(height: 12),
+                            buildCauseChip(
+                              label: "Charcoal Production",
+                              isSelected: _isCPChecked,
+                              onChanged: _onCPChanged,
+                              icon: Icons.fireplace,
+                            ),
+                            const SizedBox(height: 12),
+                            buildCauseChip(
+                              label: "Other",
+                              isSelected: _isOchecked,
+                              onChanged: _onOChanged,
+                              icon: Icons.more_horiz,
+                            ),
+                            if (_isOchecked) ...[
+                              const SizedBox(height: 16),
+                              TextFieldWidget(
+                                controller: _otherCauseController,
+                                decoration: InputDecoration(
+                                  hintText: "Please specify the cause",
+                                  hintStyle: const TextStyle(
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[50],
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: fPrimaryColour,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                                validator: (input) =>
+                                    _deforestationCause.contains("Other")
+                                    ? input!.trim().isEmpty
+                                          ? 'Please specify the cause'
+                                          : null
+                                    : null,
                               ),
-                              textStyle: const TextStyle(color: Colors.white),
-                              // shadowColor: fPrimaryColour,
-                              side: const BorderSide(
-                                  width: 1.0, color: fPrimaryColour),
-                            ),
-                            child: const Text(
-                              "Report",
-                              style: TextStyle(
-                                  color: fPrimaryWhite,
-                                  fontSize: 17.0,
-                                  fontWeight: FontWeight.normal),
-                            ),
-                            onPressed: () async {
-                              await getspeciesbase64Img();
-
-                              if (_communityVal == null) {
-                                overlayNotification(
-                                    'Please select a community', "negative");
-                              } else if (_speciesbase64Image.isEmpty) {
-                                overlayNotification(
-                                    'Please take picture of area', "negative");
-                              } else if (_pickedLocation == null) {
-                                overlayNotification(
-                                    'GPS accuracy must be 5m or lower',
-                                    "negative");
-                              } else if (_formKey.currentState!.validate()) {
-                                submissionOptions(
-                                  context,
-                                  "Do you have internet data?",
-                                  "Send with internet",
-                                  "Send later",
-                                  "Cancel",
-                                  approvePress: () => attemptSignup(context),
-                                  editPress: () {
-                                    Navigator.pop(context);
-                                    saveToLocalDB("not connected");
-                                    overlayNotification(
-                                        'Successfully saved. Please go to "View Reports" to send data',
-                                        "negative");
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (BuildContext context) =>
-                                            const IndexPage(),
-                                      ),
-                                    );
-                                    regSP?.clear();
-                                  },
-                                  disapprovePress: () => null,
-                                );
-                                Timer(
-                                  const Duration(seconds: 1),
-                                  () {
-                                    setState(() {
-                                      _lat = null;
-                                      _lng = null;
-                                    });
-                                  },
-                                );
-                              }
-                            },
-                          ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
+
+                    // Further Action Section
+                    buildSectionCard(
+                      child: buildChoiceChips(
+                        label:
+                            "Do you think further action should be taken?                    ",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue: _actionRequired,
+                        onSelected: (value) {
+                          setState(() {
+                            _actionRequired = value;
+                          });
+                        },
+                      ),
+                    ),
+
+                    if (_actionRequired == "yes") ...[
+                      buildSectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Why should action be taken?",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFieldWidget(
+                              controller: _whyAction,
+                              decoration: InputDecoration(
+                                hintText: "Explain why action is needed...",
+                                filled: true,
+                                fillColor: Colors.grey[50],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: fPrimaryColour,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              validator: (input) => input!.trim().isEmpty
+                                  ? 'Please enter a reason'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Photo Section
+                    buildSectionCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                color: fPrimaryColour,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                "Photo Evidence",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Center(child: SpeciesImage(_selectedImage)),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+
+            // Submit Button
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitReport,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: fPrimaryColour,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    "Submit Report",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  void _submitReport() async {
+    await getspeciesbase64Img();
+
+    if (_communityVal == null) {
+      overlayNotification('Please select a community', "negative");
+    } else if (_speciesbase64Image.isEmpty) {
+      overlayNotification('Please take picture of area', "negative");
+    } else if (_pickedLocation == null) {
+      overlayNotification('GPS accuracy must be 5m or lower', "negative");
+    } else if (_formKey.currentState!.validate()) {
+      submissionOptions(
+        context,
+        "Do you have internet data?",
+        "Send with internet",
+        "Send later",
+        "Cancel",
+        approvePress: () => attemptSignup(context),
+        editPress: () {
+          Navigator.pop(context);
+          saveToLocalDB("not connected");
+          overlayNotification(
+            'Successfully saved. Please go to "View Reports" to send data',
+            "negative",
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (BuildContext context) => const IndexPage(),
+            ),
+          );
+          regSP?.clear();
+        },
+        disapprovePress: () => null,
+      );
+    }
+  }
+
   void saveToLocalDB(String? con) {
-    // this saves the entire record being sent
     Provider.of<DeforestationProvider>(context, listen: false).addDeforestation(
       _communityVal.toString(),
       _gfwDirection ?? '',
@@ -1551,20 +1028,16 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
         "reason_further_action_taken": _whyAction.text,
         "latitude": _pickedLocation?.latitude,
         "longitude": _pickedLocation?.longitude,
-        "photos": _speciesbase64Image
+        "photos": _speciesbase64Image,
       };
 
       var url = '$stageBaseUrl/deforestationapi/';
 
       var body = json.encode(deforestationdata);
 
-//here jsonEncode(data) return String? bt in http body you are passing Map value
-
-//So you have to convert String? to Map
       var bodyMap = jsonDecode(body);
       print(body);
 
-// your nested json data
       var bodyData = bodyMap;
 
       var res = await http.post(Uri.parse(url), body: body);
@@ -1580,7 +1053,9 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
       if (status == "done") {
         saveToLocalDB("connected");
         overlayNotification(
-            'Data sent successfully with status: $status.', "positive");
+          'Data sent successfully with status: $status.',
+          "positive",
+        );
 
         regSP?.clear();
         Navigator.of(context).pushReplacement(
@@ -1588,29 +1063,27 @@ class _DeforestationQuestionsState extends State<DeforestationQuestions> {
             builder: (BuildContext context) => const IndexPage(),
           ),
         );
-        // return res.statusCode;
       } else if (status == "exist") {
         overlayNotification('Data already: $status.', "positive");
         Navigator.pop(context);
       } else {
         overlayNotification(
-            'Error occured with error: ${itemss.toString()}', "negative");
+          'Error occured with error: ${itemss.toString()}',
+          "negative",
+        );
         Navigator.pop(context);
         print('Error occured with error: ${itemss["error"]}');
-        // return res.statusCode;
       }
-      // newVibe = items[0]["status"];
     } on SocketException catch (e) {
       print("e === $e");
       saveToLocalDB("not connected");
       overlayNotification(
-          'Oops! Internet error. Please make sure you\'re connected to the internet and try again from "View Reports".',
-          "negative");
+        'Oops! Internet error. Please make sure you\'re connected to the internet and try again from "View Reports".',
+        "negative",
+      );
       regSP?.clear();
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (BuildContext context) => const IndexPage(),
-        ),
+        MaterialPageRoute(builder: (BuildContext context) => const IndexPage()),
       );
     } catch (i) {
       print("i ===> ${i.toString()}");

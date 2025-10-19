@@ -24,7 +24,7 @@ class Globals {
     );
   }
 
-  showSnackBar({String? title, String? message, int? duration}) {
+  showSnackBar({String? title, String? message, int? duration, Color? backgroundColor}) {
     Get.snackbar(title!, message!,
         messageText: Text(
           message,
@@ -34,7 +34,7 @@ class Globals {
         colorText: AppColor.white,
         snackPosition: SnackPosition.TOP,
         margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
-        backgroundColor: AppColor.black,
+        backgroundColor:backgroundColor?? AppColor.black,
         duration: duration != null
             ? Duration(seconds: duration)
             : const Duration(seconds: 3));
@@ -603,7 +603,9 @@ class Globals {
               ),
               padding: const EdgeInsets.all(10),
               // child: Image.asset('assets/gif/loading1.gif', height: 40)
-              child: Image.asset('assets/gif/loading2.gif', height: 60)),
+              child: CircularProgressIndicator(
+                color: fPrimaryColour,
+              )),
         ),
       ),
 

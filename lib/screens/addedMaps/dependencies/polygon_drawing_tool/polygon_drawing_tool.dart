@@ -15,7 +15,7 @@ import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimme
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/round_icon_button.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/user_current_location.dart';
-import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_provider.dart';
+import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_controller.dart';
 import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
@@ -40,8 +40,17 @@ class PolygonDrawingTool extends StatefulWidget {
   final bool? persistMaxAccuracy;
   final bool? viewOnlyMap;
   final double? maxAccuracy;
+
+  //FOR TREE MAPPING
+  final bool? isTreeMapping;
+  final Polygon? mappedFarmPolygon;
+
+
+
   const PolygonDrawingTool({
-    Key? key,
+    super.key,
+    this.isTreeMapping = false,
+    this.mappedFarmPolygon,
     required this.onSave,
     required this.layers,
     required this.useBackgroundLayers,
@@ -54,7 +63,7 @@ class PolygonDrawingTool extends StatefulWidget {
     this.persistMaxAccuracy = false,
     this.maxAccuracy,
     this.viewOnlyMap = false,
-  }) : super(key: key);
+  });
 
   @override
   State<PolygonDrawingTool> createState() => _PolygonDrawingToolState();
@@ -518,6 +527,8 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool>
   }
 
   // final addFarmController = ;
+  
+  final controller = Get.put(SeedlingMonitoringController());
 
   @override
   Widget build(BuildContext context) {
@@ -527,252 +538,265 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool>
       onWillPop: () => Future.value(false),
       child: Material(
         child: Scaffold(
-          body: ChangeNotifierProvider(
-            create: (context) => SeedlingMonitoringProviderr(),
-            child: Consumer<SeedlingMonitoringProviderr>(
-              builder: (context, provider, child) {
-                return Column(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.only(
-                        top: safePadding + 12,
-                        bottom: 12,
-                        left: 12,
-                        right: 15,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              RoundedIconButton(
-                                icon: const Icon(Icons.arrow_back),
-                                size: 45,
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                onTap: (){
-                                  Navigator.pop(context);
-                                },
-                              ),
-                              const SizedBox(width: 12),
-                              widget.viewOnlyMap!
-                                  ? const Text(
-                                'View demarcated area',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                                  : const Text(
-                                'Demarcate area',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          widget.viewOnlyMap!
-                              ? const SizedBox()
-                              : GestureDetector(
-                            key: _keyShowTutorialButton,
-                            onTap: () {
-                              setTutorialTargets();
-                              showTutorial();
-                            },
-                            child: const Icon(
-                              Icons.help_outline_rounded,
-                              color: Colors.black,
-                              size: 20,
+          body: Column(
+                children: [
+                  Container(
+                    padding: EdgeInsets.only(
+                      top: safePadding + 12,
+                      bottom: 12,
+                      left: 12,
+                      right: 15,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            RoundedIconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              size: 45,
+                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              onTap: (){
+                                Navigator.pop(context);
+                              },
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      key: _keyGPSStatusPanel,
-                      width: double.infinity,
-                      color: locationAccuracyColor(currentPosition?.accuracy),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(6),
-                      child: Builder(
-                        builder: (context) {
-                          var text = locationIsEnabled == true
-                              ? "Location accuracy : ${currentPosition?.accuracy?.truncateToDecimalPlaces(2).toString() ?? ". . ."} ${currentPosition?.accuracy != null ? "m" : ""}"
-                              : "Location is disabled";
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                text,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white,
-                                ),
+                            const SizedBox(width: 12),
+                            widget.viewOnlyMap!
+                                ? const Text(
+                              'View demarcated area',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
-                              if (locationIsEnabled == false)
-                                (Padding(
-                                  padding: const EdgeInsets.only(left: 10.0),
-                                  child: CustomButton(
-                                    horizontalPadding: 10,
-                                    // isFullWidth: false,
-                                    backgroundColor: Colors.white,
-                                    // verticalPadding: 0.0,
-                                    // horizontalPadding: 8.0,
-                                    // borderRadius: 20,
-                                    // borderColor: Colors.transparent,
-                                    onTap: () {
-                                      userCurrentLocation!.getUserLocation(
-                                        forceEnableLocation: true,
-                                        onLocationEnabled: (isEnabled, pos) {
-                                          if (isEnabled == true) {
-                                            setState(() {
-                                              currentPosition = pos;
-                                              locationIsEnabled = isEnabled;
-                                            });
-                                          }
-                                        },
-                                      );
-                                    },
-                                    child: const Text(
-                                      'Enable',
-                                      style: TextStyle(
-                                        color: Colors.blueGrey,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                )),
-                            ],
-                          );
-                        },
-                      ),
+                            )
+                                : const Text(
+                              'Demarcate area',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        widget.viewOnlyMap!
+                            ? const SizedBox()
+                            : GestureDetector(
+                          key: _keyShowTutorialButton,
+                          onTap: () {
+                            setTutorialTargets();
+                            showTutorial();
+                          },
+                          child: const Icon(
+                            Icons.help_outline_rounded,
+                            color: Colors.black,
+                            size: 20,
+                          ),
+                        ),
+                      ],
                     ),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          GoogleMap(
-                            initialCameraPosition: initialCameraPosition,
-                            mapType: mapType,
-                            compassEnabled: false,
-                            myLocationEnabled: true,
-                            myLocationButtonEnabled: false,
-                            zoomControlsEnabled: widget.viewOnlyMap!
-                                ? true
-                                : false,
-                            mapToolbarEnabled: false,
-                            markers: markers,
-                            polygons: polygons,
-                            polylines: provider.polyLines,
-                            onMapCreated: (GoogleMapController controller) {
-                              // gMapController.complete(controller);
-                              // await getCurrentLocation();
-
-                              mapController = controller;
-                              controller.setMapStyle(_mapStyle);
-
-                              if (widget.viewInitialPolygon == false) {
-                                zoomToCurrentLocation(userCurrentLocation!);
-                              }
-
-                              if (widget.viewInitialPolygon == true &&
-                                  widget.initialPolygon != null) {
-                                Future.delayed(
-                                  const Duration(milliseconds: 300),
-                                      () {
-                                    mapController!.animateCamera(
-                                      CameraUpdate.newLatLngBounds(
-                                        boundsFromLatLngList(
-                                          widget.initialPolygon!.points,
-                                        ),
-                                        140.0,
-                                      ),
+                  ),
+                  Container(
+                    key: _keyGPSStatusPanel,
+                    width: double.infinity,
+                    color: locationAccuracyColor(currentPosition?.accuracy),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(6),
+                    child: Builder(
+                      builder: (context) {
+                        var text = locationIsEnabled == true
+                            ? "Location accuracy : ${currentPosition?.accuracy?.truncateToDecimalPlaces(2).toString() ?? ". . ."} ${currentPosition?.accuracy != null ? "m" : ""}"
+                            : "Location is disabled";
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              text,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                              ),
+                            ),
+                            if (locationIsEnabled == false)
+                              (Padding(
+                                padding: const EdgeInsets.only(left: 10.0),
+                                child: CustomButton(
+                                  horizontalPadding: 10,
+                                  // isFullWidth: false,
+                                  backgroundColor: Colors.white,
+                                  // verticalPadding: 0.0,
+                                  // horizontalPadding: 8.0,
+                                  // borderRadius: 20,
+                                  // borderColor: Colors.transparent,
+                                  onTap: () {
+                                    userCurrentLocation!.getUserLocation(
+                                      forceEnableLocation: true,
+                                      onLocationEnabled: (isEnabled, pos) {
+                                        if (isEnabled == true) {
+                                          setState(() {
+                                            currentPosition = pos;
+                                            locationIsEnabled = isEnabled;
+                                          });
+                                        }
+                                      },
                                     );
                                   },
-                                );
-                              }
-                            },
-                            onTap: (coordinates) {
-                              setState(() {
-                                showSelectedFeatureInfo = false;
-                              });
-
-                              if (pickingPoints == true &&
-                                  inputMethod == InputMethod.tapping) {
-                                addPoint(coordinates);
-                              }
-                            },
-                          ),
-                          Positioned(
-                            right: 12,
-                            top: 12,
-                            child: Column(
-                              children: [
-                                widget.viewOnlyMap!
-                                    ? const SizedBox()
-                                    : controlButton(
-                                  key: _keyAddInputButton,
-                                  backgroundColor: Colors.black54,
-                                  child: Icon(
-                                    pickingPoints!
-                                        ? Icons.pause
-                                        : Icons.add_location_alt,
-                                    color: Colors.white,
-                                    size: 25,
+                                  child: const Text(
+                                    'Enable',
+                                    style: TextStyle(
+                                      color: Colors.blueGrey,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                  onTap: () {
-                                    if (markers.isEmpty) {
-                                      inputMethodSelectionDialog(
-                                        userCurrentLocation!,
+                                ),
+                              )),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: initialCameraPosition,
+                          mapType: mapType,
+                          compassEnabled: false,
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: false,
+                          zoomControlsEnabled: widget.viewOnlyMap!
+                              ? true
+                              : false,
+                          mapToolbarEnabled: false,
+                          markers: markers,
+                          polygons: polygons,
+                          polylines: controller.polyLines,
+                          onMapCreated: (GoogleMapController controller) {
+                            // gMapController.complete(controller);
+                            // await getCurrentLocation();
+          
+                            mapController = controller;
+                            controller.setMapStyle(_mapStyle);
+          
+                            if (widget.viewInitialPolygon == false) {
+                              zoomToCurrentLocation(userCurrentLocation!);
+                            }
+          
+                            if (widget.viewInitialPolygon == true &&
+                                widget.initialPolygon != null) {
+                              Future.delayed(
+                                const Duration(milliseconds: 300),
+                                    () {
+                                  mapController!.animateCamera(
+                                    CameraUpdate.newLatLngBounds(
+                                      boundsFromLatLngList(
+                                        widget.initialPolygon!.points,
+                                      ),
+                                      140.0,
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                          },
+                          onTap: (coordinates) {
+                            setState(() {
+                              showSelectedFeatureInfo = false;
+                            });
+          
+                            if (pickingPoints == true &&
+                                inputMethod == InputMethod.tapping) {
+                              addPoint(coordinates);
+                            }
+                          },
+                        ),
+                        Positioned(
+                          right: 12,
+                          top: 12,
+                          child: Column(
+                            children: [
+                              widget.viewOnlyMap!
+                                  ? const SizedBox()
+                                  : controlButton(
+                                key: _keyAddInputButton,
+                                backgroundColor: Colors.black54,
+                                child: Icon(
+                                  pickingPoints!
+                                      ? Icons.pause
+                                      : Icons.add_location_alt,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                                onTap: () {
+                                  if (markers.isEmpty) {
+                                    inputMethodSelectionDialog(
+                                      userCurrentLocation!,
+                                    );
+                                  } else {
+                                    // if (inputMethod == InputMethod.tapping){
+                                    if (pickingPoints == true) {
+                                      setState(() {
+                                        pickingPoints = false;
+                                      });
+                                      setPolygonTapEvents(
+                                        consumeTap: true,
                                       );
                                     } else {
-                                      // if (inputMethod == InputMethod.tapping){
-                                      if (pickingPoints == true) {
-                                        setState(() {
-                                          pickingPoints = false;
-                                        });
-                                        setPolygonTapEvents(
-                                          consumeTap: true,
+                                      setPolygonTapEvents(
+                                        consumeTap: false,
+                                      );
+                                      setState(() {
+                                        pickingPoints = true;
+                                      });
+          
+                                      if (inputMethod ==
+                                          InputMethod
+                                              .automaticRecording) {
+                                        handleAutomaticPickerTimer(
+                                          userCurrentLocation!,
+                                        );
+                                      }
+                                    }
+                                    // }
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              widget.viewOnlyMap!
+                                  ? const SizedBox()
+                                  : controlButton(
+                                key: _keyBackspaceButton,
+                                backgroundColor: Colors.black54,
+                                child: const Icon(
+                                  Icons.backspace_rounded,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                                disabled: markers.isNotEmpty
+                                    ? false
+                                    : true,
+                                onTap: () {
+                                  if (markers.isNotEmpty) {
+                                    setState(() {
+                                      markers.clear();
+                                      if (polygons
+                                          .where(
+                                            (element) =>
+                                        element.polygonId ==
+                                            PolygonId(polyID!),
+                                      )
+                                          .first
+                                          .points
+                                          .length ==
+                                          1) {
+                                        // polygons.clear();
+                                        polygons.removeWhere(
+                                              (element) =>
+                                          element.polygonId ==
+                                              PolygonId(polyID!),
                                         );
                                       } else {
-                                        setPolygonTapEvents(
-                                          consumeTap: false,
-                                        );
-                                        setState(() {
-                                          pickingPoints = true;
-                                        });
-
-                                        if (inputMethod ==
-                                            InputMethod
-                                                .automaticRecording) {
-                                          handleAutomaticPickerTimer(
-                                            userCurrentLocation!,
-                                          );
-                                        }
-                                      }
-                                      // }
-                                    }
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                widget.viewOnlyMap!
-                                    ? const SizedBox()
-                                    : controlButton(
-                                  key: _keyBackspaceButton,
-                                  backgroundColor: Colors.black54,
-                                  child: const Icon(
-                                    Icons.backspace_rounded,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                  disabled: markers.isNotEmpty
-                                      ? false
-                                      : true,
-                                  onTap: () {
-                                    if (markers.isNotEmpty) {
-                                      setState(() {
-                                        markers.clear();
-                                        if (polygons
+                                        polygons
                                             .where(
                                               (element) =>
                                           element.polygonId ==
@@ -780,500 +804,482 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool>
                                         )
                                             .first
                                             .points
-                                            .length ==
-                                            1) {
-                                          // polygons.clear();
-                                          polygons.removeWhere(
-                                                (element) =>
-                                            element.polygonId ==
-                                                PolygonId(polyID!),
-                                          );
-                                        } else {
-                                          polygons
-                                              .where(
-                                                (element) =>
-                                            element.polygonId ==
-                                                PolygonId(polyID!),
-                                          )
-                                              .first
-                                              .points
-                                              .removeLast();
-                                          markers = polygons
-                                              .where(
-                                                (element) =>
-                                            element.polygonId ==
-                                                PolygonId(polyID!),
-                                          )
-                                              .first
-                                              .points
-                                              .map(
-                                                (e) => Marker(
-                                              markerId: MarkerId(
-                                                UniqueKey()
-                                                    .toString(),
-                                              ),
-                                              position: LatLng(
-                                                e.latitude,
-                                                e.longitude,
-                                              ),
+                                            .removeLast();
+                                        markers = polygons
+                                            .where(
+                                              (element) =>
+                                          element.polygonId ==
+                                              PolygonId(polyID!),
+                                        )
+                                            .first
+                                            .points
+                                            .map(
+                                              (e) => Marker(
+                                            markerId: MarkerId(
+                                              UniqueKey()
+                                                  .toString(),
                                             ),
-                                          )
-                                              .toSet();
-                                        }
-                                      });
-
-                                      if (markers.isEmpty) {
-                                        setState(() {
-                                          pickingPoints = false;
-                                        });
-                                        setPolygonTapEvents(
-                                          consumeTap: true,
-                                        );
+                                            position: LatLng(
+                                              e.latitude,
+                                              e.longitude,
+                                            ),
+                                          ),
+                                        )
+                                            .toSet();
                                       }
-                                    }
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                widget.viewOnlyMap!
-                                    ? const SizedBox()
-                                    : controlButton(
-                                  key: _keyDeleteButton,
-                                  backgroundColor: Colors.black54,
-                                  child: const Icon(
-                                    Icons.delete,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                  disabled: markers.isNotEmpty
-                                      ? false
-                                      : true,
-                                  onTap: () {
-                                    setState(() {
-                                      markers.clear();
-                                      // polygons.clear();
-                                      polygons.removeWhere(
-                                            (element) =>
-                                        element.polygonId ==
-                                            PolygonId(polyID!),
-                                      );
-                                      pickingPoints = false;
                                     });
-                                    setPolygonTapEvents(consumeTap: true);
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                controlButton(
-                                  key: _keyZoomToUserButton,
-                                  backgroundColor: Colors.black54,
-                                  child: const Icon(
-                                    PhosphorIcons.crosshair,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                  // child: const Icon(Icons.api_rounded, color: Colors.white, size: 25,),
-                                  onTap: () => zoomToCurrentLocation(
-                                    userCurrentLocation!,
-                                    force: true,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                widget.viewOnlyMap!
-                                    ? const SizedBox()
-                                    : controlButton(
-                                  key: _keySelectBasemapButton,
-                                  backgroundColor: Colors.black54,
-                                  child: const Icon(
-                                    Icons.map_rounded,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                  onTap: () => selectBasemapStyle(),
-                                ),
-                                const SizedBox(height: 12),
-                                widget.viewOnlyMap!
-                                    ? const SizedBox()
-                                    : controlButton(
-                                  key: _keySaveButton,
-                                  backgroundColor: Colors.black54,
-                                  child: const Icon(
-                                    Icons.save,
-                                    color: Colors.white,
-                                    size: 25,
-                                  ),
-                                  onTap: () {
-                                    if (markers.length < 3) {
-                                      onSaveErrorDialog();
-                                    } else {
-                                      if (timer != null) {
-                                        timer!.cancel();
-                                      }
-                                      if (automaticPickerTimer != null) {
-                                        automaticPickerTimer!.cancel();
-                                      }
-                                      var area = calculatePolygonArea(
-                                        polygons.first.points,
-                                      );
-                                      Polygon drawnPoly = polygons
-                                          .where(
-                                            (element) =>
-                                        element.polygonId ==
-                                            PolygonId(polyID!),
-                                      )
-                                          .first;
-                                      Navigator.of(context).pop();
-                                      widget.onSave(
-                                        drawnPoly,
-                                        markers,
-                                        area,
+          
+                                    if (markers.isEmpty) {
+                                      setState(() {
+                                        pickingPoints = false;
+                                      });
+                                      setPolygonTapEvents(
+                                        consumeTap: true,
                                       );
                                     }
-                                  },
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              widget.viewOnlyMap!
+                                  ? const SizedBox()
+                                  : controlButton(
+                                key: _keyDeleteButton,
+                                backgroundColor: Colors.black54,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                  size: 25,
                                 ),
-                              ],
+                                disabled: markers.isNotEmpty
+                                    ? false
+                                    : true,
+                                onTap: () {
+                                  setState(() {
+                                    markers.clear();
+                                    // polygons.clear();
+                                    polygons.removeWhere(
+                                          (element) =>
+                                      element.polygonId ==
+                                          PolygonId(polyID!),
+                                    );
+                                    pickingPoints = false;
+                                  });
+                                  setPolygonTapEvents(consumeTap: true);
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              controlButton(
+                                key: _keyZoomToUserButton,
+                                backgroundColor: Colors.black54,
+                                child: const Icon(
+                                  PhosphorIcons.crosshair,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                                // child: const Icon(Icons.api_rounded, color: Colors.white, size: 25,),
+                                onTap: () => zoomToCurrentLocation(
+                                  userCurrentLocation!,
+                                  force: true,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              widget.viewOnlyMap!
+                                  ? const SizedBox()
+                                  : controlButton(
+                                key: _keySelectBasemapButton,
+                                backgroundColor: Colors.black54,
+                                child: const Icon(
+                                  Icons.map_rounded,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                                onTap: () => selectBasemapStyle(),
+                              ),
+                              const SizedBox(height: 12),
+                              widget.viewOnlyMap!
+                                  ? const SizedBox()
+                                  : controlButton(
+                                key: _keySaveButton,
+                                backgroundColor: Colors.black54,
+                                child: const Icon(
+                                  Icons.save,
+                                  color: Colors.white,
+                                  size: 25,
+                                ),
+                                onTap: () {
+                                  if (markers.length < 3) {
+                                    onSaveErrorDialog();
+                                  } else {
+                                    if (timer != null) {
+                                      timer!.cancel();
+                                    }
+                                    if (automaticPickerTimer != null) {
+                                      automaticPickerTimer!.cancel();
+                                    }
+                                    var area = calculatePolygonArea(
+                                      polygons.first.points,
+                                    );
+                                    Polygon drawnPoly = polygons
+                                        .where(
+                                          (element) =>
+                                      element.polygonId ==
+                                          PolygonId(polyID!),
+                                    )
+                                        .first;
+                                    Navigator.of(context).pop();
+                                    widget.onSave(
+                                      drawnPoly,
+                                      markers,
+                                      area,
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Positioned(
+                        //   top: 5,
+                        //   left: 10,
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       Row(
+                        //         children: [
+                        //           Container(
+                        //             height: 10,
+                        //             width: 10,
+                        //             color: Theme.of(context).colorScheme.primary,
+                        //           ),
+                        //           const SizedBox(
+                        //             width: 10,
+                        //           ),
+                        //           const Text(
+                        //             "Don't Map",
+                        //             style: TextStyle(fontWeight: FontWeight.bold),
+                        //           )
+                        //         ],
+                        //       ),
+                        //       // Row(
+                        //       //   children: [
+                        //       //     Container(
+                        //       //       height: 10,
+                        //       //       width: 10,
+                        //       //       color: Colors.green,
+                        //       //     ),
+                        //       //     const SizedBox(width: 10,),
+                        //       //     const Text("Re-map Farms")
+                        //       //   ],
+                        //       // ),
+                        //       Row(
+                        //         children: [
+                        //           Container(
+                        //             height: 10,
+                        //             width: 10,
+                        //             color: Colors.orange,
+                        //           ),
+                        //           const SizedBox(
+                        //             width: 10,
+                        //           ),
+                        //           const Text("Forest reserve")
+                        //         ],
+                        //       )
+                        //     ],
+                        //   ),
+                        // ),
+                        if (showSelectedFeatureInfo == true)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: clickedFeatureInfoWindow(
+                              selectedFeatureInfo,
                             ),
                           ),
-                          // Positioned(
-                          //   top: 5,
-                          //   left: 10,
-                          //   child: Column(
-                          //     crossAxisAlignment: CrossAxisAlignment.start,
-                          //     children: [
-                          //       Row(
-                          //         children: [
-                          //           Container(
-                          //             height: 10,
-                          //             width: 10,
-                          //             color: Theme.of(context).colorScheme.primary,
-                          //           ),
-                          //           const SizedBox(
-                          //             width: 10,
-                          //           ),
-                          //           const Text(
-                          //             "Don't Map",
-                          //             style: TextStyle(fontWeight: FontWeight.bold),
-                          //           )
-                          //         ],
-                          //       ),
-                          //       // Row(
-                          //       //   children: [
-                          //       //     Container(
-                          //       //       height: 10,
-                          //       //       width: 10,
-                          //       //       color: Colors.green,
-                          //       //     ),
-                          //       //     const SizedBox(width: 10,),
-                          //       //     const Text("Re-map Farms")
-                          //       //   ],
-                          //       // ),
-                          //       Row(
-                          //         children: [
-                          //           Container(
-                          //             height: 10,
-                          //             width: 10,
-                          //             color: Colors.orange,
-                          //           ),
-                          //           const SizedBox(
-                          //             width: 10,
-                          //           ),
-                          //           const Text("Forest reserve")
-                          //         ],
-                          //       )
-                          //     ],
-                          //   ),
-                          // ),
-                          if (showSelectedFeatureInfo == true)
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: clickedFeatureInfoWindow(
-                                selectedFeatureInfo,
-                              ),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 12,
-                      ),
-                      color: Colors.blueGrey.shade100,
-                      child: Column(
-                        children: [
-                          if (pickingPoints == true &&
-                              inputMethod == InputMethod.manualRecording)
-                            widget.viewOnlyMap!
-                                ? const SizedBox()
-                                : CustomButton(
-                              horizontalPadding: 10,
-                              // isFullWidth: true,
-                              backgroundColor:
-                              (double.parse(
-                                currentPosition?.accuracy
-                                    .toString() ??
-                                    '100.0',
-                              ) >=
-                                  30)
-                                  ? Colors.black12
-                                  : Theme.of(context).colorScheme.primary,
-
-                              // verticalPadding: 0.0,
-                              // horizontalPadding: 8.0,
-                              onTap: () {
-                                debugPrint(
-                                  "Record point :::::::: ${currentPosition?.accuracy}",
-                                );
-                                debugPrint(
-                                  "Record point :::::::: ${widget.persistMaxAccuracy}",
-                                );
-                                userCurrentLocation!.getUserLocation(
-                                  forceEnableLocation: true,
-                                  onLocationEnabled: (isEnabled, currentPosition) {
-                                    if (isEnabled == true) {
-                                      if (widget.persistMaxAccuracy ==
-                                          true) {
-                                        if (double.parse(
-                                          currentPosition!.accuracy
-                                              .toString(),
-                                        ) <=
-                                            30) {
-                                          addPoint(
-                                            LatLng(
-                                              currentPosition
-                                                  .latitude!,
-                                              currentPosition
-                                                  .longitude!,
-                                            ),
-                                          );
-                                          // if (isLocationInsidePolygon(
-                                          //   LatLng(
-                                          //     currentPosition.latitude!,
-                                          //     currentPosition.longitude!,
-                                          //   ),
-                                          //   provider.polygonsForCheck,
-                                          // )) {
-                                          //   globals.showSnackBar(
-                                          //     title: "Invalid Point",
-                                          //     message:
-                                          //     "The point captured interferes with another farm, causing overlap, please adjust yourself and re-capture the point",
-                                          //     backgroundColor: Colors.red,
-                                          //   );
-                                          // } else {
-                                          //   checkLatLngList.add(
-                                          //     currentPosition,
-                                          //   );
-                                          //   if (checkLatLngList.length >=
-                                          //       2) {
-                                          //     LatLng firstPoint = LatLng(
-                                          //       checkLatLngList
-                                          //           .first
-                                          //           .latitude,
-                                          //       checkLatLngList
-                                          //           .first
-                                          //           .longitude,
-                                          //     );
-                                          //
-                                          //     LatLng
-                                          //     previousPoint = LatLng(
-                                          //       checkLatLngList[checkLatLngList
-                                          //           .length -
-                                          //           2]
-                                          //           .latitude,
-                                          //       checkLatLngList[checkLatLngList
-                                          //           .length -
-                                          //           2]
-                                          //           .longitude,
-                                          //     );
-                                          //
-                                          //     LatLng recentPoint = LatLng(
-                                          //       checkLatLngList
-                                          //           .last
-                                          //           .latitude,
-                                          //       checkLatLngList
-                                          //           .last
-                                          //           .longitude,
-                                          //     );
-                                          //
-                                          //     if (gl.Geolocator.distanceBetween(
-                                          //       recentPoint.latitude,
-                                          //       recentPoint.longitude,
-                                          //       previousPoint
-                                          //           .latitude,
-                                          //       previousPoint
-                                          //           .longitude,
-                                          //     ) <=
-                                          //         1) {
-                                          //       globals.showSnackBar(
-                                          //         title: "Invalid Point",
-                                          //         message:
-                                          //         "The point captured is too close to another point, multiple point at one place, please adjust yourself and re-capture the point",
-                                          //         backgroundColor:
-                                          //         Colors.red,
-                                          //       );
-                                          //       return;
-                                          //     }
-                                          //
-                                          //     bool
-                                          //     isLineBetweenRecentPointAndPreviousPointPassThroughPolygon =
-                                          //     doesLineBetweenPointsPassThroughPolygon(
-                                          //       recentPoint,
-                                          //       previousPoint,
-                                          //       provider
-                                          //           .polygonsForCheck,
-                                          //     );
-                                          //
-                                          //     bool
-                                          //     isLineBetweenRecentPointAndFirstPointPassThroughPolygon =
-                                          //     doesLineBetweenPointsPassThroughPolygon(
-                                          //       firstPoint,
-                                          //       recentPoint,
-                                          //       provider
-                                          //           .polygonsForCheck,
-                                          //     );
-                                          //
-                                          //     if (isLineBetweenRecentPointAndPreviousPointPassThroughPolygon ||
-                                          //         isLineBetweenRecentPointAndFirstPointPassThroughPolygon) {
-                                          //       checkLatLngList
-                                          //           .removeLast();
-                                          //       globals.showSnackBar(
-                                          //         title: "Invalid Line",
-                                          //         message:
-                                          //         "The line drawn interferes with another farm, causing overlap, please adjust yourself and re-capture the point",
-                                          //         backgroundColor:
-                                          //         Colors.red,
-                                          //       );
-                                          //     } else {
-                                          //       // add the second and the rest of the points
-                                          //       addPoint(
-                                          //         LatLng(
-                                          //           currentPosition
-                                          //               .latitude!,
-                                          //           currentPosition
-                                          //               .longitude!,
-                                          //         ),
-                                          //       );
-                                          //       index++;
-                                          //     }
-                                          //   } else {
-                                          //     // add the first point
-                                          //
-                                          //   }
-                                          // }
-                                        } else {
-                                          Get.snackbar(
-                                            "Cannot record point",
-                                            "The accuracy must be ${3} or below",
-                                            messageText: const Text(
-                                              "The accuracy must be ${3} or below",
-                                            ),
-                                            colorText: Colors.white,
-                                            snackPosition:
-                                            SnackPosition.BOTTOM,
-                                            margin:
-                                            const EdgeInsets.symmetric(
-                                              vertical: 20,
-                                              horizontal: 10,
-                                            ),
-                                            backgroundColor: Colors.red,
-                                            duration: const Duration(
-                                              seconds: 3,
-                                            ),
-                                          );
-                                        }
-                                      } else {
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 12,
+                    ),
+                    color: Colors.blueGrey.shade100,
+                    child: Column(
+                      children: [
+                        if (pickingPoints == true &&
+                            inputMethod == InputMethod.manualRecording)
+                          widget.viewOnlyMap!
+                              ? const SizedBox()
+                              : CustomButton(
+                            horizontalPadding: 10,
+                            // isFullWidth: true,
+                            backgroundColor:
+                            (double.parse(
+                              currentPosition?.accuracy
+                                  .toString() ??
+                                  '100.0',
+                            ) >=
+                                30)
+                                ? Colors.black12
+                                : Theme.of(context).colorScheme.primary,
+          
+                            // verticalPadding: 0.0,
+                            // horizontalPadding: 8.0,
+                            onTap: () {
+                              debugPrint(
+                                "Record point :::::::: ${currentPosition?.accuracy}",
+                              );
+                              debugPrint(
+                                "Record point :::::::: ${widget.persistMaxAccuracy}",
+                              );
+                              userCurrentLocation!.getUserLocation(
+                                forceEnableLocation: true,
+                                onLocationEnabled: (isEnabled, currentPosition) {
+                                  if (isEnabled == true) {
+                                    if (widget.persistMaxAccuracy ==
+                                        true) {
+                                      if (double.parse(
+                                        currentPosition!.accuracy
+                                            .toString(),
+                                      ) <=
+                                          30) {
                                         addPoint(
                                           LatLng(
-                                            currentPosition!.latitude!,
-                                            currentPosition.longitude!,
+                                            currentPosition
+                                                .latitude!,
+                                            currentPosition
+                                                .longitude!,
+                                          ),
+                                        );
+                                        // if (isLocationInsidePolygon(
+                                        //   LatLng(
+                                        //     currentPosition.latitude!,
+                                        //     currentPosition.longitude!,
+                                        //   ),
+                                        //   provider.polygonsForCheck,
+                                        // )) {
+                                        //   globals.showSnackBar(
+                                        //     title: "Invalid Point",
+                                        //     message:
+                                        //     "The point captured interferes with another farm, causing overlap, please adjust yourself and re-capture the point",
+                                        //     backgroundColor: Colors.red,
+                                        //   );
+                                        // } else {
+                                        //   checkLatLngList.add(
+                                        //     currentPosition,
+                                        //   );
+                                        //   if (checkLatLngList.length >=
+                                        //       2) {
+                                        //     LatLng firstPoint = LatLng(
+                                        //       checkLatLngList
+                                        //           .first
+                                        //           .latitude,
+                                        //       checkLatLngList
+                                        //           .first
+                                        //           .longitude,
+                                        //     );
+                                        //
+                                        //     LatLng
+                                        //     previousPoint = LatLng(
+                                        //       checkLatLngList[checkLatLngList
+                                        //           .length -
+                                        //           2]
+                                        //           .latitude,
+                                        //       checkLatLngList[checkLatLngList
+                                        //           .length -
+                                        //           2]
+                                        //           .longitude,
+                                        //     );
+                                        //
+                                        //     LatLng recentPoint = LatLng(
+                                        //       checkLatLngList
+                                        //           .last
+                                        //           .latitude,
+                                        //       checkLatLngList
+                                        //           .last
+                                        //           .longitude,
+                                        //     );
+                                        //
+                                        //     if (gl.Geolocator.distanceBetween(
+                                        //       recentPoint.latitude,
+                                        //       recentPoint.longitude,
+                                        //       previousPoint
+                                        //           .latitude,
+                                        //       previousPoint
+                                        //           .longitude,
+                                        //     ) <=
+                                        //         1) {
+                                        //       globals.showSnackBar(
+                                        //         title: "Invalid Point",
+                                        //         message:
+                                        //         "The point captured is too close to another point, multiple point at one place, please adjust yourself and re-capture the point",
+                                        //         backgroundColor:
+                                        //         Colors.red,
+                                        //       );
+                                        //       return;
+                                        //     }
+                                        //
+                                        //     bool
+                                        //     isLineBetweenRecentPointAndPreviousPointPassThroughPolygon =
+                                        //     doesLineBetweenPointsPassThroughPolygon(
+                                        //       recentPoint,
+                                        //       previousPoint,
+                                        //       provider
+                                        //           .polygonsForCheck,
+                                        //     );
+                                        //
+                                        //     bool
+                                        //     isLineBetweenRecentPointAndFirstPointPassThroughPolygon =
+                                        //     doesLineBetweenPointsPassThroughPolygon(
+                                        //       firstPoint,
+                                        //       recentPoint,
+                                        //       provider
+                                        //           .polygonsForCheck,
+                                        //     );
+                                        //
+                                        //     if (isLineBetweenRecentPointAndPreviousPointPassThroughPolygon ||
+                                        //         isLineBetweenRecentPointAndFirstPointPassThroughPolygon) {
+                                        //       checkLatLngList
+                                        //           .removeLast();
+                                        //       globals.showSnackBar(
+                                        //         title: "Invalid Line",
+                                        //         message:
+                                        //         "The line drawn interferes with another farm, causing overlap, please adjust yourself and re-capture the point",
+                                        //         backgroundColor:
+                                        //         Colors.red,
+                                        //       );
+                                        //     } else {
+                                        //       // add the second and the rest of the points
+                                        //       addPoint(
+                                        //         LatLng(
+                                        //           currentPosition
+                                        //               .latitude!,
+                                        //           currentPosition
+                                        //               .longitude!,
+                                        //         ),
+                                        //       );
+                                        //       index++;
+                                        //     }
+                                        //   } else {
+                                        //     // add the first point
+                                        //
+                                        //   }
+                                        // }
+                                      } else {
+                                        Get.snackbar(
+                                          "Cannot record point",
+                                          "The accuracy must be ${3} or below",
+                                          messageText: const Text(
+                                            "The accuracy must be ${3} or below",
+                                          ),
+                                          colorText: Colors.white,
+                                          snackPosition:
+                                          SnackPosition.BOTTOM,
+                                          margin:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 20,
+                                            horizontal: 10,
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          duration: const Duration(
+                                            seconds: 3,
                                           ),
                                         );
                                       }
+                                    } else {
+                                      addPoint(
+                                        LatLng(
+                                          currentPosition!.latitude!,
+                                          currentPosition.longitude!,
+                                        ),
+                                      );
                                     }
-                                  },
-                                );
-                              },
-                              child: Text(
-                                'Record point',
-                                style: TextStyle(
-                                  color:
-                                  (double.parse(
-                                    currentPosition?.accuracy
-                                        .toString() ??
-                                        '100.0',
-                                  ) <=
-                                      widget.maxAccuracy!)
-                                      ? Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer
-                                      : Colors.black,
-                                  fontSize: 11,
-                                ),
+                                  }
+                                },
+                              );
+                            },
+                            child: Text(
+                              'Record point',
+                              style: TextStyle(
+                                color:
+                                (double.parse(
+                                  currentPosition?.accuracy
+                                      .toString() ??
+                                      '100.0',
+                                ) <=
+                                    widget.maxAccuracy!)
+                                    ? Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer
+                                    : Colors.black,
+                                fontSize: 11,
                               ),
                             ),
-                          if (pickingPoints == true &&
-                              (inputMethod == InputMethod.tapping ||
-                                  inputMethod ==
-                                      InputMethod.automaticRecording))
-                            Builder(
-                              builder: (context) {
-                                var duration = automaticPickerIntervals.where(
-                                      (element) =>
-                                  element.values.first ==
-                                      automaticPickerInterval,
-                                );
-                                String text =
+                          ),
+                        if (pickingPoints == true &&
+                            (inputMethod == InputMethod.tapping ||
                                 inputMethod ==
-                                    InputMethod.automaticRecording
-                                    ? "Recording points every ${duration.first.keys.first}"
-                                    : "Tap the map to place points";
-
-                                return Column(
-                                  children: [
-                                    Text(
-                                      text,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.black87,
-                                      ),
+                                    InputMethod.automaticRecording))
+                          Builder(
+                            builder: (context) {
+                              var duration = automaticPickerIntervals.where(
+                                    (element) =>
+                                element.values.first ==
+                                    automaticPickerInterval,
+                              );
+                              String text =
+                              inputMethod ==
+                                  InputMethod.automaticRecording
+                                  ? "Recording points every ${duration.first.keys.first}"
+                                  : "Tap the map to place points";
+          
+                              return Column(
+                                children: [
+                                  Text(
+                                    text,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black87,
                                     ),
-                                    const SizedBox(height: 5),
-                                  ],
-                                );
-                              },
-                            ),
-                          widget.viewOnlyMap!
-                              ? const SizedBox()
-                              : Text(
-                            "Points captured : ${markers.length.toString()}",
+                                  ),
+                                  const SizedBox(height: 5),
+                                ],
+                              );
+                            },
+                          ),
+                        widget.viewOnlyMap!
+                            ? const SizedBox()
+                            : Text(
+                          "Points captured : ${markers.length.toString()}",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        markers.length >= 3
+                            ? Padding(
+                          padding: const EdgeInsets.only(top: 3.0),
+                          child: Text(
+                            "Estimated Area in Hectares : ${calculatePolygonArea(polygons.where((element) => element.polygonId == PolygonId(polyID!)).first.points).truncateToDecimalPlaces(6).toString()}",
                             style: const TextStyle(
                               fontSize: 13,
                               color: Colors.black,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          markers.length >= 3
-                              ? Padding(
-                            padding: const EdgeInsets.only(top: 3.0),
-                            child: Text(
-                              "Estimated Area in Hectares : ${calculatePolygonArea(polygons.where((element) => element.polygonId == PolygonId(polyID!)).first.points).truncateToDecimalPlaces(6).toString()}",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          )
-                              : Container(),
-                        ],
-                      ),
+                        )
+                            : Container(),
+                      ],
                     ),
-                  ],
-                );
-              },
-            ),
-          ),
+                  ),
+                ],
+              ),
+            
+          
         ),
       ),
     );

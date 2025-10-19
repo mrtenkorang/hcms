@@ -83,6 +83,7 @@ class LMBMonitoringProvider extends ChangeNotifier {
     });
   }
 
+
   Future<void> fetchAndSetLMBMonitoring() async {
     final dataList = await DBHelper.fetchData('lmb_monitoring');
     _lmbLists = dataList
@@ -109,4 +110,85 @@ class LMBMonitoringProvider extends ChangeNotifier {
         .toList();
     notifyListeners();
   }
-}
+
+  Future<void> updateLMBMonitoring(LMBMonitoring updatedRecord) async {
+    try {
+      debugPrint('=== STARTING UPDATE ===');
+      debugPrint('Record ID: ${updatedRecord.lmbId}');
+      debugPrint('Record to update: ${updatedRecord.toJson()}'); // Add this method if you don't have it
+
+      // Find the index of the record to update
+      final index = _lmbLists.indexWhere((record) => record.lmbId == updatedRecord.lmbId);
+      debugPrint('Found index: $index');
+
+      if (index >= 0) {
+        // Update the local list
+        _lmbLists[index] = updatedRecord;
+
+        // Update the database
+        final db = await DBHelper.database();
+
+        // Use parameterized query with proper column names
+        final result = await db.rawUpdate(
+          '''
+        UPDATE lmb_monitoring SET
+          lmbTimeDisplay = ?,
+          lmbEnumeratorValue = ?,
+          lmbName = ?,
+          lmbSector = ?,
+          lmbPrivateName = ?,
+          lmbFirstEngagement = ?,
+          lmbPartnershipType = ?,
+          lmbPartnershipDuration = ?,
+          lmbMou = ?,
+          lmbFinancialName = ?,
+          lmbTypeLoanService = ?,
+          lmbLoanDuration = ?,
+          lmbLoanInterest = ?,
+          lmbFemaleBenefit = ?,
+          lmbMaleBenefit = ?,
+          lmbYouthBenefit = ?,
+          lmbConStat = ?
+        WHERE lmbId = ? 
+        ''',
+          [
+            updatedRecord.lmbTimeDisplay,
+            updatedRecord.lmbEnumeratorValue,
+            updatedRecord.lmbName,
+            updatedRecord.lmbSector,
+            updatedRecord.lmbPrivateName,
+            updatedRecord.lmbFirstEngagement,
+            updatedRecord.lmbPartnershipType,
+            updatedRecord.lmbPartnershipDuration,
+            updatedRecord.lmbMou,
+            updatedRecord.lmbFinancialName,
+            updatedRecord.lmbTypeLoanService,
+            updatedRecord.lmbLoanDuration,
+            updatedRecord.lmbLoanInterest,
+            updatedRecord.lmbFemaleBenefit,
+            updatedRecord.lmbMaleBenefit,
+            updatedRecord.lmbYouthBenefit,
+            updatedRecord.lmbConStat,
+            updatedRecord.lmbId,
+          ],
+        );
+
+        debugPrint('Update result (rows affected): $result');
+
+        if (result == 0) {
+          debugPrint('WARNING: No rows were updated. Check if record exists in database.');
+        } else {
+          debugPrint('SUCCESS: Record updated successfully');
+        }
+
+        notifyListeners();
+      } else {
+        debugPrint('ERROR: Record not found in local list');
+        throw Exception('LMBMonitoring record not found for update in local list');
+      }
+    } catch (e) {
+      debugPrint('ERROR in updateLMBMonitoring: $e');
+      debugPrint('Stack trace: ${e.toString()}');
+      throw Exception('Failed to update LMB monitoring: $e');
+    }
+  }}

@@ -157,6 +157,62 @@ class DBHelper {
         ' deforestationCause TEXT, takeAction TEXT, actionReason TEXT,'
         ' latitude TEXT, longitude TEXT, image TEXT, conStat TEXT)',
       );
+
+
+      await db.execute('''
+      CREATE TABLE seedling_monitorings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        surveyor_name TEXT,
+        date_of_survey TEXT,
+        community TEXT,
+        farmer_name TEXT,
+        farmer_id_number TEXT,
+        community_notfound INTEGER DEFAULT 0,
+        custom_community_name TEXT,
+        plantation_type TEXT,
+        total_size_acres REAL,
+        species_provided_planted TEXT,
+        mapped_farm_boundaries TEXT,
+        mapped_area_hectares REAL,
+        total_seedlings_alive INTEGER,
+        species_alive TEXT,
+        reason_for_death TEXT,
+        mapped_surviving_seedlings TEXT,
+        source_of_water TEXT,
+        watering_frequency TEXT,
+        has_extreme_weather INTEGER DEFAULT 0,
+        extreme_weathers TEXT,
+        other_extreme_weather TEXT,
+        pests_around INTEGER DEFAULT 0,
+        pest_description TEXT,
+        signs_of_disease INTEGER DEFAULT 0,
+        disease_description TEXT,
+        fertiliser_applied INTEGER DEFAULT 0,
+        fertiliser_type TEXT,
+        pesticide_applied INTEGER DEFAULT 0,
+        pesticide_type TEXT,
+        additional_observations TEXT,
+        farmer_contact TEXT,
+        enumerator_value TEXT,
+        submission_status TEXT DEFAULT 'draft',
+        connection_status TEXT DEFAULT 'not_connected',
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+      // Species planting details table
+      await db.execute('''
+      CREATE TABLE species_planting_details(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        monitoring_id INTEGER,
+        species TEXT,
+        quantity_received INTEGER,
+        quantity_planted INTEGER,
+        date_of_planting TEXT,
+        FOREIGN KEY (monitoring_id) REFERENCES seedling_monitorings (id) ON DELETE CASCADE
+      )
+    ''');
     }, version: 1);
 
     return _db!;

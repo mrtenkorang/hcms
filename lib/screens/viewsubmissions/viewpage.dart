@@ -124,9 +124,9 @@ class _ViewReportState extends State<ViewReport> {
                               child: Center(
                                 child: const Text('No trees registered yet.'),
                               ),
-                              builder: (ctx, mapDetails, ch) => Container(
+                              builder: (ctx, mapDetails, ch) => SizedBox(
                                 height: MediaQuery.of(context).size.height,
-                                child: mapDetails.farmerLists.length <= 0
+                                child: mapDetails.farmerLists.isEmpty
                                     ? ch
                                     : RefreshIndicator(
                                         key: refreshKey,
@@ -895,175 +895,91 @@ class _ViewReportState extends State<ViewReport> {
             )
           ],
         ),
-        body: Container(
-          child: Material(
-            child: FutureBuilder(
-              future:
-                  Provider.of<PersonalFarmerProvider>(context, listen: false)
-                      .fetchAndSetPersonalFarmer(),
-              builder: (ctx, snapshot) =>
-                  snapshot.connectionState == ConnectionState.waiting
-                      ? Center(
-                          child: CircularProgressIndicator(),
-                        )
-                      : Consumer<PersonalFarmerProvider>(
-                          child: Center(
-                            child: const Text('No trees registered yet.'),
-                          ),
-                          builder: (ctx, mapDetails, ch) => Container(
-                            height: MediaQuery.of(context).size.height,
-                            child: mapDetails.farmerLists.length <= 0
-                                ? ch
-                                : RefreshIndicator(
-                                    onRefresh: refreshList,
-                                    key: refreshKey,
-                                    child: ListView.builder(
-                                        physics: ScrollPhysics(
-                                            parent:
-                                                AlwaysScrollableScrollPhysics()),
-                                        scrollDirection: Axis.vertical,
-                                        shrinkWrap: true,
-                                        itemCount:
-                                            mapDetails.farmerLists.length,
-                                        itemBuilder: (ctx, i) {
-                                          int itemCount =
-                                              mapDetails.farmerLists.length;
-                                          int reversedIndex = itemCount - 1 - i;
-                                          // setState(() {
-                                          //             _launched = _launchInWebViewWithJavaScript(toLaunch);
-                                          //           });
-                                          return SingleChildScrollView(
-                                            child: Column(
-                                              children: <Widget>[
-                                                SizedBox(height: 10),
-                                                // Text("${mapDetails.farmerLists.length} registered trees"),
-                                                mapDetails
-                                                            .farmerLists[
-                                                                reversedIndex]
-                                                            .conStat ==
-                                                        "incomplete"
-                                                    ? Container(
-                                                        height: 160,
-                                                        decoration:
-                                                            BoxDecoration(),
-                                                        child: mapDetails
+        body: Material(
+          child: FutureBuilder(
+            future:
+                Provider.of<PersonalFarmerProvider>(context, listen: false)
+                    .fetchAndSetPersonalFarmer(),
+            builder: (ctx, snapshot) =>
+                snapshot.connectionState == ConnectionState.waiting
+                    ? Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : Consumer<PersonalFarmerProvider>(
+                        child: Center(
+                          child: const Text('No trees registered yet.'),
+                        ),
+                        builder: (ctx, mapDetails, ch) => SizedBox(
+                          height: MediaQuery.of(context).size.height,
+                          child: mapDetails.farmerLists.isEmpty
+                              ? ch
+                              : RefreshIndicator(
+                                  onRefresh: refreshList,
+                                  key: refreshKey,
+                                  child: ListView.builder(
+                                      physics: ScrollPhysics(
+                                          parent:
+                                              AlwaysScrollableScrollPhysics()),
+                                      scrollDirection: Axis.vertical,
+                                      shrinkWrap: true,
+                                      itemCount:
+                                          mapDetails.farmerLists.length,
+                                      itemBuilder: (ctx, i) {
+                                        int itemCount =
+                                            mapDetails.farmerLists.length;
+                                        int reversedIndex = itemCount - 1 - i;
+                                        // setState(() {
+                                        //             _launched = _launchInWebViewWithJavaScript(toLaunch);
+                                        //           });
+                                        return SingleChildScrollView(
+                                          child: Column(
+                                            children: <Widget>[
+                                              SizedBox(height: 10),
+                                              // Text("${mapDetails.farmerLists.length} registered trees"),
+                                              mapDetails
+                                                          .farmerLists[
+                                                              reversedIndex]
+                                                          .conStat ==
+                                                      "incomplete"
+                                                  ? Container(
+                                                      height: 160,
+                                                      decoration:
+                                                          BoxDecoration(),
+                                                      child: mapDetails
+                                                                  .farmerLists[
+                                                                      reversedIndex]
+                                                                  .beneficiaryType ==
+                                                              "Individual"
+                                                          ? InkWell(
+                                                              child: ViewCard(
+                                                                dateRecorded: mapDetails
                                                                     .farmerLists[
                                                                         reversedIndex]
-                                                                    .beneficiaryType ==
-                                                                "Individual"
-                                                            ? InkWell(
-                                                                child: ViewCard(
-                                                                  dateRecorded: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .timeDisplay,
-                                                                  type: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .beneficiaryType,
-                                                                  name:
-                                                                      "${mapDetails.farmerLists[reversedIndex].farmerfirstName} "
-                                                                      "${mapDetails.farmerLists[reversedIndex].farmersurName}",
-                                                                  email: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .farmerMail,
-                                                                  timeSent:
-                                                                      "Tap to complete",
-                                                                  color: Colors
-                                                                      .black,
-                                                                  image: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .farmerPic64,
-                                                                  community: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .community,
-                                                                  pressAction: () =>
-                                                                      submissionOptions(
-                                                                    context,
-                                                                    "Select an option",
-                                                                    "View/ Edit data",
-                                                                    "Delete data",
-                                                                    "Cancel",
-                                                                    approvePress:
-                                                                        () async {
-                                                                      regSP?.setString(
-                                                                          "farm",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .pointsGet);
-                                                                      regSP?.setString(
-                                                                          "c2",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c2treePlantationDetail);
-                                                                      regSP?.setString(
-                                                                          "c3",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c3treePlantationDetail);
-                                                                      regSP?.setString(
-                                                                          "fgender",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerGender);
-                                                                      regSP?.setString(
-                                                                          "kgender",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinGender);
-                                                                      regSP?.setString(
-                                                                          "fdob",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerDoB);
-                                                                      regSP?.setString(
-                                                                          "kdob",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinDoB);
-                                                                      Navigator.of(context).pushNamed(
-                                                                          DetailDisplayIncomplete
-                                                                              .routeName,
-                                                                          arguments: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id);
-                                                                    },
-                                                                    editPress:
-                                                                        () {
-                                                                      submissionOptions(
-                                                                          context,
-                                                                          "Are you sure you want to delete?",
-                                                                          "Yes",
-                                                                          "",
-                                                                          "No",
-                                                                          approvePress:
-                                                                              () {
-                                                                        DBHelper.delete(mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .id);
-
-                                                                        Provider.of<PersonalFarmerProvider>(context,
-                                                                                listen: false)
-                                                                            .fetchAndSetPersonalFarmer();
-                                                                      },
-                                                                          editPress:
-                                                                              () {},
-                                                                          disapprovePress:
-                                                                              () {});
-                                                                    },
-                                                                    disapprovePress:
-                                                                        () =>
-                                                                            null,
-                                                                  ),
-                                                                  conState: mapDetails
-                                                                      .farmerLists[
-                                                                          reversedIndex]
-                                                                      .conStat,
-                                                                ),
-                                                                onTap: () =>
+                                                                    .timeDisplay,
+                                                                type: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .beneficiaryType,
+                                                                name:
+                                                                    "${mapDetails.farmerLists[reversedIndex].farmerfirstName} "
+                                                                    "${mapDetails.farmerLists[reversedIndex].farmersurName}",
+                                                                email: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .farmerMail,
+                                                                timeSent:
+                                                                    "Tap to complete",
+                                                                color: Colors
+                                                                    .black,
+                                                                image: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .farmerPic64,
+                                                                community: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .community,
+                                                                pressAction: () =>
                                                                     submissionOptions(
                                                                   context,
                                                                   "Select an option",
@@ -1125,12 +1041,10 @@ class _ViewReportState extends State<ViewReport> {
                                                                         approvePress:
                                                                             () {
                                                                       DBHelper.delete(mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
+                                                                          .farmerLists[reversedIndex]
                                                                           .id);
 
-                                                                      Provider.of<PersonalFarmerProvider>(
-                                                                              context,
+                                                                      Provider.of<PersonalFarmerProvider>(context,
                                                                               listen: false)
                                                                           .fetchAndSetPersonalFarmer();
                                                                     },
@@ -1143,9 +1057,393 @@ class _ViewReportState extends State<ViewReport> {
                                                                       () =>
                                                                           null,
                                                                 ),
-                                                              )
-                                                            : InkWell(
-                                                                child: ViewCard(
+                                                                conState: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .conStat,
+                                                              ),
+                                                              onTap: () =>
+                                                                  submissionOptions(
+                                                                context,
+                                                                "Select an option",
+                                                                "View/ Edit data",
+                                                                "Delete data",
+                                                                "Cancel",
+                                                                approvePress:
+                                                                    () async {
+                                                                  regSP?.setString(
+                                                                      "farm",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .pointsGet);
+                                                                  regSP?.setString(
+                                                                      "c2",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .c2treePlantationDetail);
+                                                                  regSP?.setString(
+                                                                      "c3",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .c3treePlantationDetail);
+                                                                  regSP?.setString(
+                                                                      "fgender",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .farmerGender);
+                                                                  regSP?.setString(
+                                                                      "kgender",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .kinGender);
+                                                                  regSP?.setString(
+                                                                      "fdob",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .farmerDoB);
+                                                                  regSP?.setString(
+                                                                      "kdob",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .kinDoB);
+                                                                  Navigator.of(context).pushNamed(
+                                                                      DetailDisplayIncomplete
+                                                                          .routeName,
+                                                                      arguments: mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .id);
+                                                                },
+                                                                editPress:
+                                                                    () {
+                                                                  submissionOptions(
+                                                                      context,
+                                                                      "Are you sure you want to delete?",
+                                                                      "Yes",
+                                                                      "",
+                                                                      "No",
+                                                                      approvePress:
+                                                                          () {
+                                                                    DBHelper.delete(mapDetails
+                                                                        .farmerLists[
+                                                                            reversedIndex]
+                                                                        .id);
+
+                                                                    Provider.of<PersonalFarmerProvider>(
+                                                                            context,
+                                                                            listen: false)
+                                                                        .fetchAndSetPersonalFarmer();
+                                                                  },
+                                                                      editPress:
+                                                                          () {},
+                                                                      disapprovePress:
+                                                                          () {});
+                                                                },
+                                                                disapprovePress:
+                                                                    () =>
+                                                                        null,
+                                                              ),
+                                                            )
+                                                          : InkWell(
+                                                              child: ViewCard(
+                                                                dateRecorded: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .timeDisplay,
+                                                                type: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .beneficiaryType,
+                                                                name: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .groupName,
+                                                                email: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .groupEmail,
+                                                                timeSent:
+                                                                    "Tap to complete",
+                                                                color: Colors
+                                                                    .black,
+                                                                community: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .community,
+                                                                image: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .farmerPic64,
+                                                                pressAction: () =>
+                                                                    submissionOptions(
+                                                                  context,
+                                                                  "Select an option",
+                                                                  "View/ Edit data",
+                                                                  "Delete data",
+                                                                  "Cancel",
+                                                                  approvePress:
+                                                                      () async {
+                                                                    regSP?.setString(
+                                                                        "farm",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .pointsGet);
+                                                                    regSP?.setString(
+                                                                        "c2",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c2treePlantationDetail);
+                                                                    regSP?.setString(
+                                                                        "c3",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c3treePlantationDetail);
+                                                                    regSP?.setString(
+                                                                        "fgender",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerGender);
+                                                                    regSP?.setString(
+                                                                        "kgender",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinGender);
+                                                                    regSP?.setString(
+                                                                        "fdob",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerDoB);
+                                                                    regSP?.setString(
+                                                                        "kdob",
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinDoB);
+                                                                    Navigator.of(context).pushNamed(
+                                                                        DetailDisplayIncomplete
+                                                                            .routeName,
+                                                                        arguments: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id);
+                                                                  },
+                                                                  editPress:
+                                                                      () {
+                                                                    submissionOptions(
+                                                                        context,
+                                                                        "Are you sure you want to delete?",
+                                                                        "Yes",
+                                                                        "",
+                                                                        "No",
+                                                                        approvePress:
+                                                                            () {
+                                                                      DBHelper.delete(mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .id);
+
+                                                                      Provider.of<PersonalFarmerProvider>(context,
+                                                                              listen: false)
+                                                                          .fetchAndSetPersonalFarmer();
+                                                                    },
+                                                                        editPress:
+                                                                            () {},
+                                                                        disapprovePress:
+                                                                            () {});
+                                                                  },
+                                                                  disapprovePress:
+                                                                      () =>
+                                                                          null,
+                                                                ),
+                                                                conState: mapDetails
+                                                                    .farmerLists[
+                                                                        reversedIndex]
+                                                                    .conStat,
+                                                              ),
+                                                              onTap: () =>
+                                                                  submissionOptions(
+                                                                context,
+                                                                "Select an option",
+                                                                "View/ Edit data",
+                                                                "Delete data",
+                                                                "Cancel",
+                                                                approvePress:
+                                                                    () async {
+                                                                  regSP?.setString(
+                                                                      "farm",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .pointsGet);
+                                                                  regSP?.setString(
+                                                                      "c2",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .c2treePlantationDetail);
+                                                                  regSP?.setString(
+                                                                      "c3",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .c3treePlantationDetail);
+                                                                  regSP?.setString(
+                                                                      "fgender",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .farmerGender);
+                                                                  regSP?.setString(
+                                                                      "kgender",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .kinGender);
+                                                                  regSP?.setString(
+                                                                      "fdob",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .farmerDoB);
+                                                                  regSP?.setString(
+                                                                      "kdob",
+                                                                      mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .kinDoB);
+                                                                  Navigator.of(context).pushNamed(
+                                                                      DetailDisplayIncomplete
+                                                                          .routeName,
+                                                                      arguments: mapDetails
+                                                                          .farmerLists[reversedIndex]
+                                                                          .id);
+                                                                },
+                                                                editPress:
+                                                                    () {
+                                                                  submissionOptions(
+                                                                      context,
+                                                                      "Are you sure you want to delete?",
+                                                                      "Yes",
+                                                                      "",
+                                                                      "No",
+                                                                      approvePress:
+                                                                          () {
+                                                                    DBHelper.delete(mapDetails
+                                                                        .farmerLists[
+                                                                            reversedIndex]
+                                                                        .id);
+
+                                                                    Provider.of<PersonalFarmerProvider>(
+                                                                            context,
+                                                                            listen: false)
+                                                                        .fetchAndSetPersonalFarmer();
+                                                                  },
+                                                                      editPress:
+                                                                          () {},
+                                                                      disapprovePress:
+                                                                          () {});
+                                                                },
+                                                                disapprovePress:
+                                                                    () =>
+                                                                        null,
+                                                              ),
+                                                            ),
+                                                    )
+                                                  : mapDetails
+                                                              .farmerLists[
+                                                                  reversedIndex]
+                                                              .conStat ==
+                                                          "connected"
+                                                      ? Container(
+                                                          height: 160,
+                                                          decoration:
+                                                              BoxDecoration(),
+                                                          child: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .beneficiaryType ==
+                                                                  "Individual"
+                                                              ? ViewCard(
+                                                                  dateRecorded: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .timeDisplay,
+                                                                  type: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .beneficiaryType,
+                                                                  name:
+                                                                      "${mapDetails.farmerLists[reversedIndex].farmerfirstName} "
+                                                                      "${mapDetails.farmerLists[reversedIndex].farmersurName}",
+                                                                  email: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .farmerMail,
+                                                                  timeSent: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .timeDisplay,
+                                                                  image: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .farmerPic64,
+                                                                  community: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .community,
+                                                                  pressAction:
+                                                                      () {
+                                                                    submissionOptions(
+                                                                      context,
+                                                                      "Select an option",
+                                                                      "View data",
+                                                                      "Delete local data",
+                                                                      "Cancel",
+                                                                      approvePress:
+                                                                          () async {
+                                                                        regSP?.setString(
+                                                                            "farm",
+                                                                            mapDetails.farmerLists[reversedIndex].pointsGet);
+                                                                        regSP?.setString(
+                                                                            "c2",
+                                                                            mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "c3",
+                                                                            mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "fgender",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerGender);
+
+                                                                        regSP?.setString(
+                                                                            "kgender",
+                                                                            mapDetails.farmerLists[reversedIndex].kinGender);
+                                                                        regSP?.setString(
+                                                                            "fdob",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerDoB);
+                                                                        regSP?.setString(
+                                                                            "kdob",
+                                                                            mapDetails.farmerLists[reversedIndex].kinDoB);
+                                                                        Navigator.of(context).pushNamed(
+                                                                            DetailDisplayIncomplete.routeName,
+                                                                            arguments: mapDetails.farmerLists[reversedIndex].id);
+                                                                      },
+                                                                      editPress:
+                                                                          () {
+                                                                        submissionOptions(
+                                                                            context,
+                                                                            "Are you sure you want to delete?",
+                                                                            "Yes",
+                                                                            "",
+                                                                            "No",
+                                                                            approvePress:
+                                                                                () {
+                                                                          DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
+
+                                                                          Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
+                                                                        },
+                                                                            editPress: () {},
+                                                                            disapprovePress: () {});
+                                                                      },
+                                                                      disapprovePress:
+                                                                          () =>
+                                                                              null,
+                                                                    );
+                                                                  },
+                                                                  conState: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .conStat,
+                                                                )
+                                                              : ViewCard(
                                                                   dateRecorded: mapDetails
                                                                       .farmerLists[
                                                                           reversedIndex]
@@ -1162,10 +1460,10 @@ class _ViewReportState extends State<ViewReport> {
                                                                       .farmerLists[
                                                                           reversedIndex]
                                                                       .groupEmail,
-                                                                  timeSent:
-                                                                      "Tap to complete",
-                                                                  color: Colors
-                                                                      .black,
+                                                                  timeSent: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .timeDisplay,
                                                                   community: mapDetails
                                                                       .farmerLists[
                                                                           reversedIndex]
@@ -1174,186 +1472,81 @@ class _ViewReportState extends State<ViewReport> {
                                                                       .farmerLists[
                                                                           reversedIndex]
                                                                       .farmerPic64,
-                                                                  pressAction: () =>
-                                                                      submissionOptions(
-                                                                    context,
-                                                                    "Select an option",
-                                                                    "View/ Edit data",
-                                                                    "Delete data",
-                                                                    "Cancel",
-                                                                    approvePress:
-                                                                        () async {
-                                                                      regSP?.setString(
-                                                                          "farm",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .pointsGet);
-                                                                      regSP?.setString(
-                                                                          "c2",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c2treePlantationDetail);
-                                                                      regSP?.setString(
-                                                                          "c3",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c3treePlantationDetail);
-                                                                      regSP?.setString(
-                                                                          "fgender",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerGender);
-                                                                      regSP?.setString(
-                                                                          "kgender",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinGender);
-                                                                      regSP?.setString(
-                                                                          "fdob",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerDoB);
-                                                                      regSP?.setString(
-                                                                          "kdob",
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinDoB);
-                                                                      Navigator.of(context).pushNamed(
-                                                                          DetailDisplayIncomplete
-                                                                              .routeName,
-                                                                          arguments: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id);
-                                                                    },
-                                                                    editPress:
-                                                                        () {
-                                                                      submissionOptions(
-                                                                          context,
-                                                                          "Are you sure you want to delete?",
-                                                                          "Yes",
-                                                                          "",
-                                                                          "No",
-                                                                          approvePress:
-                                                                              () {
-                                                                        DBHelper.delete(mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .id);
-
-                                                                        Provider.of<PersonalFarmerProvider>(context,
-                                                                                listen: false)
-                                                                            .fetchAndSetPersonalFarmer();
+                                                                  pressAction:
+                                                                      () {
+                                                                    submissionOptions(
+                                                                      context,
+                                                                      "Select an option",
+                                                                      "View data",
+                                                                      "Delete local data",
+                                                                      "Cancel",
+                                                                      approvePress:
+                                                                          () async {
+                                                                        regSP?.setString(
+                                                                            "farm",
+                                                                            mapDetails.farmerLists[reversedIndex].pointsGet);
+                                                                        regSP?.setString(
+                                                                            "c2",
+                                                                            mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "c3",
+                                                                            mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "fgender",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerGender);
+                                                                        regSP?.setString(
+                                                                            "kgender",
+                                                                            mapDetails.farmerLists[reversedIndex].kinGender);
+                                                                        regSP?.setString(
+                                                                            "fdob",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerDoB);
+                                                                        regSP?.setString(
+                                                                            "kdob",
+                                                                            mapDetails.farmerLists[reversedIndex].kinDoB);
+                                                                        Navigator.of(context).pushNamed(
+                                                                            DetailDisplayIncomplete.routeName,
+                                                                            arguments: mapDetails.farmerLists[reversedIndex].id);
                                                                       },
-                                                                          editPress:
-                                                                              () {},
-                                                                          disapprovePress:
-                                                                              () {});
-                                                                    },
-                                                                    disapprovePress:
-                                                                        () =>
-                                                                            null,
-                                                                  ),
+                                                                      editPress:
+                                                                          () {
+                                                                        submissionOptions(
+                                                                            context,
+                                                                            "Are you sure you want to delete?",
+                                                                            "Yes",
+                                                                            "",
+                                                                            "No",
+                                                                            approvePress:
+                                                                                () {
+                                                                          DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
+
+                                                                          Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
+                                                                        },
+                                                                            editPress: () {},
+                                                                            disapprovePress: () {});
+                                                                      },
+                                                                      disapprovePress:
+                                                                          () =>
+                                                                              null,
+                                                                    );
+                                                                  },
                                                                   conState: mapDetails
                                                                       .farmerLists[
                                                                           reversedIndex]
                                                                       .conStat,
                                                                 ),
-                                                                onTap: () =>
-                                                                    submissionOptions(
-                                                                  context,
-                                                                  "Select an option",
-                                                                  "View/ Edit data",
-                                                                  "Delete data",
-                                                                  "Cancel",
-                                                                  approvePress:
-                                                                      () async {
-                                                                    regSP?.setString(
-                                                                        "farm",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .pointsGet);
-                                                                    regSP?.setString(
-                                                                        "c2",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .c2treePlantationDetail);
-                                                                    regSP?.setString(
-                                                                        "c3",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .c3treePlantationDetail);
-                                                                    regSP?.setString(
-                                                                        "fgender",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .farmerGender);
-                                                                    regSP?.setString(
-                                                                        "kgender",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .kinGender);
-                                                                    regSP?.setString(
-                                                                        "fdob",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .farmerDoB);
-                                                                    regSP?.setString(
-                                                                        "kdob",
-                                                                        mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .kinDoB);
-                                                                    Navigator.of(context).pushNamed(
-                                                                        DetailDisplayIncomplete
-                                                                            .routeName,
-                                                                        arguments: mapDetails
-                                                                            .farmerLists[reversedIndex]
-                                                                            .id);
-                                                                  },
-                                                                  editPress:
-                                                                      () {
-                                                                    submissionOptions(
-                                                                        context,
-                                                                        "Are you sure you want to delete?",
-                                                                        "Yes",
-                                                                        "",
-                                                                        "No",
-                                                                        approvePress:
-                                                                            () {
-                                                                      DBHelper.delete(mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .id);
-
-                                                                      Provider.of<PersonalFarmerProvider>(
-                                                                              context,
-                                                                              listen: false)
-                                                                          .fetchAndSetPersonalFarmer();
-                                                                    },
-                                                                        editPress:
-                                                                            () {},
-                                                                        disapprovePress:
-                                                                            () {});
-                                                                  },
-                                                                  disapprovePress:
-                                                                      () =>
-                                                                          null,
-                                                                ),
-                                                              ),
-                                                      )
-                                                    : mapDetails
-                                                                .farmerLists[
-                                                                    reversedIndex]
-                                                                .conStat ==
-                                                            "connected"
-                                                        ? Container(
-                                                            height: 160,
-                                                            decoration:
-                                                                BoxDecoration(),
-                                                            child: mapDetails
-                                                                        .farmerLists[
-                                                                            reversedIndex]
-                                                                        .beneficiaryType ==
-                                                                    "Individual"
-                                                                ? ViewCard(
+                                                        )
+                                                      : Container(
+                                                          height: 160,
+                                                          decoration:
+                                                              BoxDecoration(),
+                                                          child: mapDetails
+                                                                      .farmerLists[
+                                                                          reversedIndex]
+                                                                      .beneficiaryType ==
+                                                                  "Individual"
+                                                              ? InkWell(
+                                                                  child:
+                                                                      ViewCard(
                                                                     dateRecorded: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
@@ -1369,10 +1562,10 @@ class _ViewReportState extends State<ViewReport> {
                                                                         .farmerLists[
                                                                             reversedIndex]
                                                                         .farmerMail,
-                                                                    timeSent: mapDetails
-                                                                        .farmerLists[
-                                                                            reversedIndex]
-                                                                        .timeDisplay,
+                                                                    timeSent:
+                                                                        "Please tap to resend",
+                                                                    color: Colors
+                                                                        .black,
                                                                     image: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
@@ -1386,35 +1579,27 @@ class _ViewReportState extends State<ViewReport> {
                                                                       submissionOptions(
                                                                         context,
                                                                         "Select an option",
-                                                                        "View data",
-                                                                        "Delete local data",
+                                                                        "View/ Edit data",
+                                                                        "Delete data",
                                                                         "Cancel",
                                                                         approvePress:
                                                                             () async {
-                                                                          regSP?.setString(
-                                                                              "farm",
+                                                                          regSP?.setString("farm",
                                                                               mapDetails.farmerLists[reversedIndex].pointsGet);
-                                                                          regSP?.setString(
-                                                                              "c2",
+                                                                          regSP?.setString("c2",
                                                                               mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "c3",
+                                                                          regSP?.setString("c3",
                                                                               mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "fgender",
+                                                                          regSP?.setString("fgender",
                                                                               mapDetails.farmerLists[reversedIndex].farmerGender);
 
-                                                                          regSP?.setString(
-                                                                              "kgender",
+                                                                          regSP?.setString("kgender",
                                                                               mapDetails.farmerLists[reversedIndex].kinGender);
-                                                                          regSP?.setString(
-                                                                              "fdob",
+                                                                          regSP?.setString("fdob",
                                                                               mapDetails.farmerLists[reversedIndex].farmerDoB);
-                                                                          regSP?.setString(
-                                                                              "kdob",
+                                                                          regSP?.setString("kdob",
                                                                               mapDetails.farmerLists[reversedIndex].kinDoB);
-                                                                          Navigator.of(context).pushNamed(
-                                                                              DetailDisplayIncomplete.routeName,
+                                                                          Navigator.of(context).pushNamed(DetailDisplayIncomplete.routeName,
                                                                               arguments: mapDetails.farmerLists[reversedIndex].id);
                                                                         },
                                                                         editPress:
@@ -1425,26 +1610,170 @@ class _ViewReportState extends State<ViewReport> {
                                                                               "Yes",
                                                                               "",
                                                                               "No",
-                                                                              approvePress:
-                                                                                  () {
+                                                                              approvePress: () {
                                                                             DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
 
                                                                             Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
-                                                                          },
-                                                                              editPress: () {},
-                                                                              disapprovePress: () {});
+                                                                          }, editPress: () {}, disapprovePress: () {});
                                                                         },
-                                                                        disapprovePress:
-                                                                            () =>
-                                                                                null,
+                                                                        disapprovePress: () =>
+                                                                            null,
                                                                       );
                                                                     },
                                                                     conState: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
                                                                         .conStat,
-                                                                  )
-                                                                : ViewCard(
+                                                                  ),
+                                                                  onTap: () =>
+                                                                      submissionOptions(
+                                                                    context,
+                                                                    "Select an option",
+                                                                    "Resend data",
+                                                                    "View/ Edit data before send",
+                                                                    "Delete data",
+                                                                    approvePress:
+                                                                        () {
+                                                                      return reUpload(
+                                                                        context,
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerId,
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .beneficiaryType,
+                                                                        int.parse(mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .enumeratorValue),
+                                                                        farmerDoB: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerDoB,
+                                                                        farmerfirstName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerfirstName,
+                                                                        farmerGender: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerGender,
+                                                                        kinDoB: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinDoB,
+                                                                        kinGender: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinGender,
+                                                                        kinName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinName,
+                                                                        kinPhoneNum: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinPhoneNum,
+                                                                        kinAddress: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinPostal,
+                                                                        kinRelationShip: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .kinRelationShip,
+                                                                        farmerotherName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerotherName,
+                                                                        farmerPic64: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerPic64,
+                                                                        farmersurName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmersurName,
+                                                                        farmerPhoneNum: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerPhoneNum,
+                                                                        farmerPostal: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerPostal,
+                                                                        farmerMail: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerMail,
+                                                                        declarationSig: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerdeclarationSig,
+                                                                        witnessdeclarationSig: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessdeclarationSig,
+                                                                        witnessName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessName,
+                                                                        witnessPhone: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessPhone,
+                                                                        community: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .community,
+                                                                        family: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .family,
+                                                                        forestDistrict: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .forestDistrict,
+                                                                        mddas:
+                                                                            int.parse(
+                                                                          mapDetails.farmerLists[reversedIndex].mddas,
+                                                                        ),
+                                                                        region: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .region,
+                                                                        farmID: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmID,
+                                                                        farmCords: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .pointsGet,
+                                                                        farmArea: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmArea,
+                                                                        treeInfo0Option: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c2treePlantationDetail,
+                                                                        treeInfo2Option: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c3treePlantationDetail,
+                                                                        toEstablishment: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .typeofEstablishment,
+                                                                        itemID: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id,
+                                                                      );
+                                                                    },
+                                                                    editPress: () => Navigator.of(context).pushNamed(
+                                                                        DetailDisplayIncomplete
+                                                                            .routeName,
+                                                                        arguments: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id),
+                                                                    disapprovePress:
+                                                                        () {
+                                                                      submissionOptions(
+                                                                          context,
+                                                                          "Are you sure you want to delete?",
+                                                                          "Yes",
+                                                                          "",
+                                                                          "No",
+                                                                          approvePress:
+                                                                              () {
+                                                                        DBHelper.delete(mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id);
+
+                                                                        Provider.of<PersonalFarmerProvider>(context, listen: false)
+                                                                            .fetchAndSetPersonalFarmer();
+                                                                      },
+                                                                          editPress:
+                                                                              () {},
+                                                                          disapprovePress:
+                                                                              () {});
+                                                                    },
+                                                                  ),
+                                                                )
+                                                              : InkWell(
+                                                                  child:
+                                                                      ViewCard(
                                                                     dateRecorded: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
@@ -1461,10 +1790,10 @@ class _ViewReportState extends State<ViewReport> {
                                                                         .farmerLists[
                                                                             reversedIndex]
                                                                         .groupEmail,
-                                                                    timeSent: mapDetails
-                                                                        .farmerLists[
-                                                                            reversedIndex]
-                                                                        .timeDisplay,
+                                                                    timeSent:
+                                                                        "Please tap to resend",
+                                                                    color: Colors
+                                                                        .black,
                                                                     community: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
@@ -1474,530 +1803,199 @@ class _ViewReportState extends State<ViewReport> {
                                                                             reversedIndex]
                                                                         .farmerPic64,
                                                                     pressAction:
-                                                                        () {
-                                                                      submissionOptions(
-                                                                        context,
-                                                                        "Select an option",
-                                                                        "View data",
-                                                                        "Delete local data",
-                                                                        "Cancel",
-                                                                        approvePress:
-                                                                            () async {
-                                                                          regSP?.setString(
-                                                                              "farm",
-                                                                              mapDetails.farmerLists[reversedIndex].pointsGet);
-                                                                          regSP?.setString(
-                                                                              "c2",
-                                                                              mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "c3",
-                                                                              mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "fgender",
-                                                                              mapDetails.farmerLists[reversedIndex].farmerGender);
-                                                                          regSP?.setString(
-                                                                              "kgender",
-                                                                              mapDetails.farmerLists[reversedIndex].kinGender);
-                                                                          regSP?.setString(
-                                                                              "fdob",
-                                                                              mapDetails.farmerLists[reversedIndex].farmerDoB);
-                                                                          regSP?.setString(
-                                                                              "kdob",
-                                                                              mapDetails.farmerLists[reversedIndex].kinDoB);
-                                                                          Navigator.of(context).pushNamed(
-                                                                              DetailDisplayIncomplete.routeName,
-                                                                              arguments: mapDetails.farmerLists[reversedIndex].id);
-                                                                        },
-                                                                        editPress:
-                                                                            () {
-                                                                          submissionOptions(
-                                                                              context,
-                                                                              "Are you sure you want to delete?",
-                                                                              "Yes",
-                                                                              "",
-                                                                              "No",
-                                                                              approvePress:
-                                                                                  () {
-                                                                            DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
+                                                                        () =>
+                                                                            submissionOptions(
+                                                                      context,
+                                                                      "Select an option",
+                                                                      "View/ Edit data",
+                                                                      "Delete data",
+                                                                      "Cancel",
+                                                                      approvePress:
+                                                                          () async {
+                                                                        regSP?.setString(
+                                                                            "farm",
+                                                                            mapDetails.farmerLists[reversedIndex].pointsGet);
+                                                                        regSP?.setString(
+                                                                            "c2",
+                                                                            mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "c3",
+                                                                            mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
+                                                                        regSP?.setString(
+                                                                            "fgender",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerGender);
+                                                                        regSP?.setString(
+                                                                            "kgender",
+                                                                            mapDetails.farmerLists[reversedIndex].kinGender);
+                                                                        regSP?.setString(
+                                                                            "fdob",
+                                                                            mapDetails.farmerLists[reversedIndex].farmerDoB);
+                                                                        regSP?.setString(
+                                                                            "kdob",
+                                                                            mapDetails.farmerLists[reversedIndex].kinDoB);
+                                                                        Navigator.of(context).pushNamed(
+                                                                            DetailDisplayIncomplete.routeName,
+                                                                            arguments: mapDetails.farmerLists[reversedIndex].id);
+                                                                      },
+                                                                      editPress:
+                                                                          () {
+                                                                        submissionOptions(
+                                                                            context,
+                                                                            "Are you sure you want to delete?",
+                                                                            "Yes",
+                                                                            "",
+                                                                            "No",
+                                                                            approvePress:
+                                                                                () {
+                                                                          DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
 
-                                                                            Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
-                                                                          },
-                                                                              editPress: () {},
-                                                                              disapprovePress: () {});
+                                                                          Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
                                                                         },
-                                                                        disapprovePress:
-                                                                            () =>
-                                                                                null,
-                                                                      );
-                                                                    },
+                                                                            editPress: () {},
+                                                                            disapprovePress: () {});
+                                                                      },
+                                                                      disapprovePress:
+                                                                          () =>
+                                                                              null,
+                                                                    ),
                                                                     conState: mapDetails
                                                                         .farmerLists[
                                                                             reversedIndex]
                                                                         .conStat,
                                                                   ),
-                                                          )
-                                                        : Container(
-                                                            height: 160,
-                                                            decoration:
-                                                                BoxDecoration(),
-                                                            child: mapDetails
-                                                                        .farmerLists[
-                                                                            reversedIndex]
-                                                                        .beneficiaryType ==
-                                                                    "Individual"
-                                                                ? InkWell(
-                                                                    child:
-                                                                        ViewCard(
-                                                                      dateRecorded: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .timeDisplay,
-                                                                      type: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .beneficiaryType,
-                                                                      name:
-                                                                          "${mapDetails.farmerLists[reversedIndex].farmerfirstName} "
-                                                                          "${mapDetails.farmerLists[reversedIndex].farmersurName}",
-                                                                      email: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .farmerMail,
-                                                                      timeSent:
-                                                                          "Please tap to resend",
-                                                                      color: Colors
-                                                                          .black,
-                                                                      image: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .farmerPic64,
-                                                                      community: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .community,
-                                                                      pressAction:
-                                                                          () {
-                                                                        submissionOptions(
-                                                                          context,
-                                                                          "Select an option",
-                                                                          "View/ Edit data",
-                                                                          "Delete data",
-                                                                          "Cancel",
-                                                                          approvePress:
-                                                                              () async {
-                                                                            regSP?.setString("farm",
-                                                                                mapDetails.farmerLists[reversedIndex].pointsGet);
-                                                                            regSP?.setString("c2",
-                                                                                mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
-                                                                            regSP?.setString("c3",
-                                                                                mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
-                                                                            regSP?.setString("fgender",
-                                                                                mapDetails.farmerLists[reversedIndex].farmerGender);
-
-                                                                            regSP?.setString("kgender",
-                                                                                mapDetails.farmerLists[reversedIndex].kinGender);
-                                                                            regSP?.setString("fdob",
-                                                                                mapDetails.farmerLists[reversedIndex].farmerDoB);
-                                                                            regSP?.setString("kdob",
-                                                                                mapDetails.farmerLists[reversedIndex].kinDoB);
-                                                                            Navigator.of(context).pushNamed(DetailDisplayIncomplete.routeName,
-                                                                                arguments: mapDetails.farmerLists[reversedIndex].id);
-                                                                          },
-                                                                          editPress:
-                                                                              () {
-                                                                            submissionOptions(
-                                                                                context,
-                                                                                "Are you sure you want to delete?",
-                                                                                "Yes",
-                                                                                "",
-                                                                                "No",
-                                                                                approvePress: () {
-                                                                              DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
-
-                                                                              Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
-                                                                            }, editPress: () {}, disapprovePress: () {});
-                                                                          },
-                                                                          disapprovePress: () =>
-                                                                              null,
-                                                                        );
-                                                                      },
-                                                                      conState: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .conStat,
-                                                                    ),
-                                                                    onTap: () =>
-                                                                        submissionOptions(
-                                                                      context,
-                                                                      "Select an option",
-                                                                      "Resend data",
-                                                                      "View/ Edit data before send",
-                                                                      "Delete data",
-                                                                      approvePress:
-                                                                          () {
-                                                                        return reUpload(
-                                                                          context,
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerId,
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .beneficiaryType,
-                                                                          int.parse(mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .enumeratorValue),
-                                                                          farmerDoB: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerDoB,
-                                                                          farmerfirstName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerfirstName,
-                                                                          farmerGender: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerGender,
-                                                                          kinDoB: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinDoB,
-                                                                          kinGender: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinGender,
-                                                                          kinName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinName,
-                                                                          kinPhoneNum: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinPhoneNum,
-                                                                          kinAddress: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinPostal,
-                                                                          kinRelationShip: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .kinRelationShip,
-                                                                          farmerotherName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerotherName,
-                                                                          farmerPic64: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerPic64,
-                                                                          farmersurName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmersurName,
-                                                                          farmerPhoneNum: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerPhoneNum,
-                                                                          farmerPostal: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerPostal,
-                                                                          farmerMail: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerMail,
-                                                                          declarationSig: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerdeclarationSig,
-                                                                          witnessdeclarationSig: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessdeclarationSig,
-                                                                          witnessName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessName,
-                                                                          witnessPhone: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessPhone,
-                                                                          community: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .community,
-                                                                          family: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .family,
-                                                                          forestDistrict: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .forestDistrict,
-                                                                          mddas:
-                                                                              int.parse(
-                                                                            mapDetails.farmerLists[reversedIndex].mddas,
-                                                                          ),
-                                                                          region: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .region,
-                                                                          farmID: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmID,
-                                                                          farmCords: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .pointsGet,
-                                                                          farmArea: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmArea,
-                                                                          treeInfo0Option: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c2treePlantationDetail,
-                                                                          treeInfo2Option: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c3treePlantationDetail,
-                                                                          toEstablishment: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .typeofEstablishment,
-                                                                          itemID: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id,
-                                                                        );
-                                                                      },
-                                                                      editPress: () => Navigator.of(context).pushNamed(
-                                                                          DetailDisplayIncomplete
-                                                                              .routeName,
-                                                                          arguments: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id),
-                                                                      disapprovePress:
-                                                                          () {
-                                                                        submissionOptions(
-                                                                            context,
-                                                                            "Are you sure you want to delete?",
-                                                                            "Yes",
-                                                                            "",
-                                                                            "No",
-                                                                            approvePress:
-                                                                                () {
-                                                                          DBHelper.delete(mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id);
-
-                                                                          Provider.of<PersonalFarmerProvider>(context, listen: false)
-                                                                              .fetchAndSetPersonalFarmer();
-                                                                        },
-                                                                            editPress:
-                                                                                () {},
-                                                                            disapprovePress:
-                                                                                () {});
-                                                                      },
-                                                                    ),
-                                                                  )
-                                                                : InkWell(
-                                                                    child:
-                                                                        ViewCard(
-                                                                      dateRecorded: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .timeDisplay,
-                                                                      type: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .beneficiaryType,
-                                                                      name: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .groupName,
-                                                                      email: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .groupEmail,
-                                                                      timeSent:
-                                                                          "Please tap to resend",
-                                                                      color: Colors
-                                                                          .black,
-                                                                      community: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .community,
-                                                                      image: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .farmerPic64,
-                                                                      pressAction:
-                                                                          () =>
-                                                                              submissionOptions(
+                                                                  onTap: () =>
+                                                                      submissionOptions(
+                                                                    context,
+                                                                    "Select an option",
+                                                                    "Resend data",
+                                                                    "View/ Edit data before send",
+                                                                    "Delete data",
+                                                                    approvePress:
+                                                                        () {
+                                                                      return reUpload(
                                                                         context,
-                                                                        "Select an option",
-                                                                        "View/ Edit data",
-                                                                        "Delete data",
-                                                                        "Cancel",
-                                                                        approvePress:
-                                                                            () async {
-                                                                          regSP?.setString(
-                                                                              "farm",
-                                                                              mapDetails.farmerLists[reversedIndex].pointsGet);
-                                                                          regSP?.setString(
-                                                                              "c2",
-                                                                              mapDetails.farmerLists[reversedIndex].c2treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "c3",
-                                                                              mapDetails.farmerLists[reversedIndex].c3treePlantationDetail);
-                                                                          regSP?.setString(
-                                                                              "fgender",
-                                                                              mapDetails.farmerLists[reversedIndex].farmerGender);
-                                                                          regSP?.setString(
-                                                                              "kgender",
-                                                                              mapDetails.farmerLists[reversedIndex].kinGender);
-                                                                          regSP?.setString(
-                                                                              "fdob",
-                                                                              mapDetails.farmerLists[reversedIndex].farmerDoB);
-                                                                          regSP?.setString(
-                                                                              "kdob",
-                                                                              mapDetails.farmerLists[reversedIndex].kinDoB);
-                                                                          Navigator.of(context).pushNamed(
-                                                                              DetailDisplayIncomplete.routeName,
-                                                                              arguments: mapDetails.farmerLists[reversedIndex].id);
-                                                                        },
-                                                                        editPress:
-                                                                            () {
-                                                                          submissionOptions(
-                                                                              context,
-                                                                              "Are you sure you want to delete?",
-                                                                              "Yes",
-                                                                              "",
-                                                                              "No",
-                                                                              approvePress:
-                                                                                  () {
-                                                                            DBHelper.delete(mapDetails.farmerLists[reversedIndex].id);
-
-                                                                            Provider.of<PersonalFarmerProvider>(context, listen: false).fetchAndSetPersonalFarmer();
-                                                                          },
-                                                                              editPress: () {},
-                                                                              disapprovePress: () {});
-                                                                        },
-                                                                        disapprovePress:
-                                                                            () =>
-                                                                                null,
-                                                                      ),
-                                                                      conState: mapDetails
-                                                                          .farmerLists[
-                                                                              reversedIndex]
-                                                                          .conStat,
-                                                                    ),
-                                                                    onTap: () =>
-                                                                        submissionOptions(
-                                                                      context,
-                                                                      "Select an option",
-                                                                      "Resend data",
-                                                                      "View/ Edit data before send",
-                                                                      "Delete data",
-                                                                      approvePress:
-                                                                          () {
-                                                                        return reUpload(
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerId,
+                                                                        mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .beneficiaryType,
+                                                                        int.parse(mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .enumeratorValue),
+                                                                        declarationSig: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmerdeclarationSig,
+                                                                        witnessdeclarationSig: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessdeclarationSig,
+                                                                        witnessName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessName,
+                                                                        witnessPhone: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .witnessPhone,
+                                                                        community: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .community,
+                                                                        family: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .family,
+                                                                        forestDistrict: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .forestDistrict,
+                                                                        mddas:
+                                                                            int.parse(
+                                                                          mapDetails.farmerLists[reversedIndex].mddas,
+                                                                        ),
+                                                                        region: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .region,
+                                                                        farmID: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmID,
+                                                                        farmCords: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .pointsGet,
+                                                                        farmArea: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .farmArea,
+                                                                        treeInfo0Option: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c2treePlantationDetail,
+                                                                        treeInfo2Option: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .c3treePlantationDetail,
+                                                                        toEstablishment: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .typeofEstablishment,
+                                                                        companyDirectors: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupDirectors,
+                                                                        groupName: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupName,
+                                                                        groupPresident: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupPresident,
+                                                                        groupSecretary: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupSecretary,
+                                                                        groupPhone: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupphoneNumber,
+                                                                        groupAddress: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupAddress,
+                                                                        groupEmail: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .groupEmail,
+                                                                        itemID: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id,
+                                                                      );
+                                                                    },
+                                                                    editPress: () => Navigator.of(context).pushNamed(
+                                                                        DetailDisplayIncomplete
+                                                                            .routeName,
+                                                                        arguments: mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id),
+                                                                    disapprovePress:
+                                                                        () {
+                                                                      submissionOptions(
                                                                           context,
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerId,
-                                                                          mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .beneficiaryType,
-                                                                          int.parse(mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .enumeratorValue),
-                                                                          declarationSig: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmerdeclarationSig,
-                                                                          witnessdeclarationSig: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessdeclarationSig,
-                                                                          witnessName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessName,
-                                                                          witnessPhone: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .witnessPhone,
-                                                                          community: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .community,
-                                                                          family: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .family,
-                                                                          forestDistrict: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .forestDistrict,
-                                                                          mddas:
-                                                                              int.parse(
-                                                                            mapDetails.farmerLists[reversedIndex].mddas,
-                                                                          ),
-                                                                          region: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .region,
-                                                                          farmID: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmID,
-                                                                          farmCords: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .pointsGet,
-                                                                          farmArea: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .farmArea,
-                                                                          treeInfo0Option: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c2treePlantationDetail,
-                                                                          treeInfo2Option: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .c3treePlantationDetail,
-                                                                          toEstablishment: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .typeofEstablishment,
-                                                                          companyDirectors: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupDirectors,
-                                                                          groupName: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupName,
-                                                                          groupPresident: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupPresident,
-                                                                          groupSecretary: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupSecretary,
-                                                                          groupPhone: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupphoneNumber,
-                                                                          groupAddress: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupAddress,
-                                                                          groupEmail: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .groupEmail,
-                                                                          itemID: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id,
-                                                                        );
-                                                                      },
-                                                                      editPress: () => Navigator.of(context).pushNamed(
-                                                                          DetailDisplayIncomplete
-                                                                              .routeName,
-                                                                          arguments: mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id),
-                                                                      disapprovePress:
-                                                                          () {
-                                                                        submissionOptions(
-                                                                            context,
-                                                                            "Are you sure you want to delete?",
-                                                                            "Yes",
-                                                                            "",
-                                                                            "No",
-                                                                            approvePress:
-                                                                                () {
-                                                                          DBHelper.delete(mapDetails
-                                                                              .farmerLists[reversedIndex]
-                                                                              .id);
+                                                                          "Are you sure you want to delete?",
+                                                                          "Yes",
+                                                                          "",
+                                                                          "No",
+                                                                          approvePress:
+                                                                              () {
+                                                                        DBHelper.delete(mapDetails
+                                                                            .farmerLists[reversedIndex]
+                                                                            .id);
 
-                                                                          Provider.of<PersonalFarmerProvider>(context, listen: false)
-                                                                              .fetchAndSetPersonalFarmer();
-                                                                        },
-                                                                            editPress:
-                                                                                () {},
-                                                                            disapprovePress:
-                                                                                () {});
+                                                                        Provider.of<PersonalFarmerProvider>(context, listen: false)
+                                                                            .fetchAndSetPersonalFarmer();
                                                                       },
-                                                                    ),
+                                                                          editPress:
+                                                                              () {},
+                                                                          disapprovePress:
+                                                                              () {});
+                                                                    },
                                                                   ),
-                                                          ),
-                                                // Divider(
-                                                //   thickness: 2.0,
-                                                // )
-                                              ],
-                                            ),
-                                          );
-                                        }),
-                                  ),
-                          ),
+                                                                ),
+                                                        ),
+                                              // Divider(
+                                              //   thickness: 2.0,
+                                              // )
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                ),
                         ),
-            ),
+                      ),
           ),
         ),
       ),
