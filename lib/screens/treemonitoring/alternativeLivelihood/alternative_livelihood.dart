@@ -4,6 +4,7 @@ import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
 import 'package:hcms_revived2/boilerplate/widgets.dart';
+import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
 import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
@@ -57,7 +58,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           // const SizedBox(height: 24),
 
           // Visit Information Card
-          _buildModernCard(
+          _buildCard(
             icon: Icons.calendar_today,
             iconColor: Colors.blue,
             title: "Visit Information",
@@ -72,22 +73,14 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   onDateSelected: controller.setVisitDate,
                 ),
                 const SizedBox(height: 20),
-                Text("Farmer contact or ID"),
-                TextFieldWidget(
-                  keyboardType: TextInputType.phone,
-                  maxLength: 10,
-                  decoration: InputDecoration(
-                    labelText: "Farmer contact number",
-                    prefixIcon: Icon(Icons.phone, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    counterText: "",
-                  ),
-                  controller: controller.farmerContact,
-                  validator: (input) => input!.trim().isEmpty ? 'Please enter contact number' : null,
+                _buildSearchableDropdownField(
+                  title: "Farmer",
+                  selectedItem: controller.selectedFarmer.value,
+                  displayText: controller.selectedFarmer.value != null
+                      ? '${controller.selectedFarmer.value!.farmerName} - ${controller.selectedFarmer.value!.contact}'
+                      : "Select Farmer",
+                  onTap:()=> _showFarmerSelectionBottomSheet(context),
+                  isLoading: false,
                 ),
               ],
             ),
@@ -95,7 +88,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Activity Details Card
-          _buildModernCard(
+          _buildCard(
             icon: Icons.work,
             iconColor: Colors.green,
             title: "Activity Details",
@@ -147,7 +140,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Investment Details Card
-          _buildModernCard(
+          _buildCard(
             icon: Icons.money,
             iconColor: fSecondaryColour,
             title: "Investment Details",
@@ -193,7 +186,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Income Support Card
-          _buildModernCard(
+          _buildCard(
             icon: Icons.support,
             iconColor: fred,
             title: "Income Support",
@@ -241,15 +234,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
       ),
       title: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.agriculture, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
+
           const Text(
             "Alternative Livelihood",
             style: TextStyle(
@@ -260,25 +245,211 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           ),
         ],
       ),
-      actions: [
-        Tooltip(
-          message: "Go to homepage",
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+    );
+  }
+
+
+  void _showSearchableBottomSheet<T>({
+    required String title,
+    required List<T> items,
+    required String searchHint,
+    required Widget Function(T) itemBuilder,
+    required Function(T) onItemSelected,
+    required bool Function(T, String) filter,
+    required BuildContext context,
+  }) {
+    final TextEditingController searchController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return GetBuilder<AlternativeLivelihoodController>(
+          builder: (controller) {
+            List<T> filteredItems = items.where((item) {
+              if (searchController.text.isEmpty) return true;
+              return filter(item, searchController.text);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
               ),
-              child: const Icon(Icons.home, color: Colors.white, size: 20),
-            ),
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (BuildContext context) => const IndexPage()),
-            ),
-          ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: fPrimaryColour,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: Colors.white, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (_) => controller.update(),
+                      decoration: InputDecoration(
+                        hintText: searchHint,
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Text(
+                          "Found ${filteredItems.length} item(s)",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filteredItems.isEmpty
+                        ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            "No items found",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                        : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () => onItemSelected(item),
+                            child: itemBuilder(item),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          side: BorderSide(color: fPrimaryColour),
+                        ),
+                        child: Text(
+                          "Cancel",
+                          style: TextStyle(
+                            color: fPrimaryColour,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showFarmerSelectionBottomSheet(BuildContext context) {
+    _showSearchableBottomSheet<FarmerFromServerModel>(
+      context: context,
+      title: "Select Farmer",
+      items: controller.farmerData,
+      searchHint: "Search by name...",
+      itemBuilder: (farmer) => ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
         ),
-        const SizedBox(width: 8),
-      ],
+        leading: CircleAvatar(
+          backgroundColor: fPrimaryColour,
+          child: const Icon(Icons.person, color: Colors.white),
+        ),
+        title: Text(
+          farmer.farmerName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Text(
+          farmer.contact,
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+        trailing: controller.selectedFarmer.value?.id == farmer.id
+            ? Icon(Icons.check_circle, color: fPrimaryColour)
+            : null,
+      ),
+      onItemSelected: (farmer) {
+        controller.selectFarmer(farmer);
+        Navigator.pop(context);
+      },
+      filter: (farmer, query) {
+        return (farmer.farmerName).toLowerCase().contains(query.toLowerCase());
+      },
     );
   }
 
@@ -342,7 +513,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
     );
   }
 
-  Widget _buildModernCard({
+  Widget _buildCard({
     required IconData icon,
     required Color iconColor,
     required String title,
@@ -725,6 +896,77 @@ class _AlternativeLivelihoodView extends StatelessWidget {
     );
   }
 
+  Widget _buildSearchableDropdownField({
+    required String title,
+    required dynamic selectedItem,
+    required String displayText,
+    required VoidCallback? onTap,
+    required bool isLoading,
+    bool enabled = true,
+    String? disabledMessage,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: enabled ? Colors.grey.shade400 : Colors.grey.shade300,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              color: enabled ? Colors.white : Colors.grey.shade100,
+            ),
+            child: Row(
+              children: [
+                if (isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: fPrimaryColour,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: enabled
+                            ? (selectedItem != null
+                            ? Colors.black87
+                            : Colors.grey)
+                            : Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: enabled ? Colors.grey : Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!enabled && disabledMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              disabledMessage,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showSubmissionOptions(BuildContext context) {
     if (!controller.validateAllFields()) return;
 
@@ -817,16 +1059,6 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                         onPressed: () {
                           Navigator.pop(context);
                           controller.submitData(context);
-                          Get.snackbar(
-                            'Success',
-                            'Data saved locally',
-                            backgroundColor: Colors.orange,
-                            colorText: Colors.white,
-                            snackPosition: SnackPosition.BOTTOM,
-                            margin: const EdgeInsets.all(16),
-                            borderRadius: 12,
-                            icon: const Icon(Icons.check_circle, color: Colors.white),
-                          );
                         },
                         color: Colors.orange,
                       ),

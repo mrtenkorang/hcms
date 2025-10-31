@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hcms_revived2/controller/db.dart';
 import 'package:hcms_revived2/models/localdbmodel/localdbmodel.dart';
-import '../../helpers/dbhelper.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
 
 class AlternativeLivelihoodProvider extends GetxController {
   static var newdate = DateTime.now();
   static var formatDate = DateFormat('MMM d, y');
   String formattedDat = formatDate.format(newdate);
+
+  final AppDatabaseHelper _dbHelper = AppDatabaseHelper();
+  // await AppDatabaseHelper().database;
+  // Database? db;
 
   var _alLists = <AlternativeLivelihood>[].obs;
 
@@ -16,6 +21,17 @@ class AlternativeLivelihoodProvider extends GetxController {
   AlternativeLivelihood findById(String id) {
     return _alLists.firstWhere((monitoring) => monitoring.alId == id);
   }
+  //
+  // initDb()async{
+  //   db = await _dbHelper.database;
+  // }
+
+  // @override
+  // void onInit() {
+  //   // TODO: implement onInit
+  //   super.onInit();
+  //   initDb();
+  // }
 
   void addAlternativeLivelihood(
       String pickedalCommunity,
@@ -34,7 +50,9 @@ class AlternativeLivelihoodProvider extends GetxController {
       String pickedalAmountToLMB,
       String pickedalActivitySupported,
       String pickedalConStat,
-      ) {
+      ) async {
+    Database? db;
+    db = await AppDatabaseHelper().database;
     final newAlternativeLivelihood = AlternativeLivelihood(
       alId: DateTime.now().millisecondsSinceEpoch.toString(),
       alTimeDisplay: formattedDat,
@@ -58,7 +76,7 @@ class AlternativeLivelihoodProvider extends GetxController {
 
     _alLists.insert(0, newAlternativeLivelihood);
 
-    DBHelper.insert('alternative_livelihood', {
+    db.insert('alternative_livelihood', {
       'id': newAlternativeLivelihood.alId,
       'alTimeDisplay': newAlternativeLivelihood.alTimeDisplay,
       'alCommunity': newAlternativeLivelihood.alCommunity,
@@ -81,7 +99,9 @@ class AlternativeLivelihoodProvider extends GetxController {
   }
 
   Future<void> fetchAndSetAlternativeLivelihood() async {
-    final dataList = await DBHelper.fetchData('alternative_livelihood');
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
+    final dataList = await db.fetchData('alternative_livelihood');
     _alLists.assignAll(dataList
         .map((alLists) => AlternativeLivelihood(
       alId: alLists['id'],
@@ -109,7 +129,9 @@ class AlternativeLivelihoodProvider extends GetxController {
   }
 
   Future<void> fetchAndSetAlternativeLivelihood2(String? fieldname) async {
-    final dataList = await DBHelper.fetchData2(
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
+    final dataList = await db.fetchData2(
       'alternative_livelihood',
       fieldname,
     );
@@ -138,8 +160,11 @@ class AlternativeLivelihoodProvider extends GetxController {
   }
 
   Future<void> fetchAndSetAlternativeLivelihoodWhere(
+
       String? fieldname, String? date) async {
-    final dataList = await DBHelper.fetchDataWhere(
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
+    final dataList = await db.fetchDataWhere(
         'alternative_livelihood', fieldname, date);
     _alLists.assignAll(dataList
         .map((alLists) => AlternativeLivelihood(
@@ -167,8 +192,10 @@ class AlternativeLivelihoodProvider extends GetxController {
 
   // Delete a record
   Future<void> deleteAlternativeLivelihood(String id) async {
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
     _alLists.removeWhere((item) => item.alId == id);
-    await DBHelper.delete('alternative_livelihood').where('id = ?', [id]);
+    await db.delete('alternative_livelihood').where('id = ?', [id]);
   }
 
   // Clear all data
@@ -247,7 +274,8 @@ class AlternativeLivelihoodProvider extends GetxController {
   }
 
   Future<void> _updateInDatabaseDirectly(String recordId, Map<String, dynamic> data) async {
-    final db = await DBHelper.database();
+    Database? db;
+    db = await AppDatabaseHelper().database;
     await db.update(
       'alternative_livelihood',
       data,
