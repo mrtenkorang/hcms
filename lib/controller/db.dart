@@ -7,10 +7,10 @@ import 'package:hcms_revived2/controller/models/establishment_type_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/controller/models/farmer_local_model.dart';
 import 'package:hcms_revived2/controller/models/mmda_model.dart';
+import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/controller/models/ta_stool_skin_family%20model.dart';
 import 'package:hcms_revived2/controller/models/training_log_model.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
-import 'package:hcms_revived2/models/localdbmodel/seedling_monitoring_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart' as sql;
@@ -823,24 +823,15 @@ class AppDatabaseHelper {
     return maps.isNotEmpty;
   }
 
-  // Get database statistics
-  Future<Map<String, dynamic>> getDatabaseStats() async {
+  // Delete alternative livelihood record by ID
+  Future<int> deleteAlternativeLivelihood(String id) async {
     final db = await database;
-
-    final totalFarmers = await getFarmersCount();
-    final communitiesResult = await db.rawQuery(
-      'SELECT COUNT(DISTINCT community_id) as unique_communities FROM farmers',
-    );
-    final latestUpdateResult = await db.rawQuery(
-      'SELECT MAX(updated_at) as last_updated FROM farmers',
+    return await db.delete(
+      'alternative_livelihood',
+      where: 'id = ?',
+      whereArgs: [id],
     );
 
-    return {
-      'total_farmers': totalFarmers,
-      'unique_communities':
-          communitiesResult.first['unique_communities'] as int? ?? 0,
-      'last_updated': latestUpdateResult.first['last_updated'] as int? ?? 0,
-    };
   }
 
   // Helper method to convert FarmerFromServerModel to Map

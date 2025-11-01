@@ -6,10 +6,10 @@ import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/constants/urls.dart';
 import 'package:hcms_revived2/controller/models/deforestation_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_local_model.dart';
+import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/controller/models/training_log_model.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
 import 'package:hcms_revived2/controller/models/user_model.dart';
-import 'package:hcms_revived2/models/localdbmodel/seedling_monitoring_model.dart';
 import 'package:http/http.dart' as http;
 
 class APIMethods {
@@ -64,6 +64,8 @@ class APIMethods {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(trainingLog),
       );
+
+
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
