@@ -14,7 +14,7 @@ class AlternativeLivelihoodProvider extends GetxController {
   // await AppDatabaseHelper().database;
   // Database? db;
 
-  var _alLists = <AlternativeLivelihood>[].obs;
+  final _alLists = <AlternativeLivelihood>[].obs;
 
   List<AlternativeLivelihood> get alLists => _alLists;
 
@@ -191,11 +191,11 @@ class AlternativeLivelihoodProvider extends GetxController {
   }
 
   // Delete a record
-  Future<void> deleteAlternativeLivelihood(String id) async {
+  Future<void> deleteAlternativeLivelihoodd(String id) async {
     AppDatabaseHelper? db;
     db = AppDatabaseHelper();
     _alLists.removeWhere((item) => item.alId == id);
-    await db.delete('alternative_livelihood').where('id = ?', [id]);
+    await db.deleteAlternativeLivelihood(id);
   }
 
   // Clear all data

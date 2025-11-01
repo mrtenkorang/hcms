@@ -4,16 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/constants/urls.dart';
+import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/controller/models/user_model.dart';
+import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/farmer_from_server_repo.dart';
 import 'package:hcms_revived2/helpers/dbhelper.dart';
 import 'package:hcms_revived2/main.dart';
 import 'package:hcms_revived2/providers/monitoring/alternativelivelihoodprovider.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/services/serverurls.dart';
 import 'package:http/http.dart' as http;
 
 class AlternativeLivelihoodController extends GetxController {
+
+  BuildContext? alternativeLivelihoodContext;
   // Form key
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
@@ -81,6 +86,7 @@ class AlternativeLivelihoodController extends GetxController {
     super.onInit();
     loadUserInfo();
     loadFarmerData();
+    loadCommunities();
     // Initialize with first value
     amountType.value = amountTypeValues.isNotEmpty ? amountTypeValues[0] : null;
   }
@@ -93,6 +99,16 @@ class AlternativeLivelihoodController extends GetxController {
     amount.dispose();
     amountToLmb.dispose();
     super.onClose();
+  }
+
+  var selectedCommunity = Rxn<CommunityModel>();
+  // Select community
+  void selectCommunity(CommunityModel communit) {
+    selectedCommunity.value = communit;
+    // farmers.clear();
+    if (communit.id != null) {
+      community.value = communit.id.toString();
+    }
   }
 
   UserModel? user;
@@ -120,6 +136,22 @@ class AlternativeLivelihoodController extends GetxController {
     operationsStartDate.value = '${date.year}-${date.month}-${date.day}';
     regSP?.setString('aLoperationsStartDate', operationsStartDate.value);
     update();
+  }
+
+  final communities = <CommunityModel>[].obs;
+  // Load communities from API
+  Future<void> loadCommunities() async {
+    try {
+      // isLoadingCommunities.value = true;
+      final result = await CommunityRepository().getAllCommunities();
+      communities.assignAll(result);
+
+      debugPrint("THE COMMUNITIES ::::::::::: ${communities.length}");
+    } catch (e) {
+      debugPrint("FAILED TO LOAD COMMUNITIES: $e");
+    } finally {
+      // isLoadingCommunities.value = false;
+    }
   }
 
   selectFarmer(FarmerFromServerModel farmer) {
@@ -259,68 +291,8 @@ class AlternativeLivelihoodController extends GetxController {
     return true;
   }
 
-  // Data submission
-  Future<void> submitData(BuildContext context) async {
-    if (!validateAllFields()) {
-      return;
-    }
-
-    isLoading.value = true;
-    update();
-
+  Future<void> submitOnline() async {
     try {
-      // Try online submission first, fall back to offline
-      await _submitOnline(context);
-
-    } on SocketException catch (e) {
-      debugPrint('Online submission failed, saving offline: $e');
-      await _submitOffline(context);
-    } catch (e) {
-      debugPrint('Submission failed: $e');
-      // Even if online fails, save offline as backup
-      await _submitOffline(context);
-    } finally {
-      isLoading.value = false;
-      update();
-    }
-  }
-  //
-  // Future<void> _createOfflineFarmer() async {
-  //   try {
-  //     final db = await DBHelper.database();
-  //
-  //     // Check if farmer already exists in offline table
-  //     final existingFarmer = await db.query(
-  //         "farmer_offline",
-  //         where: "foContact = ?",
-  //         whereArgs: [farmerContact.text]
-  //     );
-  //
-  //     if (existingFarmer.isEmpty) {
-  //       // Create new offline farmer record
-  //       provider.addAlternativeLivelihood(pickedalCommunity, pickedalEnumeratorValue, pickedalVisitDate, pickedFarmerId, pickedalFarmerName, pickedalBasline, pickedalFarmerContact, pickedalAdditionalActivity, pickedalTrainerOrg, pickedalOperationsStartDate, pickedalInitialAmount, pickedalAmountType, pickedalAmount, pickedalAmountToLMB, pickedalActivitySupported, pickedalConStat)
-  //
-  //       farmerId.value = "0";
-  //       farmerName.value = 'Unknown Farmer';
-  //       community.value = 'Unknown Community';
-  //       unsavedLocal.value = true;
-  //
-  //       debugPrint('Created offline farmer record for contact: ${farmerContact.text}');
-  //     }
-  //   } catch (e) {
-  //     debugPrint('Error creating offline farmer: $e');
-  //     // // Continue anyway, we'll use default values
-  //     // farmerId.value = "0";
-  //     // farmerName.value = 'Unknown Farmer';
-  //     // community.value = 'Unknown Community';
-  //     // unsavedLocal.value = true;
-  //   }
-  // }
-
-  Future<void> _submitOnline(BuildContext context) async {
-    try {
-      // Get current values
-      getCurrentValues();
 
       final submissionData = {
         "visitDetails": {
@@ -350,59 +322,105 @@ class AlternativeLivelihoodController extends GetxController {
         },
       };
 
+      debugPrint("THE DATATTTTTTT :::::::::::::: $submissionData");
+
+      Globals().startWait(alternativeLivelihoodContext!);
       final response = await http.post(
         Uri.parse('${URLS.baseUrl}${URLS.alternativeLivelihoodLogURL}'),
         body: json.encode(submissionData),
         headers: {'Content-Type': 'application/json'},
       );
+      Globals().endWait(alternativeLivelihoodContext);
+
+      debugPrint("THE RES FROM SERVER ::::::::::::: ${response.statusCode}");
+      debugPrint("THE RES FROM SERVER ::::::::::::: ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final result = json.decode(response.body);
+        debugPrint("SUBMITTED;;;;;;;;;;;;;;;;;;;;;;;");
 
-        if (result["status"] == "done") {
+        if (result["status"] == true) {
+          Globals().endWait(alternativeLivelihoodContext);
           _saveToLocalDB("connected");
+          _clearAndNavigate();
+          Get.back();
+          Get.back();
           Get.snackbar(
             'Success',
             'Data submitted successfully online',
             backgroundColor: Colors.green,
+            snackPosition: SnackPosition.TOP,
             colorText: Colors.white,
           );
-          _clearAndNavigate();
+
         } else if (result["status"] == "exist") {
+          Globals().endWait(alternativeLivelihoodContext);
           Get.snackbar(
             'Info',
             'Data already exists online',
             backgroundColor: Colors.orange,
+            snackPosition: SnackPosition.TOP,
             colorText: Colors.white,
           );
           // Save locally anyway
-          _saveToLocalDB("exists online");
+          // _saveToLocalDB("exists online");
         } else {
+          Get.snackbar(
+            'Unknown Error',
+            'An Unknown error occurred',
+            backgroundColor: Colors.orange,
+            snackPosition: SnackPosition.TOP,
+            colorText: Colors.white,
+          );
+          Globals().endWait(alternativeLivelihoodContext);
+
           throw Exception(result["error"] ?? 'Unknown error from server');
         }
       } else {
+        Get.snackbar(
+          'Info',
+          'Data Exists already',
+          backgroundColor: Colors.orange,
+          snackPosition: SnackPosition.TOP,
+          colorText: Colors.white,
+        );
+        Globals().endWait(alternativeLivelihoodContext);
         throw Exception('Server returned status code: ${response.statusCode}');
       }
     } on SocketException {
+      Get.snackbar(
+        'No internet',
+        'No internet connection',
+        backgroundColor: Colors.orange,
+        snackPosition: SnackPosition.TOP,
+        colorText: Colors.white,
+      );
+      Globals().endWait(alternativeLivelihoodContext);
       // This will be caught by the calling method and fall back to offline
       rethrow;
     } catch (e) {
+      Globals().endWait(alternativeLivelihoodContext);
       debugPrint('Online submission error: $e');
       rethrow;
     }
   }
 
-  Future<void> _submitOffline(BuildContext context) async {
+  Future<void> saveOffline() async {
     try {
-      getCurrentValues();
+      Globals().startWait(alternativeLivelihoodContext!);
       _saveToLocalDB("not connected");
+      Globals().endWait(alternativeLivelihoodContext);
+
+      _clearAndNavigate();
+      Get.back();
+      Get.back();
       Get.snackbar(
         'Offline',
         'Data saved locally',
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.green,
         colorText: Colors.white,
       );
-      _clearAndNavigate();
+
     } catch (e) {
       debugPrint('Offline submission error: $e');
       Get.snackbar(
@@ -413,25 +431,6 @@ class AlternativeLivelihoodController extends GetxController {
       );
       rethrow;
     }
-  }
-
-  void getCurrentValues() {
-    // Refresh values from shared preferences before submission
-    // selectedFarmer.value = regSP?.getString('aLfarmerID') ?? farmerId.value;
-    farmerName.value = regSP?.getString('aLfarmername') ?? farmerName.value;
-    community.value = regSP?.getString('aLcommunity') ?? community.value;
-    farmerPhoneNum.value =
-        regSP?.getString('aLfarmerContact') ?? farmerPhoneNum.value;
-    baseline.value = regSP?.getBool('aLbaseline') ?? baseline.value;
-    unsavedLocal.value = regSP?.getBool('unsavedlocal') ?? unsavedLocal.value;
-    visitDateYear.value =
-        regSP?.getString('aLVisitDate') ?? visitDateYear.value;
-    operationsStartDate.value =
-        regSP?.getString('aLoperationsStartDate') ?? operationsStartDate.value;
-    additionalActivity.value =
-        regSP?.getString('aLadditionalActivity') ?? additionalActivity.value;
-    activitySupport.value =
-        regSP?.getString('aLactivitySupport') ?? activitySupport.value;
   }
 
   Future<void> _saveToLocalDB(String connectionStatus) async {
@@ -473,10 +472,6 @@ class AlternativeLivelihoodController extends GetxController {
 
   void _clearAndNavigate() {
     clearForm();
-    // Navigate back or to home screen
-    Future.delayed(Duration(seconds: 2), () {
-      Get.back();
-    });
   }
 
   void clearForm() {
@@ -507,19 +502,6 @@ class AlternativeLivelihoodController extends GetxController {
     farmerPhoneNum.value = "";
     baseline.value = false;
     unsavedLocal.value = false;
-
-    // Clear shared preferences
-    regSP?.remove('aLfarmerID');
-    regSP?.remove('aLbaseline');
-    regSP?.remove('aLfarmername');
-    regSP?.remove('aLcommunity');
-    regSP?.remove('aLfarmerContact');
-    regSP?.remove('unsavedlocal');
-    regSP?.remove('aLVisitDate');
-    regSP?.remove('aLoperationsStartDate');
-    regSP?.remove('aLadditionalActivity');
-    regSP?.remove('aLactivitySupport');
-    regSP?.remove('aLtrainerorganisation');
 
     update();
   }

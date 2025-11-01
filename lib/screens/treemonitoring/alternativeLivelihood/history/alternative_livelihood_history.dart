@@ -215,16 +215,16 @@ class AlternativeLivelihoodHistory extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      if (isPending) ...[
-                        _buildActionButton(
-                          icon: Icons.cloud_upload,
-                          color: Colors.green,
-                          tooltip: 'Submit Online',
-                          onPressed: () => _showSubmitDialog(record, provider),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                      // const SizedBox(width: 8),
+                      // if (isPending) ...[
+                      //   _buildActionButton(
+                      //     icon: Icons.cloud_upload,
+                      //     color: Colors.green,
+                      //     tooltip: 'Submit Online',
+                      //     onPressed: () => _showSubmitDialog(record, provider),
+                      //   ),
+                      //   const SizedBox(width: 4),
+                      // ],
                       _buildActionButton(
                         icon: Icons.delete,
                         color: Colors.red,
@@ -433,7 +433,7 @@ class AlternativeLivelihoodHistory extends StatelessWidget {
           TextButton(
             onPressed: () {
               Get.back();
-              provider.deleteAlternativeLivelihood(record.alId);
+              provider.deleteAlternativeLivelihoodd(record.alId);
               Get.snackbar(
                 'Deleted',
                 'Record deleted successfully',

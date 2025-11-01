@@ -17,7 +17,8 @@ class AlternativeLivelihoodScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<AlternativeLivelihoodController>(
       init: AlternativeLivelihoodController(),
-      builder: (controller) => _AlternativeLivelihoodView(controller: controller),
+      builder: (controller) =>
+          _AlternativeLivelihoodView(controller: controller),
     );
   }
 }
@@ -25,10 +26,12 @@ class AlternativeLivelihoodScreen extends StatelessWidget {
 class _AlternativeLivelihoodView extends StatelessWidget {
   final AlternativeLivelihoodController controller;
 
-  const _AlternativeLivelihoodView({Key? key, required this.controller}) : super(key: key);
+  const _AlternativeLivelihoodView({Key? key, required this.controller})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    controller.alternativeLivelihoodContext = context;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildAppBar(context),
@@ -36,11 +39,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
         child: Form(
           key: controller.formKey,
           child: Column(
-            children: [
-              Expanded(
-                child: _buildCompleteForm(context),
-              ),
-            ],
+            children: [Expanded(child: _buildCompleteForm(context))],
           ),
         ),
       ),
@@ -53,6 +52,8 @@ class _AlternativeLivelihoodView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildCommunityDropDown(context),
+          const SizedBox(height: 24),
           // Header Card
           // _buildHeaderCard(),
           // const SizedBox(height: 24),
@@ -79,7 +80,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   displayText: controller.selectedFarmer.value != null
                       ? '${controller.selectedFarmer.value!.farmerName} - ${controller.selectedFarmer.value!.contact}'
                       : "Select Farmer",
-                  onTap:()=> _showFarmerSelectionBottomSheet(context),
+                  onTap: () => _showFarmerSelectionBottomSheet(context),
                   isLoading: false,
                 ),
               ],
@@ -108,7 +109,8 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   selectedIndex: controller.selectedActivityRadio.value != null
                       ? controller.selectedActivityRadio.value! - 1
                       : -1,
-                  onSelected: (index) => controller.setAdditionalActivity(index + 1),
+                  onSelected: (index) =>
+                      controller.setAdditionalActivity(index + 1),
                 ),
                 const SizedBox(height: 20),
                 Text("Trainer organisation"),
@@ -124,7 +126,9 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                     fillColor: Colors.grey[50],
                   ),
                   controller: controller.trainerOrganisation,
-                  validator: (input) => input!.trim().isEmpty ? 'Please enter organisation' : null,
+                  validator: (input) => input!.trim().isEmpty
+                      ? 'Please enter organisation'
+                      : null,
                 ),
                 const SizedBox(height: 20),
                 _buildDatePicker(
@@ -160,7 +164,8 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                     fillColor: Colors.grey[50],
                   ),
                   controller: controller.initAmount,
-                  validator: (input) => input!.trim().isEmpty ? 'Please enter amount' : null,
+                  validator: (input) =>
+                      input!.trim().isEmpty ? 'Please enter amount' : null,
                 ),
                 const SizedBox(height: 20),
                 _buildAmountTypeSelection(),
@@ -170,7 +175,10 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: "Amount contributed to LMB",
-                    prefixIcon: Icon(Icons.account_balance, color: Colors.orange),
+                    prefixIcon: Icon(
+                      Icons.account_balance,
+                      color: Colors.orange,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -178,7 +186,8 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                     fillColor: Colors.grey[50],
                   ),
                   controller: controller.amountToLmb,
-                  validator: (input) => input!.trim().isEmpty ? 'Please enter amount' : null,
+                  validator: (input) =>
+                      input!.trim().isEmpty ? 'Please enter amount' : null,
                 ),
               ],
             ),
@@ -214,6 +223,20 @@ class _AlternativeLivelihoodView extends StatelessWidget {
     );
   }
 
+  Widget _buildCommunityDropDown(BuildContext context) {
+    return Obx(
+      () => _buildSearchableDropdownField(
+        title: "Community",
+        selectedItem: controller.selectedCommunity.value,
+        displayText:
+            controller.selectedCommunity.value?.community ?? "Select Community",
+        onTap: () => _showCommunitySelectionBottomSheet(context),
+        isLoading: false,
+        // isLoading: controller.isLoadingCommunities.value,
+      ),
+    );
+  }
+
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(
       elevation: 0,
@@ -234,7 +257,6 @@ class _AlternativeLivelihoodView extends StatelessWidget {
       ),
       title: Row(
         children: [
-
           const Text(
             "Alternative Livelihood",
             style: TextStyle(
@@ -247,7 +269,6 @@ class _AlternativeLivelihoodView extends StatelessWidget {
       ),
     );
   }
-
 
   void _showSearchableBottomSheet<T>({
     required String title,
@@ -349,39 +370,39 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   Expanded(
                     child: filteredItems.isEmpty
                         ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_off,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            "No items found",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  "No items found",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    )
+                          )
                         : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () => onItemSelected(item),
-                            child: itemBuilder(item),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: InkWell(
+                                  onTap: () => onItemSelected(item),
+                                  child: itemBuilder(item),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -500,10 +521,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Track alternative income activities',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -567,10 +585,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(20), child: child),
         ],
       ),
     );
@@ -670,7 +685,11 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                     color: fPrimaryColour.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.calendar_today, color: fPrimaryColour, size: 18),
+                  child: Icon(
+                    Icons.calendar_today,
+                    color: fPrimaryColour,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -704,139 +723,145 @@ class _AlternativeLivelihoodView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Obx(() => Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: Colors.grey[50],
-          ),
-          child: DropdownButtonFormField<String>(
-            value: controller.amountType.value,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: fPrimaryColour),
-              ),
-              filled: true,
-              fillColor: Colors.grey[50],
-              prefixIcon: Icon(Icons.schedule, color: Colors.orange),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        Obx(
+          () => Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey[50],
             ),
-            items: controller.amountTypeValues.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(
-                  value,
-                  style: const TextStyle(fontSize: 15),
-                ),
-              );
-            }).toList(),
-            onChanged: (String? value) {
-              if (value != null) {
-                controller.amountType.value = value;
-              }
-            },
-          ),
-        )),
-        const SizedBox(height: 16),
-        Obx(() => controller.amountType.value != null
-            ? Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Amount raised (${controller.amountType.value})",
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFieldWidget(
-              keyboardType: TextInputType.number,
+            child: DropdownButtonFormField<String>(
+              value: controller.amountType.value,
               decoration: InputDecoration(
-                labelText: "Enter amount raised",
-                prefixIcon: Icon(Icons.money, color: Colors.orange),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: fPrimaryColour),
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
+                prefixIcon: Icon(Icons.schedule, color: Colors.orange),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
-              controller: controller.amount,
-              validator: (input) => input!.trim().isEmpty ? 'Please enter amount' : null,
+              items: controller.amountTypeValues.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value, style: const TextStyle(fontSize: 15)),
+                );
+              }).toList(),
+              onChanged: (String? value) {
+                if (value != null) {
+                  controller.amountType.value = value;
+                }
+              },
             ),
-          ],
-        )
-            : const SizedBox.shrink()),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Obx(
+          () => controller.amountType.value != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Amount raised (${controller.amountType.value})",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFieldWidget(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Enter amount raised",
+                        prefixIcon: Icon(Icons.money, color: Colors.orange),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                      ),
+                      controller: controller.amount,
+                      validator: (input) =>
+                          input!.trim().isEmpty ? 'Please enter amount' : null,
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
       ],
     );
   }
 
   Widget _buildSubmissionButtons(BuildContext context) {
-    return Obx(() => Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          if (controller.isLoading.value)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Processing...',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          Row(
-            children: [
-              // Expanded(
-              //   child: _buildActionButton(
-              //     text: "Clear",
-              //     onPressed: controller.clearForm,
-              //     isSecondary: true,
-              //     icon: Icons.clear_all,
-              //   ),
-              // ),
-              // const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: _buildActionButton(
-                  text: "Finish",
-                  onPressed: controller.isLoading.value ? null : () => _showSubmissionOptions(context),
-                  // icon: Icons.send,
+          ],
+        ),
+        child: Column(
+          children: [
+            if (controller.isLoading.value)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Processing...',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
+            Row(
+              children: [
+                // Expanded(
+                //   child: _buildActionButton(
+                //     text: "Clear",
+                //     onPressed: controller.clearForm,
+                //     isSecondary: true,
+                //     icon: Icons.clear_all,
+                //   ),
+                // ),
+                // const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: _buildActionButton(
+                    text: "Finish",
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () => _showSubmissionOptions(context),
+                    // icon: Icons.send,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   Widget _buildActionButton({
@@ -867,10 +892,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
             ],
             Text(
               text,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -940,8 +962,8 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                         fontSize: 16,
                         color: enabled
                             ? (selectedItem != null
-                            ? Colors.black87
-                            : Colors.grey)
+                                  ? Colors.black87
+                                  : Colors.grey)
                             : Colors.grey.shade500,
                       ),
                     ),
@@ -986,7 +1008,10 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [fPrimaryColour.withOpacity(0.2), fPrimaryColour.withOpacity(0.1)],
+                      colors: [
+                        fPrimaryColour.withOpacity(0.2),
+                        fPrimaryColour.withOpacity(0.1),
+                      ],
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -999,19 +1024,13 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Text(
                   "Finish",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   "Choose how you want to submit your data",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 24),
                 Container(
@@ -1023,7 +1042,11 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue[700],
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -1058,7 +1081,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                         icon: Icons.save,
                         onPressed: () {
                           Navigator.pop(context);
-                          controller.submitData(context);
+                          controller.saveOffline();
                         },
                         color: Colors.orange,
                       ),
@@ -1070,7 +1093,7 @@ class _AlternativeLivelihoodView extends StatelessWidget {
                         icon: Icons.cloud_upload,
                         onPressed: () {
                           Navigator.pop(context);
-                          controller.submitData(context);
+                          controller.submitOnline();
                         },
                         color: Colors.green,
                       ),
@@ -1096,7 +1119,9 @@ class _AlternativeLivelihoodView extends StatelessWidget {
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary ? Colors.grey[600] : color ?? fPrimaryColour,
+          backgroundColor: isSecondary
+              ? Colors.grey[600]
+              : color ?? fPrimaryColour,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1113,14 +1138,93 @@ class _AlternativeLivelihoodView extends StatelessWidget {
             // ],
             Text(
               text,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showCommunitySelectionBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Obx(() {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              const Text(
+                'Select Community',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search communities...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (query) {
+                  // Implement search if needed
+                },
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: controller.communities.isEmpty
+                    ? const Center(child: Text('No communities available'))
+                    : ListView.builder(
+                        itemCount: controller.communities.length,
+                        itemBuilder: (context, index) {
+                          final community = controller.communities[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: fPrimaryColour,
+                              child: const Icon(
+                                Icons.location_city,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              community.community ?? 'Unknown Community',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing:
+                                controller.selectedCommunity.value?.id ==
+                                    community.id
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: fPrimaryColour,
+                                  )
+                                : null,
+                            onTap: () {
+                              controller.selectCommunity(community);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
