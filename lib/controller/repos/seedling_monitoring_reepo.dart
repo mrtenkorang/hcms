@@ -1,7 +1,7 @@
 // seedling_monitoring_repository.dart
 
 import 'package:hcms_revived2/controller/db.dart';
-import 'package:hcms_revived2/models/localdbmodel/seedling_monitoring_model.dart';
+import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 
 class SeedlingMonitoringRepository {
   final AppDatabaseHelper _database = AppDatabaseHelper();
@@ -195,16 +195,6 @@ class SeedlingMonitoringRepository {
       return await _database.deleteAllSeedlingMonitoring();
     } catch (e) {
       throw Exception('Failed to delete all seedling monitoring records: $e');
-    }
-  }
-
-  Future<int> deleteByStatus(String status) async {
-    try {
-      final records = await _database.getSeedlingMonitoringByStatus(status);
-      final ids = records.where((record) => record.id != null).map((record) => record.id!).toList();
-      return await deleteMultiple(ids);
-    } catch (e) {
-      throw Exception('Failed to delete seedling monitoring records by status: $e');
     }
   }
 

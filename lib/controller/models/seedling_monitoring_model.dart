@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 class SeedlingMonitoringModel {
+  int? id;
   // General Information
   String? surveyorName;
   String? dateOfSurvey;
@@ -107,8 +108,9 @@ class SeedlingMonitoringModel {
     this.enumeratorValue,
     this.createdAt,
     this.submissionStatus = 'draft',
-    this.connectionStatus = 'not connected',
+    this.connectionStatus = 'not connected', this.id,
   }) {
+    this.id = id ?? this.id;
     this.speciesProvidedPlanted = speciesProvidedPlanted ?? [];
     this.speciesPlantingDetails = speciesPlantingDetails ?? [];
     this.speciesAlive = speciesAlive ?? [];
@@ -186,7 +188,7 @@ class SeedlingMonitoringModel {
       'totalSeedlingsAlive': totalSeedlingsAlive,
       'speciesAlive': speciesAlive,
       'reasonForDeath': reasonForDeath,
-      'mappedSurvivingSeedlings': mappedSurvivingSeedlings,
+      // 'mappedSurvivingSeedlings': mappedSurvivingSeedlings,
 
       // Environmental Conditions
       'sourceOfWater': sourceOfWater,
@@ -306,18 +308,29 @@ class SeedlingMonitoringModel {
 
   // Helper method to get API-ready data structure
   Map<String, dynamic> toApiJson() {
+    // Convert planted_species list to dictionary format
+    Map<String, dynamic> plantedSpeciesDict = {};
+    for (var detail in speciesPlantingDetails) {
+      String apiSpecies = detail.species.toLowerCase().replaceAll(' ', '_');
+      plantedSpeciesDict[apiSpecies] = {
+        "quantity_received": detail.quantityReceived,
+        "quantity_planted": detail.quantityPlanted,
+        "date_of_planting": detail.dateOfPlanting,
+      };
+    }
+
     return {
-      "name_of_surveyor": enumeratorValue,
+      "name_of_surveyor": surveyorName,
       "date_of_survey": dateOfSurvey,
       "name_of_community": community,
       "name_of_farmer": farmerName,
       "farmer_id_number": farmerIDNumber,
       "type_of_plantation": plantationType,
       "species_provided_planted": speciesProvidedPlanted,
-      "planted_species": speciesPlantingDetails.map((detail) => detail.toApiJson()).toList(),
+      "planted_species": plantedSpeciesDict,
       "farm_boundary": mappedFarmBoundaries,
       "species_alive": speciesAlive,
-      "living_species_records": treeData, // Use parsed tree data
+      "living_species_records": treeData,
       "total_seedlings_alive": totalSeedlingsAlive,
       "reason_for_death": reasonForDeath,
       "source_of_water": sourceOfWater,
@@ -338,6 +351,7 @@ class SeedlingMonitoringModel {
 
   // Copy with method for updating values
   SeedlingMonitoringModel copyWith({
+    int? id,
     String? surveyorName,
     String? dateOfSurvey,
     String? community,
@@ -376,6 +390,7 @@ class SeedlingMonitoringModel {
     String? connectionStatus,
   }) {
     return SeedlingMonitoringModel(
+      id: id ?? this.id,
       surveyorName: surveyorName ?? this.surveyorName,
       dateOfSurvey: dateOfSurvey ?? this.dateOfSurvey,
       community: community ?? this.community,

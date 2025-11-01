@@ -60,18 +60,6 @@ class _PrivateSectorEngagementView extends StatelessWidget {
           ),
         ],
       ),
-      actions: [
-        Tooltip(
-          message: "Back to Home",
-          child: IconButton(
-            icon: Icon(Icons.home_outlined, size: 24),
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => IndexPage()),
-            ),
-          ),
-        ),
-        SizedBox(width: 8),
-      ],
     );
   }
 
@@ -183,7 +171,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
             return const SizedBox.shrink();
           }),
 
-          // Submit Button
+
           _buildSubmitButton(context),
         ],
       ),
@@ -702,7 +690,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 8.0),
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.save_alt, size: 20),
-                        label: const Text('Save Offline'),
+                        label: const Text('Save'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
@@ -719,7 +707,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.cloud_upload, size: 20),
-                      label: const Text('Submit Online'),
+                      label: const Text('Submit'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,

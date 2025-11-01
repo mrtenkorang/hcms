@@ -1,9 +1,10 @@
-// modern_seedling_monitoring_screen.dart
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
+import 'package:hcms_revived2/controller/models/communinty_model.dart';
+import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/custom_button.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/style.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map.dart';
@@ -31,30 +32,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   final SeedlingMonitoringController controller = Get.put(
     SeedlingMonitoringController(),
   );
+
   late final PageController _pageController;
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _pageController = PageController(initialPage: 0);
-  //
-  //   // Listen to currentPage changes and update PageView
-  //   ever(controller.currentPage, (int page) {
-  //     if (_pageController.hasClients) {
-  //       _pageController.animateToPage(
-  //         page,
-  //         duration: const Duration(milliseconds: 300),
-  //         curve: Curves.easeInOut,
-  //       );
-  //     }
-  //   });
-  // }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -74,10 +53,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
 
     super.initState();
     controller.loadCommunities();
-    controller.initializeControllers();
     _pageController = PageController(initialPage: 0);
 
-    // Listen to currentPage changes and update PageView
     ever(controller.currentPage, (int page) {
       if (_pageController.hasClients) {
         _pageController.animateToPage(
@@ -90,8 +67,16 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     controller.seedlingMonitoringScreenContext = context;
+    controller.loadFarmerData();
+    controller.loadUser();
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildAppBar(),
@@ -127,7 +112,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         'Seedling Monitoring',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
       ),
-      backgroundColor: Colors.white,
       elevation: 1,
       centerTitle: true,
       iconTheme: const IconThemeData(color: fPrimaryColour),
@@ -172,54 +156,364 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         children: [
           const SectionHeader(
             title: 'Find Farmer',
-            subtitle:
-                'Enter the registered farmer\'s contact number to begin monitoring',
-          ),
-          const SizedBox(height: 32),
-          CustomFormField(
-            controller: controller.farmerContact,
-            label: 'Farmer Contact Number',
-            hintText: 'Enter 10-digit phone number',
-            keyboardType: TextInputType.phone,
-            maxLength: 10,
-            prefixIcon: Icons.phone,
-            validator: (value) {
-              if (value?.isEmpty ?? true) return 'Please enter contact number';
-              if (value!.length != 10)
-                return 'Please enter valid 10-digit number';
-              return null;
-            },
+            subtitle: 'Select farmer from the list and proceed',
           ),
           const SizedBox(height: 24),
+          _buildSearchableDropdownField(
+            title: "Farmer",
+            selectedItem: controller.selectedFarmer.value,
+            displayText: controller.selectedFarmer.value != null
+                ? '${controller.selectedFarmer.value!.farmerName} - ${controller.selectedFarmer.value!.contact}'
+                : "Select Farmer",
+            onTap: () => _showFarmerSelectionBottomSheet(context),
+            isLoading: false,
+          ),
+          const SizedBox(height: 16),
           Obx(
-            () => controller.isLoading.value
-                ? const Center(child: CircularProgressIndicator())
-                : _buildSearchButton(),
+            () => controller.selectedFarmer.value != null
+                ? _buildFarmerDetailsCard()
+                : const SizedBox(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: controller.searchFarmer,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: fPrimaryColour,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-        child: const Text(
-          'Search Farmer',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+  Widget _buildFarmerDetailsCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Selected Farmer Details',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: fPrimaryColour,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildFarmerDetailRow(
+              'Name',
+              controller.selectedFarmer.value!.farmerName,
+            ),
+            _buildFarmerDetailRow(
+              'Contact',
+              controller.selectedFarmer.value!.contact ?? 'N/A',
+            ),
+            _buildFarmerDetailRow(
+              'Community ID',
+              controller.selectedFarmer.value!.communityId?.toString() ?? 'N/A',
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFarmerDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchableDropdownField({
+    required String title,
+    required dynamic selectedItem,
+    required String displayText,
+    required VoidCallback? onTap,
+    required bool isLoading,
+    bool enabled = true,
+    String? disabledMessage,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: enabled ? Colors.grey.shade400 : Colors.grey.shade300,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              color: enabled ? Colors.white : Colors.grey.shade100,
+            ),
+            child: Row(
+              children: [
+                if (isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: fPrimaryColour,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: enabled
+                            ? (selectedItem != null
+                                  ? Colors.black87
+                                  : Colors.grey)
+                            : Colors.grey.shade500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: enabled ? Colors.grey : Colors.grey.shade400,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFarmerSelectionBottomSheet(BuildContext context) {
+    _showSearchableBottomSheet<FarmerFromServerModel>(
+      context: context,
+      title: "Select Farmer",
+      items: controller.farmerData,
+      searchHint: "Search by name...",
+      itemBuilder: (farmer) => ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        leading: CircleAvatar(
+          backgroundColor: fPrimaryColour,
+          child: const Icon(Icons.person, color: Colors.white),
+        ),
+        title: Text(
+          farmer.farmerName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Text(
+          farmer.contact ?? '',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+        trailing: controller.selectedFarmer.value?.id == farmer.id
+            ? Icon(Icons.check_circle, color: fPrimaryColour)
+            : null,
+      ),
+      onItemSelected: (farmer) {
+        controller.selectFarmer(farmer);
+        Navigator.pop(context);
+      },
+      filter: (farmer, query) {
+        return farmer.farmerName.toLowerCase().contains(query.toLowerCase()) ||
+            (farmer.contact ?? '').contains(query);
+      },
+    );
+  }
+
+  void _showSearchableBottomSheet<T>({
+    required String title,
+    required List<T> items,
+    required String searchHint,
+    required Widget Function(T) itemBuilder,
+    required Function(T) onItemSelected,
+    required bool Function(T, String) filter,
+    required BuildContext context,
+  }) {
+    final TextEditingController searchController = TextEditingController();
+    final RxList<T> filteredItems = items.obs;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: fPrimaryColour,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: searchController,
+                  onChanged: (query) {
+                    filteredItems.assignAll(
+                      items.where((item) => filter(item, query)).toList(),
+                    );
+                  },
+                  decoration: InputDecoration(
+                    hintText: searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              Obx(
+                () => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Text(
+                        "Found ${filteredItems.length} item(s)",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Obx(
+                  () => filteredItems.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                "No items found",
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () => onItemSelected(item),
+                                child: itemBuilder(item),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      side: BorderSide(color: fPrimaryColour),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: fPrimaryColour,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -234,35 +528,86 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
             subtitle: 'Basic details about the monitoring survey',
           ),
           const SizedBox(height: 24),
-          CustomFormField(
-            controller: controller.surveyorName,
+          _buildReactiveTextField(
+            controller: controller.surveyorNameController,
             label: 'Surveyor Name',
             hintText: 'Enter your full name',
             prefixIcon: Icons.person,
+            value: controller.surveyorNameController.text,
+            onChanged: (value) =>
+                controller.surveyorNameController.text = value,
           ),
           const SizedBox(height: 16),
           _buildDateField(),
           const SizedBox(height: 16),
           _buildCommunityField(),
           const SizedBox(height: 16),
-          CustomFormField(
+          _buildReactiveTextField(
             controller: controller.farmerNameController,
             label: 'Farmer Name',
             hintText: 'Farmer name',
             prefixIcon: Icons.agriculture,
+            value: controller.farmerNameController.text,
+            onChanged: (value) => controller.farmerNameController.text = value,
             readOnly: true,
           ),
           const SizedBox(height: 16),
-          CustomFormField(
-            readOnly: true,
-            controller: controller.farmerIDNumber,
+          _buildReactiveTextField(
+            controller: controller.farmerIDNumberController,
             label: 'Farmer ID Number',
             hintText: 'Enter ID number',
             prefixIcon: Icons.badge,
+            value: controller.farmerIDNumberController.text,
+            onChanged: (value) =>
+                controller.farmerIDNumberController.text = value,
+            readOnly: true,
             maxLength: 13,
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildReactiveTextField({
+    Key? key,
+    required String label,
+    required String hintText,
+    required IconData prefixIcon,
+    required String value,
+    required ValueChanged<String> onChanged,
+    TextEditingController? controller,
+    bool readOnly = false,
+    int? maxLength,
+  }) {
+    return Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          onChanged: onChanged,
+          readOnly: readOnly,
+          maxLength: maxLength,
+          decoration: InputDecoration(
+            hintText: hintText,
+            prefixIcon: Icon(prefixIcon),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -344,28 +689,22 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: controller.community.value.isEmpty
-                      ? null
-                      : controller.community.value,
+            DropdownButtonHideUnderline(
+              child: Obx(
+                () => DropdownButtonFormField<CommunityModel>(
+                  value: controller.selectedCommunity.value,
                   isExpanded: true,
                   hint: const Text('Select community'),
                   items: controller.communities.map((community) {
-                    return DropdownMenuItem<String>(
-                      value: community.comcode?.toString() ?? '',
-                      child: Text(community.name ?? ''),
+                    return DropdownMenuItem<CommunityModel>(
+                      value: community,
+                      child: Text(community.community ?? ''),
                     );
                   }).toList(),
-                  onChanged: (value) {
-                    controller.community.value = value ?? '';
+                  onChanged: (community) {
+                    if (community != null) {
+                      controller.selectCommunity(community);
+                    }
                   },
                 ),
               ),
@@ -383,11 +722,13 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               ],
             ),
           ] else ...[
-            CustomFormField(
-              controller: controller.communityName,
+            _buildReactiveTextField(
               label: 'Community Name',
               hintText: 'Enter community name',
               prefixIcon: Icons.location_city,
+              value: controller.customCommunityName.value,
+              onChanged: (value) =>
+                  controller.customCommunityName.value = value,
             ),
             const SizedBox(height: 8),
             Row(
@@ -419,7 +760,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
           const SizedBox(height: 24),
           _buildPlantationTypeField(),
-
           const SizedBox(height: 24),
           const Text(
             'Species Provided and Planted',
@@ -437,14 +777,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildPlantationTypeField() {
-    const plantationTypes = [
-      "Cocoa Farm",
-      "Woodlot",
-      "Degraded Area",
-      "Riparian",
-      "Others",
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -472,7 +804,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     : controller.plantationType.value,
                 isExpanded: true,
                 hint: const Text('Select plantation type'),
-                items: plantationTypes.map((type) {
+                items: controller.plantationTypes.map((type) {
                   return DropdownMenuItem<String>(
                     value: type,
                     child: Text(type),
@@ -490,25 +822,11 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildSpeciesCheckboxes() {
-    final speciesList = [
-      "Prekese",
-      "Kokrodua_Afromosia",
-      "Dahoma",
-      "Edinam",
-      "Emire",
-      "Ofram",
-      "Mahogany_Dubini",
-      "Mansonia_Oprono",
-      "Okoro",
-      "Efoobodedwo_Utile",
-      "Bako",
-    ];
-
     return Obx(
       () => Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: speciesList.map((species) {
+        children: controller.speciesList.map((species) {
           final isSelected = controller.speciesProvidedPlanted.contains(
             species,
           );
@@ -549,6 +867,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                       controller.quantityReceivedControllers[species]!,
                   quantityPlantedController:
                       controller.quantityPlantedControllers[species]!,
+                  // onQuantityReceivedChanged: (value) => controller.setQuantityReceived(species, value),
+                  // onQuantityPlantedChanged: (value) => controller.setQuantityPlanted(species, value),
                   onDateSelected: (date) {
                     controller.setPlantingDate(species, date);
                   },
@@ -562,113 +882,46 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     );
   }
 
-  Widget _buildNavigationButtons() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
+  Widget _buildMappedAreaPage() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Back button
-          Expanded(
-            child: Obx(
-              () => ElevatedButton(
-                onPressed: controller.currentPage.value == 0
-                    ? null
-                    : () => _pageController.previousPage(
-                        duration: const Duration(milliseconds: 1),
-                        curve: Curves.easeInOut,
-                      ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: fPrimaryColour,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: fPrimaryColour),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text('Back'),
-              ),
+          const Text(
+            'Farm Mapping',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 20),
+          CustomButton(
+            horizontalPadding: 10,
+            verticalPadding: 10,
+            backgroundColor: fPrimaryColour,
+            onTap: () {
+              controller.usePolygonDrawingTool();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [Icon(Icons.map), SizedBox(width: 5), Text('Map Farm')],
             ),
           ),
-          const SizedBox(width: 16),
-          // Next/Submit button
-          Obx(() => controller.currentPage.value < 7
-              ? Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => controller.nextPage(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: fPrimaryColour,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Next',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink()),
+          const SizedBox(height: 20),
+          _buildReactiveTextField(
+            onChanged: (value) {
+              controller.setTotalSizeAcres(value);
+            },
+            value: controller.farmSizeController.text,
+            controller: controller.farmSizeController,
+            label: 'Total Size (Acres) - computed after mapping',
+            hintText: 'Map farm to compute farm size',
+            prefixIcon: Icons.square_foot,
+            readOnly: true,
+          ),
         ],
       ),
     );
   }
 
-  // Placeholder methods for remaining pages
-  Widget _buildMappedAreaPage() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10.0),
-
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'Farm Mapping',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-
-        CustomButton(
-          horizontalPadding: 10,
-          verticalPadding: 10,
-          backgroundColor: fPrimaryColour,
-          onTap: () {
-            controller.usePolygonDrawingTool();
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [Icon(Icons.map), SizedBox(width: 5), Text('Map Farm')],
-          ),
-        ),
-
-        SizedBox(height: 20),
-        CustomFormField(
-          readOnly: true,
-          controller: controller.totalSizeAcres,
-          label: 'Total Size (Acres) - computed after mapping',
-          hintText: 'Map farm to compute farm size',
-          keyboardType: TextInputType.number,
-          prefixIcon: Icons.square_foot,
-        ),
-      ],
-    ),
-  );
   Widget _buildSeedlingSurvivalPage() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -681,33 +934,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 'Monitor the survival status of seedlings and identify causes of mortality',
           ),
           const SizedBox(height: 24),
-
-          // Total Seedlings Alive
-          CustomFormField(
-            controller: controller.totalSeedlingsAlive,
-            label: 'Total Number of Seedlings Alive',
-            hintText: 'Enter total number of seedlings alive at time of survey',
-            keyboardType: TextInputType.number,
-            prefixIcon: Icons.eco,
-            isRequired: true,
-            validator: (value) {
-              if (value?.isEmpty ?? true) return 'Please enter total number';
-              if (int.tryParse(value!) == null)
-                return 'Please enter a valid number';
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // Species Alive Section
           _buildSpeciesAliveSection(),
           const SizedBox(height: 24),
-
-          // Reasons for Death Section
           _buildReasonsForDeathSection(),
           const SizedBox(height: 24),
-
-          // Seedling Mapping Button
           _buildSeedlingMappingButton(),
         ],
       ),
@@ -715,20 +945,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildSpeciesAliveSection() {
-    final speciesList = [
-      "Prekese",
-      "Kokrodua_Afromosia",
-      "Dahoma",
-      "Edinam",
-      "Emire",
-      "Ofram",
-      "Mahogany_Dubini",
-      "Mansonia_Oprono",
-      "Okoro",
-      "Efoobodedwo_Utile",
-      "Bako",
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -750,7 +966,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           () => Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: speciesList.map((species) {
+            children: controller.speciesList.map((species) {
               final isSelected = controller.speciesAlive.contains(species);
               return FilterChip(
                 selected: isSelected,
@@ -787,14 +1003,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildReasonsForDeathSection() {
-    final reasonsList = [
-      "Disease",
-      "Drought",
-      "Pest",
-      "Vandalism",
-      "Transportation_Shocks",
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -816,7 +1024,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           () => Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: reasonsList.map((reason) {
+            children: controller.deathReasons.map((reason) {
               final isSelected = controller.reasonForDeath.contains(reason);
               return FilterChip(
                 selected: isSelected,
@@ -858,18 +1066,24 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         CustomButton(
           horizontalPadding: 10,
           isFullWidth: true,
-          backgroundColor: fPrimaryColour,
+          backgroundColor: controller.treeData.isEmpty
+              ? fSecondaryColour
+              : fPrimaryColour,
           verticalPadding: 16.0,
           onTap: () {
             if (_validateSeedlingSurvivalPage()) {
               _navigateToSeedlingMapping();
             }
           },
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.map, color: Colors.white, size: 20),
-              SizedBox(width: 8),
+              Icon(
+                controller.treeData.isEmpty ? Icons.map : Icons.check,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
               Text(
                 'Map Surviving Seedlings',
                 style: TextStyle(
@@ -891,21 +1105,24 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
           textAlign: TextAlign.center,
         ),
+        Obx(
+          () => controller.treeData.isEmpty
+              ? const Text(
+                  'Tree data is empty',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                )
+              : const SizedBox(),
+        ),
       ],
     );
   }
 
   bool _validateSeedlingSurvivalPage() {
-    if (controller.totalSeedlingsAlive.text.isEmpty) {
-      Get.snackbar(
-        'Validation Error',
-        'Please enter total number of seedlings alive',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return false;
-    }
-
     if (controller.speciesAlive.isEmpty) {
       Get.snackbar(
         'Validation Error',
@@ -930,26 +1147,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   void _navigateToSeedlingMapping() {
+    final mappedFarm = {"bounds": controller.polygon!.points};
 
-
-    debugPrint(
-      "THE DATA :::::::::::::::;;;; ${controller.polygon!.points}"
-
-    );
-
-    final mappedFarm = {
-      "bounds": controller.polygon!.points,
-    };
-    // Save current data
-    // controller.saveSeedlingSurvivalData();
-
-    // Get the mapped farm data from the controller
-    // final mappedFarm = {
-    //   'boundaries': controller.monitoringService.monitoringData.value.mappedFarmBoundaries,
-    //   'areaHectares': controller.monitoringService.monitoringData.value.mappedAreaHectares,
-    // };
-
-    // Navigate to seedling mapping with the farm data
     Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (BuildContext context) => PickTreesMap(
@@ -968,38 +1167,27 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         children: [
           const SectionHeader(
             title: 'Environmental Conditions',
-            subtitle: 'Monitor water sources, irrigation frequency, and extreme weather events',
+            subtitle:
+                'Monitor water sources, irrigation frequency, and extreme weather events',
           ),
           const SizedBox(height: 24),
-
-          // Source of Water Section
           _buildWaterSourceSection(),
           const SizedBox(height: 24),
-
-          // Watering Frequency Section
           _buildWateringFrequencySection(),
           const SizedBox(height: 24),
-
-          // Extreme Weather Section
           _buildExtremeWeatherSection(),
           const SizedBox(height: 24),
-
-          // Other Specification (if needed)
-          Obx(() => controller.extremeWeathers.contains("Other")
-              ? _buildOtherSpecificationField()
-              : const SizedBox()),
+          Obx(
+            () => controller.extremeWeathers.contains("Other")
+                ? _buildOtherSpecificationField()
+                : const SizedBox(),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildWaterSourceSection() {
-    final waterSources = [
-      "Rain_Fed",
-      "Manual_Watering",
-      "Irrigation_With_Pumps",
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1014,17 +1202,14 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 8),
         const Text(
           'Select all water sources used for irrigation',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),
         Obx(
-              () => Wrap(
+          () => Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: waterSources.map((source) {
+            children: controller.waterSources.map((source) {
               final isSelected = controller.sourceOfWater.contains(source);
               return FilterChip(
                 selected: isSelected,
@@ -1046,17 +1231,14 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         Obx(
-              () => controller.sourceOfWater.isEmpty
+          () => controller.sourceOfWater.isEmpty
               ? const Padding(
-            padding: EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Please select at least one water source',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
-            ),
-          )
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Please select at least one water source',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                )
               : const SizedBox(),
         ),
       ],
@@ -1064,13 +1246,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildWateringFrequencySection() {
-    final frequencyOptions = [
-      {"label": "Daily", "value": "Daily"},
-      {"label": "Weekly", "value": "Weekly"},
-      {"label": "Monthly", "value": "Monthly"},
-      {"label": "Rarely/Never", "value": "Rarely_Never"},
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1085,21 +1260,18 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 8),
         const Text(
           'How often are the seedlings watered?',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),
         Obx(
-              () => Column(
-            children: frequencyOptions.map((option) {
+          () => Column(
+            children: controller.frequencyOptions.map((option) {
               return RadioListTile<String>(
                 title: Text(option["label"]!),
                 value: option["value"]!,
                 groupValue: controller.waterFrequency.value,
                 onChanged: (value) {
-                  controller.waterFrequency.value = value!;
+                  controller.setWaterFrequency(value!);
                 },
                 activeColor: fPrimaryColour,
                 contentPadding: EdgeInsets.zero,
@@ -1108,17 +1280,14 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         Obx(
-              () => controller.waterFrequency.isEmpty
+          () => controller.waterFrequency.isEmpty
               ? const Padding(
-            padding: EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Please select watering frequency',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
-            ),
-          )
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'Please select watering frequency',
+                    style: TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                )
               : const SizedBox(),
         ),
       ],
@@ -1126,13 +1295,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildExtremeWeatherSection() {
-    final weatherEvents = [
-      "Drought",
-      "Flooding",
-      "Fire",
-      "Other",
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1147,16 +1309,11 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 8),
         const Text(
           'Have there been any extreme weather events since the seedlings were planted?',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),
-
-        // Yes/No Radio Buttons
         Obx(
-              () => Row(
+          () => Row(
             children: [
               Expanded(
                 child: RadioListTile<bool>(
@@ -1164,9 +1321,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                   value: true,
                   groupValue: controller.hasExtremeWeather.value,
                   onChanged: (value) {
-                    controller.hasExtremeWeather.value = value!;
+                    controller.setHasExtremeWeather(value!);
                   },
                   activeColor: fPrimaryColour,
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
               Expanded(
@@ -1175,100 +1333,86 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                   value: false,
                   groupValue: controller.hasExtremeWeather.value,
                   onChanged: (value) {
-                    controller.hasExtremeWeather.value = value!;
-                    // Clear extreme weathers if "No" is selected
-                    if (value == false) {
-                      controller.extremeWeathers.clear();
-                    }
+                    controller.setHasExtremeWeather(value!);
                   },
                   activeColor: fPrimaryColour,
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
             ],
           ),
         ),
-
-        // Extreme Weather Selection (only show if Yes is selected)
-        Obx(() => controller.hasExtremeWeather.value == true
-            ? Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            const Text(
-              'What type of extreme weather events occurred?',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: weatherEvents.map((weather) {
-                final isSelected = controller.extremeWeathers.contains(weather);
-                return FilterChip(
-                  selected: isSelected,
-                  label: Text(
-                    weather,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
+        Obx(
+          () => controller.hasExtremeWeather.value == true
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text(
+                      'What type of extreme weather events occurred?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                  onSelected: (selected) {
-                    controller.toggleExtremeWeather(weather, selected);
-                  },
-                  selectedColor: Colors.orange[400],
-                  checkmarkColor: Colors.white,
-                  backgroundColor: Colors.grey[100],
-                  showCheckmark: true,
-                );
-              }).toList(),
-            ),
-            Obx(
-                  () => controller.hasExtremeWeather.value == true &&
-                  controller.extremeWeathers.isEmpty
-                  ? const Padding(
-                padding: EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Please select at least one weather event',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 12,
-                  ),
-                ),
-              )
-                  : const SizedBox(),
-            ),
-          ],
-        )
-            : const SizedBox(),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: controller.weatherEvents.map((weather) {
+                        final isSelected = controller.extremeWeathers.contains(
+                          weather,
+                        );
+                        return FilterChip(
+                          selected: isSelected,
+                          label: Text(
+                            weather,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          onSelected: (selected) {
+                            controller.toggleExtremeWeather(weather, selected);
+                          },
+                          selectedColor: Colors.orange[400],
+                          checkmarkColor: Colors.white,
+                          backgroundColor: Colors.grey[100],
+                          showCheckmark: true,
+                        );
+                      }).toList(),
+                    ),
+                    Obx(
+                      () =>
+                          controller.hasExtremeWeather.value == true &&
+                              controller.extremeWeathers.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                'Please select at least one weather event',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            )
+                          : const SizedBox(),
+                    ),
+                  ],
+                )
+              : const SizedBox(),
         ),
       ],
     );
   }
 
   Widget _buildOtherSpecificationField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        CustomFormField(
-          controller: controller.otherController,
-          label: 'Specify Other Extreme Weather',
-          hintText: 'Please describe the extreme weather event',
-          prefixIcon: Icons.warning,
-          maxLines: 2,
-          validator: (value) {
-            if (controller.extremeWeathers.contains("Other") &&
-                (value?.isEmpty ?? true)) {
-              return 'Please specify the extreme weather event';
-            }
-            return null;
-          },
-        ),
-      ],
+    return _buildReactiveTextField(
+      label: 'Specify Other Extreme Weather',
+      hintText: 'Please describe the extreme weather event',
+      prefixIcon: Icons.warning,
+      value: controller.otherExtremeWeather.value,
+      onChanged: (value) => controller.otherExtremeWeather.value = value,
     );
   }
 
@@ -1280,23 +1424,16 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         children: [
           const SectionHeader(
             title: 'Final Observations',
-            subtitle: 'Record pest and disease observations, maintenance activities, and additional comments',
+            subtitle:
+                'Record pest and disease observations, maintenance activities, and additional comments',
           ),
           const SizedBox(height: 24),
-
-          // Pest and Disease Section
           _buildPestAndDiseaseSection(),
           const SizedBox(height: 24),
-
-          // Maintenance and Care Section
           _buildMaintenanceSection(),
           const SizedBox(height: 24),
-
-          // Additional Observations
           _buildAdditionalObservationsSection(),
           const SizedBox(height: 24),
-
-          // Submit Button
           _buildSubmitButton(),
         ],
       ),
@@ -1316,36 +1453,94 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        const Text('Have you noticed any pests on or around the seedlings?'),
+        Obx(
+              () => Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('Yes'),
+                      value: true,
+                      groupValue: controller.pestsAround.value,
+                      onChanged: (value) {
+                        controller.setPestsAround(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('No'),
+                      value: false,
+                      groupValue: controller.pestsAround.value,
+                      onChanged: (value) {
+                        controller.setPestsAround(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
 
-        // Pests Around
-        _buildYesNoQuestion(
-          title: 'Have you noticed any pests on or around the seedlings?',
-          value: controller.pestsAround.value,
-          onChanged: (value) {
-            controller.pestsAround.value = value ?? false;
-            if (!value!) {
-              controller.pestDescription.clear();
-            }
-          },
-          descriptionController: controller.pestDescription,
-          descriptionLabel: 'Specify pest description',
-          descriptionHint: 'Describe the pests observed...',
+              if (controller.pestsAround.value)
+                _buildReactiveTextField(
+                  label: "Specify pest description",
+                  hintText: "Describe the pests observed...",
+                  prefixIcon: Icons.description,
+                  value: controller.pestDescription.value,
+                  onChanged: (value) => controller.pestDescription.value = value,
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
+        const Text('Have you noticed any signs of disease on the seedlings?'),
+        Obx(
+              () => Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('Yes'),
+                      value: true,
+                      groupValue: controller.signsOfDisease.value,
+                      onChanged: (value) {
+                        controller.setSignsOfDisease(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('No'),
+                      value: false,
+                      groupValue: controller.signsOfDisease.value,
+                      onChanged: (value) {
+                        controller.setSignsOfDisease(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
 
-        // Signs of Disease
-        _buildYesNoQuestion(
-          title: 'Have you noticed any signs of disease on the seedlings?',
-          value: controller.signsOfDisease.value,
-          onChanged: (value) {
-            controller.signsOfDisease.value = value ?? false;
-            if (!value!) {
-              controller.diseaseDescription.clear();
-            }
-          },
-          descriptionController: controller.diseaseDescription,
-          descriptionLabel: 'Specify disease signs',
-          descriptionHint: 'Describe the disease symptoms observed...',
+              if (controller.signsOfDisease.value)
+                _buildReactiveTextField(
+                  label: "Specify disease signs",
+                  hintText: "Describe the disease symptoms observed...",
+                  prefixIcon: Icons.description,
+                  value: controller.diseaseDescription.value,
+                  onChanged: (value) => controller.diseaseDescription.value = value,
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -1364,103 +1559,144 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        const Text('Were any fertilizers or any soil amendments applied?'),
+        Obx(
+              () => Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('Yes'),
+                      value: true,
+                      groupValue: controller.fertiliserApplied.value,
+                      onChanged: (value) {
+                        controller.setFertiliserApplied(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('No'),
+                      value: false,
+                      groupValue: controller.fertiliserApplied.value,
+                      onChanged: (value) {
+                        controller.setFertiliserApplied(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
 
-        // Fertilizer Applied
-        _buildYesNoQuestion(
-          title: 'Were any fertilizers or any soil amendments applied?',
-          value: controller.fertiliserApplied.value,
-          onChanged: (value) {
-            controller.fertiliserApplied.value = value ?? false;
-            if (!value!) {
-              controller.fertiliserType.clear();
-            }
-          },
-          descriptionController: controller.fertiliserType,
-          descriptionLabel: 'Specify fertilizer type',
-          descriptionHint: 'Describe the fertilizer or soil amendment used...',
+              if (controller.fertiliserApplied.value)
+                _buildReactiveTextField(
+                  label: "Specify fertilizer type",
+                  hintText: "Describe the fertilizer or soil amendment used...",
+                  prefixIcon: Icons.description,
+                  value: controller.fertiliserType.value,
+                  onChanged: (value) => controller.fertiliserType.value = value,
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
+        const Text('Were any pesticide or herbicide applied?'),
+        Obx(
+              () => Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('Yes'),
+                      value: true,
+                      groupValue: controller.pesticideApplied.value,
+                      onChanged: (value) {
+                        controller.setPesticideApplied(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<bool>(
+                      title: const Text('No'),
+                      value: false,
+                      groupValue: controller.pesticideApplied.value,
+                      onChanged: (value) {
+                        controller.setPesticideApplied(value!);
+                      },
+                      activeColor: fPrimaryColour,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
 
-        // Pesticide/Herbicide Applied
-        _buildYesNoQuestion(
-          title: 'Were any pesticide or herbicide applied?',
-          value: controller.pesticideApplied.value,
-          onChanged: (value) {
-            controller.pesticideApplied.value = value ?? false;
-            if (!value!) {
-              controller.pesticideType.clear();
-            }
-          },
-          descriptionController: controller.pesticideType,
-          descriptionLabel: 'Specify pesticide/herbicide type',
-          descriptionHint: 'Describe the pesticide or herbicide used...',
+              if (controller.pesticideApplied.value)
+                _buildReactiveTextField(
+                  label: "Specify pesticide/herbicide type",
+                  hintText: "Describe the pesticide or herbicide used...",
+                  prefixIcon: Icons.description,
+                  value: controller.pesticideType.value,
+                  onChanged: (value) => controller.pesticideType.value = value,
+                ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildYesNoQuestion({
-    required String title,
-    required bool? value,
-    required ValueChanged<bool?> onChanged,
-    required TextEditingController descriptionController,
-    required String descriptionLabel,
-    required String descriptionHint,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: RadioListTile<bool>(
-                title: const Text('Yes'),
-                value: true,
-                groupValue: value,
-                onChanged: onChanged,
-                activeColor: fPrimaryColour,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            Expanded(
-              child: RadioListTile<bool>(
-                title: const Text('No'),
-                value: false,
-                groupValue: value,
-                onChanged: onChanged,
-                activeColor: fPrimaryColour,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (value == true)
-          CustomFormField(
-            controller: descriptionController,
-            label: descriptionLabel,
-            hintText: descriptionHint,
-            prefixIcon: Icons.description,
-            maxLines: 3,
-            validator: (value) {
-              if (value?.isEmpty ?? true) {
-                return 'Please provide details';
-              }
-              return null;
-            },
-          ),
-      ],
-    );
-  }
+  // Widget _buildReactiveYesNoQuestion({
+  //   required String title,
+  //   required bool value,
+  //   required ValueChanged<bool> onChanged,
+  //   required String descriptionValue,
+  //   required ValueChanged<String> onDescriptionChanged,
+  //   required String descriptionLabel,
+  //   required String descriptionHint,
+  // }) {
+  //   // Use a local state to track the radio button value
+  //   return StatefulBuilder(
+  //     builder: (BuildContext context, StateSetter setState) {
+  //       return Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Text(
+  //             title,
+  //             style: const TextStyle(
+  //               fontWeight: FontWeight.w500,
+  //               fontSize: 16,
+  //               color: Colors.black87,
+  //             ),
+  //           ),
+  //           const SizedBox(height: 12),
+  //
+  //
+  //
+  //           const SizedBox(height: 12),
+  //           if (value)
+  //             AnimatedSwitcher(
+  //               duration: const Duration(milliseconds: 200),
+  //               child: _buildReactiveTextField(
+  //                 key: ValueKey<bool>(value),
+  //                 label: descriptionLabel,
+  //                 hintText: descriptionHint,
+  //                 prefixIcon: Icons.description,
+  //                 value: descriptionValue,
+  //                 onChanged: onDescriptionChanged,
+  //               ),
+  //             ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 
   Widget _buildAdditionalObservationsSection() {
     return Column(
@@ -1477,22 +1713,16 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 8),
         const Text(
           'Please provide any other observations, comments or recommendations for improving the survival rate of the seedlings',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
         const SizedBox(height: 16),
-        CustomFormField(
-          controller: controller.additionalObservations,
+        _buildReactiveTextField(
           label: 'Additional Observations',
-          hintText: 'Enter any additional observations, comments, or recommendations...',
+          hintText:
+              'Enter any additional observations, comments, or recommendations...',
           prefixIcon: Icons.comment,
-          maxLines: 4,
-          validator: (value) {
-            // This field is optional, so no validation required
-            return null;
-          },
+          value: controller.additionalObservations.value,
+          onChanged: (value) => controller.additionalObservations.value = value,
         ),
       ],
     );
@@ -1507,18 +1737,15 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           backgroundColor: fPrimaryColour,
           verticalPadding: 16.0,
           onTap: () {
-            debugPrint("Submit button pressed");
-            // if (_validateFinalObservationsPage()) {
-              _showSubmissionDialog();
-            // }
+            _showSubmissionDialog();
           },
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.cloud_upload, color: Colors.white, size: 20),
-              SizedBox(width: 8),
+              // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
+              // SizedBox(width: 8),
               Text(
-                'Submit Monitoring Data',
+                'Finish',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -1542,61 +1769,50 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     );
   }
 
-
   void _showSubmissionDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Submit Data'),
-          content: const Column(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Finish'),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.wifi, size: 48, color: Colors.blue),
               SizedBox(height: 16),
               Text(
                 'Do you have internet connection?',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Choose how you want to submit the monitoring data',
-                style: TextStyle(fontSize: 14),
-                textAlign: TextAlign.center,
+
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: fPrimaryColour,
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await controller.submitDataOnline();
+                },
+                child: const Text('Submit'),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  backgroundColor: fSecondaryColour,
+                ),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await controller.saveDataOffline();
+                },
+                child: Text('Save', style: TextStyle(color: Colors.black)),
               ),
             ],
           ),
           actions: [
-
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: fPrimaryColour,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-
-              },
-              child: const Text('Submit to server'),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: fSecondaryColour,
-              ),
-              onPressed: () async {
-                debugPrint("THE TREES ::::::::::: ${controller.treeData}");
-                Navigator.of(context).pop();
-                await controller.saveDataOffline();
-              },
-              child:  Text('Save Offline', style: TextStyle(
-                color: AppColor.black,
-              ),),
-            ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('CANCEL'),
@@ -1604,6 +1820,94 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildNavigationButtons() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Obx(
+              () => ElevatedButton(
+                onPressed: controller.currentPage.value == 0
+                    ? null
+                    : () => _pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: controller.currentPage.value == 0
+                      ? Colors.grey[300]
+                      : Colors.white,
+                  foregroundColor: controller.currentPage.value == 0
+                      ? Colors.grey[500]
+                      : fPrimaryColour,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: controller.currentPage.value == 0
+                          ? Colors.grey[300]!
+                          : fPrimaryColour,
+                    ),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('Back'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Obx(() {
+            bool isNextEnabled = controller.currentPage.value == 0
+                ? controller.selectedFarmer.value != null
+                : true;
+
+            return controller.currentPage.value < 7
+                ? Expanded(
+                    child: ElevatedButton(
+                      onPressed: isNextEnabled
+                          ? () => controller.nextPage()
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isNextEnabled
+                            ? fPrimaryColour
+                            : Colors.grey[300],
+                        foregroundColor: isNextEnabled
+                            ? Colors.white
+                            : Colors.grey[500],
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Next',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink();
+          }),
+        ],
+      ),
     );
   }
 }

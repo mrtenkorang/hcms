@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:hcms_revived2/boilerplate/constants.dart';
+import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
+import 'package:hcms_revived2/controller/repos/seedling_monitoring_reepo.dart';
 import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
-import 'package:hcms_revived2/models/localdbmodel/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/history/edit_seedling_monitoring.dart';
-import 'package:hcms_revived2/screens/treemonitoring/initialpage.dart';
 import 'package:get/get.dart';
 
 class SeedlingMonitoringViewInit extends StatefulWidget {
@@ -15,83 +15,104 @@ class SeedlingMonitoringViewInit extends StatefulWidget {
       _SeedlingMonitoringViewInitState();
 }
 
-class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit> {
+class _SeedlingMonitoringViewInitState
+    extends State<SeedlingMonitoringViewInit> {
   void _navigateToEditScreen(SeedlingMonitoringModel monitoring) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditSeedlingMonitoringScreen(
-          seedlingMonitoring: monitoring,
+          monitoring: monitoring,
+          // seedlingMonitoring: monitoring,
         ),
       ),
     );
   }
 
+  // Create a GlobalKey for RefreshIndicator
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  // Refresh function
+  Future<void> _refreshData() async {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    final SeedlingMonitoringService monitoringService = Get.find();
-    return Scaffold(
-      // backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Seedling Monitoring History',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Seedling Monitoring',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
-        ),
-        backgroundColor: fPrimaryColour,
-        elevation: 0,
-
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: FutureBuilder<List<SeedlingMonitoringModel>>(
-                    future: monitoringService.getAllMonitorings(),
-                    builder: (context, snapshot) {
-                      // Loading state
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return _buildLoadingState();
-                      }
-
-                      // Error state
-                      if (snapshot.hasError) {
-                        return _buildErrorState(snapshot.error.toString());
-                      }
-
-                      // Data loaded successfully
-                      if (snapshot.hasData) {
-                        final monitorings = snapshot.data!;
-
-                        // Empty state
-                        if (monitorings.isEmpty) {
-                          return _buildEmptyState();
-                        }
-
-                        // Data state
-                        return _buildDataState(monitorings, monitoringService);
-                      }
-
-                      // Default empty state
-                      return _buildEmptyState();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+          backgroundColor: fPrimaryColour,
+          elevation: 0,
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.cloud_done), text: 'Submitted'),
+              Tab(icon: Icon(Icons.cloud_upload), text: 'Pending'),
+            ],
+            labelColor: Colors.white,
+            indicatorColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: () => _refreshData(),
             ),
-          ),
+          ],
+        ),
+        body: TabBarView(
+          children: [
+            // Submitted Tab
+            _buildMonitoringList("connected"),
+            // Pending Tab
+
+            _buildMonitoringList("not connected"),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMonitoringList(String status) {
+    return FutureBuilder<List<SeedlingMonitoringModel>>(
+      future: SeedlingMonitoringRepository().getAll(),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildLoadingState();
+        }
+
+        // Error state
+        if (snapshot.hasError) {
+          return _buildErrorState(snapshot.error.toString());
+        }
+
+        // Data loaded successfully
+        if (snapshot.hasData) {
+          // Filter data based on sync status
+          final monitorings = snapshot.data!
+              .where((m) => m.connectionStatus == status)
+              .toList();
+
+          // Empty state
+          if (monitorings.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          // Data state with pull-to-refresh
+          return RefreshIndicator(
+            onRefresh: _refreshData,
+            child: _buildDataState(monitorings),
+          );
+        }
+        return _buildEmptyState();
+      },
     );
   }
 
@@ -106,10 +127,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
           const SizedBox(height: 16),
           Text(
             'Loading monitoring records...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -123,11 +141,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[300],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
             const SizedBox(height: 16),
             const Text(
               'Unable to load data',
@@ -141,10 +155,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
             Text(
               'Error: $error',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -175,11 +186,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.assignment_outlined,
-              size: 80,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.assignment_outlined, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
             const Text(
               'No Monitoring Records',
@@ -193,32 +200,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
             const Text(
               'Start by creating your first seedling monitoring record',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Navigate to create new monitoring screen
-                // Get.to(() => CreateSeedlingMonitoringScreen());
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: fPrimaryColour,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-              ),
-              child: const Text(
-                'Create New Record',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         ),
@@ -226,7 +208,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
     );
   }
 
-  Widget _buildDataState(List<SeedlingMonitoringModel> monitorings, SeedlingMonitoringService service) {
+  Widget _buildDataState(List<SeedlingMonitoringModel> monitorings) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       itemCount: monitorings.length,
@@ -238,11 +220,19 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
   }
 
   Widget _buildMonitoringCard(SeedlingMonitoringModel monitoring, int index) {
+    debugPrint("THE MONITORING: ${monitoring.toJson()}");
+
+    debugPrint(
+      "THE SPECIES :::::::::: ${monitoring.speciesPlantingDetails.first.toJson()}",
+    );
+    debugPrint("THE SPECIES :::::::::: ${monitoring.treeData}");
     // Extract data from monitoring object
     final farmerName = monitoring.farmerName ?? 'Unknown Farmer';
+    final farmerCode = monitoring.farmerIDNumber ?? 'Unknown Farmer';
     final dateOfSurvey = monitoring.dateOfSurvey ?? 'No Date';
     final submissionStatus = monitoring.submissionStatus ?? 'draft';
-    final totalSeedlingsAlive = monitoring.totalSeedlingsAlive?.toString() ?? 'N/A';
+    final totalSeedlingsAlive =
+        monitoring.totalSeedlingsAlive?.toString() ?? 'N/A';
     final community = monitoring.community ?? 'Unknown Community';
 
     // Status colors and text
@@ -254,9 +244,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           _navigateToEditScreen(monitoring);
@@ -307,7 +295,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      farmerName,
+                      farmerCode,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -319,10 +307,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                     const SizedBox(height: 4),
                     Text(
                       community,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -358,7 +343,10 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                     children: [
                       // Status Badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -366,11 +354,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              statusIcon,
-                              size: 14,
-                              color: statusColor,
-                            ),
+                            Icon(statusIcon, size: 14, color: statusColor),
                             const SizedBox(width: 4),
                             Text(
                               statusText,
@@ -409,11 +393,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.eco,
-                        size: 14,
-                        color: Colors.green[600],
-                      ),
+                      Icon(Icons.eco, size: 14, color: Colors.green[600]),
                       const SizedBox(width: 4),
                       Text(
                         '$totalSeedlingsAlive alive',
@@ -441,14 +421,17 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
                   ),
                 ],
               ),
-            ]),
+            ],
           ),
         ),
-      );
-
+      ),
+    );
   }
 
-  Future<void> _showDeleteConfirmation(SeedlingMonitoringModel monitoring, BuildContext context) async {
+  Future<void> _showDeleteConfirmation(
+    SeedlingMonitoringModel monitoring,
+    BuildContext context,
+  ) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -460,8 +443,10 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
               children: const <Widget>[
                 Text('Are you sure you want to delete this monitoring record?'),
                 SizedBox(height: 8),
-                Text('This action cannot be undone.',
-                    style: TextStyle(color: Colors.red)),
+                Text(
+                  'This action cannot be undone.',
+                  style: TextStyle(color: Colors.red),
+                ),
               ],
             ),
           ),
@@ -477,8 +462,7 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
               onPressed: () async {
                 Navigator.of(context).pop(); // Close the dialog
                 try {
-                  final SeedlingMonitoringService monitoringService = Get.find();
-                  await monitoringService.deleteMonitoring(monitoring);
+                  await SeedlingMonitoringRepository().delete(monitoring.id!);
                   if (mounted) {
                     setState(() {
                       // This will trigger a rebuild of the widget
@@ -503,4 +487,5 @@ class _SeedlingMonitoringViewInitState extends State<SeedlingMonitoringViewInit>
         );
       },
     );
-  }}
+  }
+}

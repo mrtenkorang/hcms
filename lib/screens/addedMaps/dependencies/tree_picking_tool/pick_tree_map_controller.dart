@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_controller.dart';
 
@@ -20,7 +19,7 @@ class PickTreeMapController extends GetxController {
 
   Globals globals = Globals();
 
-  late final SeedlingMonitoringService seedlingMonitoringService;
+  // late final SeedlingMonitoringService seedlingMonitoringService;
 
   // PickTreeController pickTreeController = Get.put(PickTreeController());
 
@@ -46,11 +45,6 @@ class PickTreeMapController extends GetxController {
   var isFirstPolygon = false.obs;
   var emptyData = false.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    seedlingMonitoringService = Get.find<SeedlingMonitoringService>();
-  }
 
   // ============================================================
   // START CREATE MAP MARKER

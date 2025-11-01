@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
+import 'package:hcms_revived2/controller/constants/urls.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
 import 'package:http/http.dart' as http;
-import 'package:hcms_revived2/helpers/dbhelper.dart';
 import 'package:hcms_revived2/providers/monitoring/lmbmonitoringprovider.dart';
-import 'package:hcms_revived2/services/serverurls.dart';
 import 'package:provider/provider.dart';
 
 class PrivateSectorEngagementController extends GetxController {
@@ -54,7 +55,18 @@ class PrivateSectorEngagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getEnumeratorValue();
+    loadUser();
+  }
+
+  UserModel? user;
+
+  loadUser() async {
+    final cache = await CacheService.getInstance();
+    user = await cache.getUserInfo();
+    enumeratorValue.value = user!.id!;
+
+    debugPrint("THE USER ID ::::: ${user!.id}");
+    update();
   }
 
   @override
@@ -72,26 +84,6 @@ class PrivateSectorEngagementController extends GetxController {
     femaleBenefitting.dispose();
     youthBenefitting.dispose();
     super.onClose();
-  }
-
-  // Get enumerator value from database
-  Future<void> getEnumeratorValue() async {
-    try {
-      final db = await DBHelper.database();
-      var count = await db.rawQuery(
-        'SELECT enumeratorValue FROM first_time_user',
-      );
-      var list = count.toList();
-
-      if (list.isNotEmpty) {
-        enumeratorValue.value = int.parse(
-          list[0]['enumeratorValue'].toString(),
-        );
-        debugPrint("Enumerator Value - ${enumeratorValue.value}");
-      }
-    } catch (e) {
-      debugPrint("Error getting enumerator value: $e");
-    }
   }
 
   // Set engagement date
@@ -175,7 +167,7 @@ class PrivateSectorEngagementController extends GetxController {
       "enumeratorDetails": {
         "enumerator": enumeratorValue.value,
         "lmbName": lmbName.text,
-        "lmbType": "${sector.value} Sector Engagement",
+        "lmbType": "${sectorController.text} Sector Engagement",
       },
       "engagementDetails": {
         "privateSectorName": privateName.text,
@@ -206,7 +198,7 @@ class PrivateSectorEngagementController extends GetxController {
     try {
       Globals().startWait(lmbScreenContext!);
       var submissionData = prepareSubmissionData();
-      var url = '$stageBaseUrl/lmbmonitoringapi/';
+      var url = '${URLS.baseUrl}${URLS.privateSectorEngagementURL}';
       var body = json.encode(submissionData);
 
       debugPrint("Uploading data: $body");
@@ -218,14 +210,15 @@ class PrivateSectorEngagementController extends GetxController {
       final response = json.decode(res.body);
       var status = response["status"];
 
-      if (status == "done") {
+      if (status == true) {
+        saveToLocalDB("connected");
         debugPrint("Data sent successfully!");
         Navigator.pushAndRemoveUntil(
           lmbScreenContext!,
           MaterialPageRoute(builder: (context) => IndexPage()),
           (route) => false,
         );
-        saveToLocalDB("connected");
+
         Get.snackbar(
           'Success',
           'Data sent successfully!',
@@ -233,18 +226,10 @@ class PrivateSectorEngagementController extends GetxController {
           colorText: Colors.white,
         );
         clearForm();
-        Navigator.pushAndRemoveUntil(
-          lmbScreenContext!,
-          MaterialPageRoute(builder: (context) => IndexPage()),
-              (route) => false,
-        );
+        Get.back();
       } else if (status == "exist") {
         debugPrint("Data already exists!");
-        Navigator.pushAndRemoveUntil(
-          lmbScreenContext!,
-          MaterialPageRoute(builder: (context) => IndexPage()),
-              (route) => false,
-        );
+        Get.back();
         saveToLocalDB("connected");
         Get.snackbar(
           'Info',

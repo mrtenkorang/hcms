@@ -3,12 +3,15 @@ import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:hcms_revived2/boilerplate/constants.dart';
 import 'package:hcms_revived2/boilerplate/widgets.dart';
 import 'package:hcms_revived2/main.dart';
+import 'package:hcms_revived2/screens/Deforestation/deforestation_report_screen.dart';
 import 'package:hcms_revived2/screens/Deforestation/defquestions.dart';
+import 'package:hcms_revived2/screens/Deforestation/history/deforestation_history_screen.dart';
 import 'package:hcms_revived2/screens/Deforestation/viewdef.dart';
-import 'package:hcms_revived2/screens/Notice%20Board/noticeboardview.dart';
-import 'package:hcms_revived2/screens/Treespeciescatalogue/speciesgallery.dart';
-import 'package:hcms_revived2/screens/farmregistration/farmdetails/farmdetails.dart';
-import 'package:hcms_revived2/screens/farmregistration/farmerdetails/components/farmer_type_selection.dart';
+import 'package:hcms_revived2/screens/farmregistration/register_farmer/farmer_type_selection.dart';
+import 'package:hcms_revived2/screens/farmregistration/register_farmer/history/register_farmer_history.dart';
+import 'package:hcms_revived2/screens/farmregistration/register_farmer/register_farmer.dart';
+import 'package:hcms_revived2/screens/farmregistration/tree_registration/tree_reg_history/tree_reg_history.dart';
+import 'package:hcms_revived2/screens/treemonitoring/farmerbiodata.dart';
 import 'package:hcms_revived2/screens/treemonitoring/initialpage.dart';
 import 'package:hcms_revived2/screens/viewsubmissions/viewpage.dart';
 import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
@@ -17,181 +20,34 @@ import 'package:websafe_svg/websafe_svg.dart';
 class Options extends StatelessWidget {
   const Options({super.key});
 
-  void _showBeneficiarySelector(BuildContext context, {bool isFromButton = false}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.5,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: fPrimaryColour.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.person_add, color: fPrimaryColour, size: 32),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Select Applicant Type',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Please choose what best describes the applicant',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Options
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      _buildBeneficiaryOption(
-                        context: context,
-                        icon: Icons.person,
-                        title: 'Individual',
-                        subtitle: 'Farmer / Developer / Individual',
-                        beneficiaryType: 'Individual',
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildBeneficiaryOption(
-                        context: context,
-                        icon: Icons.business,
-                        title: 'Group',
-                        subtitle: 'Company / Organization',
-                        beneficiaryType: 'Group',
-                        color: Colors.orange,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBeneficiaryOption({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String beneficiaryType,
-    required Color color,
-  }) {
-    return InkWell(
-      onTap: () {
-        regSP?.setString('_beneficiaryType', beneficiaryType);
-        Navigator.pop(context);
-        Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (BuildContext context) => FarmDetails(),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color.withOpacity(0.1), Colors.white],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        SizedBox(height: 20),
+        _buildModernOptionCard(
+          context: context,
+          icon: Icons.person_2,
+          iconColor: fSecondaryColour,
+          gradientColors: [Colors.yellow[50]!, Colors.white],
+          title: "Register Farmer",
+          description: "add farmer bio data",
+          buttonText: "View Registered Farmers",
+          onMainTap: () {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (BuildContext context) => FarmerBiodataFormScreen(),
+              ),
+            );
+          },
+          onButtonTap: () {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (BuildContext context) => FarmerBiodataHistoryScreen(),
+              ),
+            );
+          },
+        ),
         _buildModernOptionCard(
           context: context,
           icon: Icons.forest,
@@ -202,16 +58,16 @@ class Options extends StatelessWidget {
           buttonText: "View Registered Trees",
           onMainTap: () {
             regSP?.setString('_beneficiaryType', "Individual");
-              Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (BuildContext context) => FarmDetails(),
-            ),
-          );},
-          onButtonTap: () {
-
             Navigator.of(context).push(
               CupertinoPageRoute(
-                builder: (BuildContext context) => ViewReport(),
+                builder: (BuildContext context) => TreeFarmerSearchandType(),
+              ),
+            );
+          },
+          onButtonTap: () {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (BuildContext context) => TreeRegHistory(),
               ),
             );
           },
@@ -252,14 +108,14 @@ class Options extends StatelessWidget {
           onMainTap: () {
             Navigator.of(context).push(
               CupertinoPageRoute(
-                builder: (BuildContext context) => DeforestationQuestions(),
+                builder: (BuildContext context) => DeforestationScreen(),
               ),
             );
           },
           onButtonTap: () {
             Navigator.of(context).push(
               CupertinoPageRoute(
-                builder: (BuildContext context) => ViewDeforestationReports(),
+                builder: (BuildContext context) => DeforestationHistoryScreen(),
               ),
             );
           },
@@ -282,9 +138,7 @@ class Options extends StatelessWidget {
     return Card(
       elevation: 3,
       shadowColor: iconColor.withOpacity(0.3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: onMainTap,
         borderRadius: BorderRadius.circular(20),
@@ -336,7 +190,7 @@ class Options extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: iconColor,
+                              // color: iconColor,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -359,7 +213,7 @@ class Options extends StatelessWidget {
                         color: iconColor.withOpacity(0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.add, color: iconColor, size: 24),
+                      child: Icon(Icons.add, color: Colors.black, size: 24),
                     ),
                   ],
                 ),
@@ -371,8 +225,8 @@ class Options extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: iconColor,
-                      foregroundColor: Colors.white,
+                      backgroundColor: fPrimaryColour.withOpacity(0.2),
+                      foregroundColor: Colors.black,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -432,17 +286,12 @@ class OptionsCard extends StatelessWidget {
       margin: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(
-          color: borderColor ?? Colors.black12,
-        ),
+        border: Border.all(color: borderColor ?? Colors.black12),
         color: color,
       ),
       child: ListTile(
         leading: icon,
-        title: Text(
-          title ?? "Title",
-          style: TextStyle(color: titleColor),
-        ),
+        title: Text(title ?? "Title", style: TextStyle(color: titleColor)),
         subtitle: Text(
           description ?? "Description",
           style: TextStyle(color: descriptionColor),
@@ -484,9 +333,7 @@ class NewOptionsCard extends StatelessWidget {
         margin: const EdgeInsets.all(5.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10.0),
-          border: Border.all(
-            color: borderColor ?? Colors.black12,
-          ),
+          border: Border.all(color: borderColor ?? Colors.black12),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -561,9 +408,7 @@ class NewOptionsCard2 extends StatelessWidget {
         margin: const EdgeInsets.all(5.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10.0),
-          border: Border.all(
-            color: borderColor ?? Colors.black12,
-          ),
+          border: Border.all(color: borderColor ?? Colors.black12),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -579,7 +424,10 @@ class NewOptionsCard2 extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 5.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 0.0,
+                    vertical: 5.0,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -598,13 +446,13 @@ class NewOptionsCard2 extends StatelessWidget {
                       if (buttonTitle != null && buttonTitle!.isNotEmpty)
                         color == "green"
                             ? HardButton(
-                          title: buttonTitle!,
-                          onPress: secondaryPressHandler,
-                        )
+                                title: buttonTitle!,
+                                onPress: secondaryPressHandler,
+                              )
                             : LightButton(
-                          title: buttonTitle!,
-                          onPress: secondaryPressHandler,
-                        ),
+                                title: buttonTitle!,
+                                onPress: secondaryPressHandler,
+                              ),
                     ],
                   ),
                 ),
