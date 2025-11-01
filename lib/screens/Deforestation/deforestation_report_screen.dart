@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
@@ -24,9 +23,12 @@ class DeforestationScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: fPrimaryColour,
         leading: IconButton(
-          onPressed: (){
+          onPressed: () async {
+            // RESET FORM STATE BEFORE GOING BACK
+            await controller.resetFormState();
+            cameraService.clearPhoto();
+            controller.updatePhotoBase64('');
             Get.back();
-            controller.clearForm();
           },
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
@@ -92,10 +94,9 @@ class DeforestationScreen extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Get.back();
-              controller.clearForm();
-              cameraService.clearPhoto();
+              await controller.resetFormState(); // UPDATED
             },
             child: const Text(
               'Clear',
@@ -122,6 +123,7 @@ class BuildSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -156,10 +158,10 @@ class DeforestationForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.startAutomaticLocationCapture();
     return Form(
       child: Column(
         children: [
-          // Error Message
           Obx(() {
             if (controller.errorMessage.isNotEmpty) {
               return Container(
@@ -197,40 +199,41 @@ class DeforestationForm extends StatelessWidget {
               child: Column(
                 children: [
                   // GPS Coordinates Section
-                  Obx(() => BuildSectionCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              color: fPrimaryColour,
-                              size: 28,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              "GPS Coordinates",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildLocationStatus(),
-                        const SizedBox(height: 16),
-                        _buildLocationDetails(),
-                      ],
-                    ),
-                  )),
-
+                  // Obx(() => BuildSectionCard(
+                  //   child: Column(
+                  //     crossAxisAlignment: CrossAxisAlignment.start,
+                  //     children: [
+                  //       Row(
+                  //         children: [
+                  //           Icon(
+                  //             Icons.location_on,
+                  //             color: fPrimaryColour,
+                  //             size: 28,
+                  //           ),
+                  //           const SizedBox(width: 12),
+                  //           const Text(
+                  //             "GPS Coordinates",
+                  //             style: TextStyle(
+                  //               fontSize: 18,
+                  //               fontWeight: FontWeight.bold,
+                  //               color: Colors.black87,
+                  //             ),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //       const SizedBox(height: 16),
+                  //       _buildLocationStatus(),
+                  //       const SizedBox(height: 16),
+                  //       _buildLocationDetails(),
+                  //     ],
+                  //   ),
+                  // )),
+                  //
                   const SizedBox(height: 16),
+
                   Obx(
                         () => _buildSearchableDropdownField(
-                      title: "Community *",
+                      title: "Community",
                       selectedItem: controller.selectedCommunity.value,
                       displayText: controller.selectedCommunity.value?.community ?? "Select Community",
                       onTap: () => _showCommunitySelectionBottomSheet(context),
@@ -687,7 +690,7 @@ class DeforestationForm extends StatelessWidget {
   Widget _buildPhotoSection() {
     return Obx(() {
       final hasPhoto = cameraService.capturedImageBase64.isNotEmpty;
-      
+
       return Column(
         children: [
           GestureDetector(
@@ -1061,12 +1064,14 @@ class DeforestationForm extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Get.back();
-                      controller.submitReportToServer();
+                      await controller.submitReportToServer();
+                      cameraService.clearPhoto();
+                      controller.updatePhotoBase64('');
                     },
                     icon: const Icon(Icons.wifi, size: 20),
-                    label: const Text("Submit Now with Internet"),
+                    label: const Text("Submit"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: fPrimaryColour,
                       foregroundColor: Colors.white,
@@ -1081,12 +1086,14 @@ class DeforestationForm extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Get.back();
-                      controller.saveReportLocally();
+                      await controller.saveReportLocally();
+                      cameraService.clearPhoto();
+                      controller.updatePhotoBase64('');
                     },
                     icon: const Icon(Icons.save, size: 20),
-                    label: const Text("Save for Later"),
+                    label: const Text("Save"),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -1204,9 +1211,22 @@ class CameraService extends GetxController {
     }
   }
 
-  // Clear captured photo
+  // Clear captured photo - ENHANCED
   void clearPhoto() {
     capturedImageBase64.value = '';
+    errorMessage.value = '';
+    isCapturing.value = false;
+  }
+
+  // NEW METHOD: Complete reset
+  void reset() {
+    clearPhoto();
+  }
+
+  @override
+  void onClose() {
+    reset();
+    super.onClose();
   }
 
   // Get image file size in KB

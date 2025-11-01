@@ -8,6 +8,7 @@ import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/controller/models/deforestation_model.dart';
 import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/deforestation_repo.dart';
+import 'package:hcms_revived2/screens/Deforestation/history/edit/edit_deforstation_screen.dart';
 
 class DeforestationController extends GetxController {
   final DeforestationRepository _repository = DeforestationRepository();
@@ -27,7 +28,7 @@ class DeforestationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _startAutomaticLocationCapture();
+    startAutomaticLocationCapture();
     loadCommunities();
   }
 
@@ -64,7 +65,7 @@ class DeforestationController extends GetxController {
   }
 
   // Automatic location capture on screen load
-  void _startAutomaticLocationCapture() {
+  void startAutomaticLocationCapture() {
     autoLocationStarted.value = true;
     locationService.startLocationListening();
 
@@ -74,16 +75,16 @@ class DeforestationController extends GetxController {
         updateLocation(location);
 
         // Show success message when good accuracy is achieved
-        if (location.accuracy! <= 5.0) {
-          Get.snackbar(
-            'Location Captured',
-            'GPS accuracy: ${location.accuracy!.toStringAsFixed(2)}m',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-            duration: const Duration(seconds: 3),
-          );
-        }
+        // if (location.accuracy! <= 15.0) {
+        //   Get.snackbar(
+        //     'Location Captured',
+        //     'GPS accuracy: ${location.accuracy!.toStringAsFixed(2)}m',
+        //     snackPosition: SnackPosition.TOP,
+        //     backgroundColor: Colors.green,
+        //     colorText: Colors.white,
+        //     duration: const Duration(seconds: 3),
+        //   );
+        // }
       }
     });
 
@@ -98,7 +99,7 @@ class DeforestationController extends GetxController {
   // Manual location recapture
   Future<void> recaptureLocation() async {
     autoLocationStarted.value = true;
-    locationService.stopLocationListening();
+    locationService.reset();
     await locationService.startLocationListening();
   }
 
@@ -172,9 +173,6 @@ class DeforestationController extends GetxController {
     if (formData.value.location == null) {
       return 'Please wait for GPS location to be captured';
     }
-    // if (!locationService.isLocationAccurate(formData.value.location)) {
-    //   return 'GPS accuracy must be 5 meters or better. Current: ${formData.value.location!.accuracy!.toStringAsFixed(2)}m';
-    // }
     if (formData.value.gfwDirection == null) {
       return 'Please indicate if directed by GFW';
     }
@@ -213,24 +211,27 @@ class DeforestationController extends GetxController {
       final report = formData.value.toReport();
       await _repository.saveReportLocally(report);
 
+      // COMPLETELY RESET FORM STATE
+      await resetFormState();
       Get.back();
-      clearForm();
 
       Get.snackbar(
         'Success',
         'Report saved locally',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
 
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint("THE FAILED ERROR ::::::::::: $e");
+      debugPrint("THE FAILED ERROR ::::::::::: $stackTrace");
       errorMessage.value = 'Failed to save report: $e';
       Get.snackbar(
         'Error',
         'Failed to save report: $e',
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -253,21 +254,24 @@ class DeforestationController extends GetxController {
       }
 
       final report = formData.value.toReport();
-      final result = await APIMethods().submitDeforestationReportToServer(report);
+      final result = await APIMethods().submitDeforestationReportToServer(
+        report,
+      );
 
       if (result['success'] == true) {
         // Also save locally as submitted
         await _repository.saveReportLocally(
           report.copyWith(submissionStatus: 'submitted'),
         );
-        clearForm();
-        Get.back();
 
+        // COMPLETELY RESET FORM STATE
+        await resetFormState();
+        Get.back();
 
         Get.snackbar(
           'Success',
           'Report submitted successfully',
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
@@ -310,15 +314,40 @@ class DeforestationController extends GetxController {
     }
   }
 
-  // Clear form
-  void clearForm() {
-    formData.value.clearFields();
-    errorMessage.value = '';
-  }
+  // NEW METHOD: Completely reset all form state
+  Future<void> resetFormState() async {
+    // Stop current location listening
+    locationService.stopLocationListening();
 
-  clearFields(){
+
+    // Clear all form data
+    formData.value.clearFields();
+
+    // Clear community selection
     selectedCommunity.value = null;
 
+    // Clear error messages
+    errorMessage.value = '';
+
+    // Clear photo from camera service
+    // final cameraService = Get.find<CameraService>();
+    // cameraService.clearPhoto();
+
+    // Reset auto location flag
+    autoLocationStarted.value = false;
+
+    // Restart location capture
+    // await Future.delayed(const Duration(milliseconds: 500));
+    startAutomaticLocationCapture();
+  }
+
+  // Clear form
+  void clearForm() {
+    resetFormState();
+  }
+
+  clearFields() {
+    resetFormState();
   }
 
   // Check if cause is selected
@@ -360,6 +389,15 @@ class LocationService extends GetxController {
   void onClose() {
     stopLocationListening();
     super.onClose();
+  }
+
+  // NEW METHOD: Reset location service
+  void reset() {
+    stopLocationListening();
+    currentLocation.value = null;
+    errorMessage.value = '';
+    bestAccuracy.value = 100.0;
+    isListening.value = false;
   }
 
   // Check and request location permissions
