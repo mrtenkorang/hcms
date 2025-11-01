@@ -21,16 +21,6 @@ import 'package:hcms_revived2/providers/personalfarmerprovider.dart';
 import 'package:hcms_revived2/providers/personalfarmerprovideroffline.dart';
 import 'package:hcms_revived2/screens/Deforestation/viewdetailsdef.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
-import 'package:hcms_revived2/screens/home/index_data_loader.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/viewdetails/viewalternatelivelihooddetails.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/viewdetails/viewlmbmonitoring.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/viewdetails/viewseedlingmonitoringdetails.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/viewdetails/viewtraininglogdetails.dart';
-import 'package:hcms_revived2/screens/viewsubmissions/viewincompletedetails.dart';
-import 'package:hcms_revived2/screens/viewsubmissions/viewpage.dart';
-// import 'package:hcms_revived2/services/http/firebasetoken.dart';
-import 'package:hcms_revived2/services/serverurls.dart';
-import 'package:hcms_revived2/splash/intros/newintros.dart';
 import 'package:hcms_revived2/splash/splashscreen.dart';
 import 'package:overlay_support/overlay_support.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -106,7 +96,7 @@ checkForInitialMessage() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  changeBaseUrlValue();
+  // changeBaseUrlValue();
 
   // Firebase initialization commented out
   // await Firebase.initializeApp();
@@ -203,54 +193,17 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Register SeedlingMonitoringService with GetX
-    Get.put(SeedlingMonitoringService(), permanent: true);
     Get.put(AlternativeLivelihoodProvider(), permanent: true);
+
+    // Request permissions when app starts
+    _requestPermissions();
 
     return OverlaySupport(
       child: MultiProvider(
         providers: [
-          ChangeNotifierProvider(
-            create: (ctx) => PersonalFarmerProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => SeedlingMonitoringProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => SeedlingMonitoring2Provider(),
-          ),
+          // ADDED: Register LMBMonitoringProvider as a Provider
           ChangeNotifierProvider(
             create: (ctx) => LMBMonitoringProvider(),
-          ),
-          // ChangeNotifierProvider(
-          //   create: (ctx) => AlternativeLivelihoodProvider(),
-          // ),
-          ChangeNotifierProvider(
-            create: (ctx) => TrainingLogProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => RegisteredFarmerProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => RegisteredFarmerListApiSeedlingApiProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => RegisteredFarmerListApiAlternativeApiProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => NewsAndArticlesProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => TrainingWorkShopsProvider(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => PersonalFarmerProviderApiList(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => PersonalFarmerProviderOffline(),
-          ),
-          ChangeNotifierProvider(
-            create: (ctx) => DeforestationProvider(),
           ),
         ],
         child: GetMaterialApp(
@@ -263,15 +216,66 @@ class MyApp extends StatelessWidget {
           home: Splash(),
           routes: {
             IndexPage.routeName: (ctx) => IndexPage(),
-            ViewReport.routeName: (ctx) => ViewReport(),
-            ViewSeedlingMonitoringDetails.routeName: (ctx) => ViewSeedlingMonitoringDetails(),
-            ViewAlternativeLivelihoodDetails.routeName: (ctx) => ViewAlternativeLivelihoodDetails(),
-            ViewLMBMonitoringDetails.routeName: (ctx) => ViewLMBMonitoringDetails(),
-            ViewTrainingLogDetails.routeName: (ctx) => ViewTrainingLogDetails(),
-            ViewDeforestationReportDetails.routeName: (ctx) => ViewDeforestationReportDetails(),
+            // ViewDeforestationReportDetails.routeName: (ctx) => ViewDeforestationReportDetails(),
           },
         ),
       ),
     );
+  }
+
+  // Method to request all necessary permissions
+  Future<void> _requestPermissions() async {
+    // Request location permission
+    final locationStatus = await Permission.location.status;
+    if (!locationStatus.isGranted) {
+      final locationResult = await Permission.location.request();
+      _handlePermissionResult('Location', locationResult);
+    }
+
+    // Request storage permission (for Android)
+    final storageStatus = await Permission.storage.status;
+    if (!storageStatus.isGranted) {
+      final storageResult = await Permission.storage.request();
+      _handlePermissionResult('Storage', storageResult);
+    }
+  }
+
+  // Helper method to handle permission results
+  void _handlePermissionResult(String permissionName, PermissionStatus result) {
+    if (result.isGranted) {
+      print('$permissionName permission granted');
+    } else if (result.isDenied) {
+      print('$permissionName permission denied');
+    } else if (result.isPermanentlyDenied) {
+      print('$permissionName permission permanently denied');
+      // You can show specific dialogs for each permission type
+      _showPermissionSettingsDialog(permissionName);
+    }
+  }
+
+  // Method to show dialog guiding user to app settings
+  void _showPermissionSettingsDialog(String permissionName) {
+    Future.delayed(Duration(seconds: 1), () {
+      // Example using GetX dialog
+      Get.dialog(
+        AlertDialog(
+          title: Text('Permission Required'),
+          content: Text('$permissionName permission is required for this app to function properly. Please enable it in app settings.'),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Get.back();
+                openAppSettings();
+              },
+              child: Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

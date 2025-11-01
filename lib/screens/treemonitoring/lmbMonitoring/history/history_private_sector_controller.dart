@@ -5,7 +5,6 @@ import 'package:hcms_revived2/providers/monitoring/lmbmonitoringprovider.dart';
 import 'package:provider/provider.dart';
 
 class HistoryPrivateSectorController extends GetxController {
-  BuildContext? historyPrivateSectorHistoryContext;
   final RxList<LMBMonitoring> allRecords = <LMBMonitoring>[].obs;
   final RxList<LMBMonitoring> pendingRecords = <LMBMonitoring>[].obs;
   final RxList<LMBMonitoring> submittedRecords = <LMBMonitoring>[].obs;
@@ -15,27 +14,27 @@ class HistoryPrivateSectorController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadData();
+    // Don't load data here - wait for context to be available
   }
 
-  Future<void> loadData() async {
+  Future<void> loadData(BuildContext context) async {
     try {
       isLoading.value = true;
       errorMessage.value = '';
-      
+
       // Get the provider and fetch all records
       final provider = Provider.of<LMBMonitoringProvider>(
-        historyPrivateSectorHistoryContext!,
+        context,
         listen: false,
       );
-      
+
       // Get all records from the local database
       await provider.fetchAndSetLMBMonitoring();
-      
+
       // Update the lists
-      allRecords.assignAll(provider.lmbLists.map((lmb) => lmb));
+      allRecords.assignAll(provider.lmbLists);
       _categorizeRecords(provider.lmbLists);
-      
+
     } catch (e) {
       errorMessage.value = 'Failed to load records: $e';
       debugPrint('Error loading private sector history: $e');
@@ -48,14 +47,6 @@ class HistoryPrivateSectorController extends GetxController {
     pendingRecords.clear();
     submittedRecords.clear();
 
-    records.forEach(
-        (r){
-          debugPrint("Record: ${r.toJson()}");
-        }
-    );
-
-    // debugPrint("RecordsSSSSSSSSSSSSSSSSSSSSSSSSSSS: ${records.}");
-    
     for (var record in records) {
       if (record.lmbConStat == 'connected') {
         submittedRecords.add(record);
@@ -65,40 +56,7 @@ class HistoryPrivateSectorController extends GetxController {
     }
   }
 
-  Future<void> refreshData() async {
-    await loadData();
-  }
-
-  Future<void> submitRecord(LMBMonitoring record) async {
-    try {
-      // Here you would implement the actual submission logic
-      // This is a placeholder for the submission process
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // After successful submission, update the record
-      final provider = Provider.of<LMBMonitoringProvider>(
-        historyPrivateSectorHistoryContext!,
-        listen: false,
-      );
-      
-      // Update the record status to 'connected' in local DB
-      await provider.updateLMBMonitoring(record);
-      
-      // Refresh the data
-      await loadData();
-      
-      // Show success message
-      if (historyPrivateSectorHistoryContext != null && historyPrivateSectorHistoryContext!.mounted) {
-        ScaffoldMessenger.of(historyPrivateSectorHistoryContext!).showSnackBar(
-          const SnackBar(content: Text('Record submitted successfully')),
-        );
-      }
-    } catch (e) {
-      if (historyPrivateSectorHistoryContext != null && historyPrivateSectorHistoryContext!.mounted) {
-        ScaffoldMessenger.of(historyPrivateSectorHistoryContext!).showSnackBar(
-          SnackBar(content: Text('Failed to submit record: $e')),
-        );
-      }
-    }
+  Future<void> refreshData(BuildContext context) async {
+    await loadData(context);
   }
 }

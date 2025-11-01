@@ -11,8 +11,9 @@ import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/history/histo
 import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/lmbmonitoring.dart';
 import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/private_sector_engagement_screen.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/history/seedling_monitoring_history.dart';
+import 'package:hcms_revived2/screens/treemonitoring/trainingLog/history/training_log_history_screen.dart';
 import 'package:hcms_revived2/screens/treemonitoring/trainingLog/trailing_log.dart';
-import 'package:hcms_revived2/screens/treemonitoring/view/viewmonitored.dart';
+import 'package:hcms_revived2/screens/treemonitoring/view/viewmonitored.dart' show ViewMonitoredTrees;
 
 import 'alternativeLivelihood/alternative_livelihood.dart';
 
@@ -107,7 +108,7 @@ class _TreeMonitoringDeciderState extends State<TreeMonitoringDecider>
         color: Colors.purple,
         gradient: [Colors.purple[400]!, Colors.purple[600]!],
         createRoute: () => const TrainingLogScreen(),
-        historyRoute: () => Container(),
+        historyRoute: () => const TrainingLogHistoryScreen(),
       ),
     ];
   }
@@ -298,10 +299,6 @@ class _TreeMonitoringDeciderState extends State<TreeMonitoringDecider>
         );
       },
     );
-  }
-
-  void _navigateToViewMonitored() {
-    _navigateTo(const ViewMonitoredTrees());
   }
 
   @override

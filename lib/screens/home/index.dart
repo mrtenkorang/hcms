@@ -3,16 +3,20 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
 import 'package:hcms_revived2/boilerplate/widgets.dart';
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
+import 'package:hcms_revived2/controller/constants/urls.dart';
+import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
+import 'package:hcms_revived2/controller/repos/farmer_from_server_repo.dart';
 import 'package:hcms_revived2/helpers/dbhelper.dart';
-import 'package:hcms_revived2/main.dart';
-import 'package:hcms_revived2/providers/monitoring/registeredfarmerApiAlternativeprovider.dart';
-import 'package:hcms_revived2/providers/monitoring/registeredfarmerApiSeedlingprovider.dart';
-import 'package:hcms_revived2/screens/Notice%20Board/noticeboardview.dart';
 import 'package:hcms_revived2/screens/Treespeciescatalogue/speciesgallery.dart';
+import 'package:hcms_revived2/screens/farmregistration/farmer_list/farmer_list_screen.dart';
 import 'package:hcms_revived2/screens/home/auth/usersingin/signin.dart';
 import 'package:hcms_revived2/screens/home/components/options.dart';
+import 'package:hcms_revived2/screens/sync/sync_page.dart';
 import 'package:hcms_revived2/services/http/firebasetoken.dart';
 import 'package:hcms_revived2/services/http/updatetreefarmerlist.dart';
 import 'package:hcms_revived2/services/http/userrating.dart';
@@ -40,18 +44,25 @@ class IndexPage extends StatefulWidget {
 class _IndexPageState extends State<IndexPage>
     with SingleTickerProviderStateMixin {
   // Services
-  final FirebaseTokenService _firebaseTokenService = FirebaseTokenService();
-  final UserRatingService _userRatingService = UserRatingService();
-  final UpdateTreeFarmerList _updateTreeFarmerList = UpdateTreeFarmerList();
+  // final FirebaseTokenService _firebaseTokenService = FirebaseTokenService();
+  // final UserRatingService _userRatingService = UserRatingService();
+  // final UpdateTreeFarmerList _updateTreeFarmerList = UpdateTreeFarmerList();
 
   // State variables
-  String? _displayName;
+  // String? _displayName;
   String? _userRate;
   bool? _ratingInitRun;
   int? _index;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  UserModel? _user;
+
+  getUserDetails() async {
+    final cacheService = await CacheService.getInstance();
+    _user = await cacheService.getUserInfo();
+  }
 
   @override
   void initState() {
@@ -69,8 +80,9 @@ class _IndexPageState extends State<IndexPage>
     // Initialize everything in sequence
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _animationController.forward();
-      _initializeData();
-      _initializeFirebase();
+      getUserDetails();
+      // _initializeData();
+      // _initializeFirebase();
     });
   }
 
@@ -81,303 +93,205 @@ class _IndexPageState extends State<IndexPage>
   }
 
   // Firebase messaging handlers
-  Future<void> _firebaseMessagingBackgroundHandler(
-    RemoteMessage message,
-  ) async {
-    final notification = PushNotification(
-      title: message.notification?.title,
-      body: message.notification?.body,
-      dataTitle: message.data['title'],
-      dataBody: message.data['body'],
-    );
+  // Future<void> _firebaseMessagingBackgroundHandler(
+  //   RemoteMessage message,
+  // ) async {
+  //   final notification = PushNotification(
+  //     title: message.notification?.title,
+  //     body: message.notification?.body,
+  //     dataTitle: message.data['title'],
+  //     dataBody: message.data['body'],
+  //   );
+  //
+  //   final title = notification.dataTitle ?? notification.title;
+  //   final body = notification.dataBody ?? notification.body;
+  //
+  //   Timer(const Duration(seconds: 2), () {
+  //     if (title == "News/Articles") {
+  //       Provider.of<NewsAndArticlesProvider>(
+  //         context,
+  //         listen: false,
+  //       ).addNewsArticles(title.toString(), body.toString());
+  //     } else {
+  //       Provider.of<TrainingWorkShopsProvider>(
+  //         context,
+  //         listen: false,
+  //       ).addTrainingsWorkshops(title.toString(), body.toString());
+  //     }
+  //   });
+  // }
 
-    final title = notification.dataTitle ?? notification.title;
-    final body = notification.dataBody ?? notification.body;
+  // Future<void> _firebaseMessagingHandler(RemoteMessage message) async {
+  //   await Firebase.initializeApp();
+  //
+  //   final notification = PushNotification(
+  //     title: message.notification?.title,
+  //     body: message.notification?.body,
+  //     dataTitle: message.data['title'],
+  //     dataBody: message.data['body'],
+  //   );
+  //
+  //   final title = notification.dataTitle ?? notification.title;
+  //   final body = notification.dataBody ?? notification.body;
+  //
+  //   _showNotifDialogue(title, body);
+  //   _addNotificationToProvider(title, body);
+  // }
+  //
+  // Future<void> _firebaseMessagingHandlerOnAppOpen(RemoteMessage message) async {
+  //   await Firebase.initializeApp();
+  //
+  //   final notification = PushNotification(
+  //     title: message.notification?.title,
+  //     body: message.notification?.body,
+  //     dataTitle: message.data['title'],
+  //     dataBody: message.data['body'],
+  //   );
+  //
+  //   final title = notification.dataTitle ?? notification.title;
+  //   final body = notification.dataBody ?? notification.body;
+  //
+  //   _showNotifDialogue(title, body);
+  //   _addNotificationToProvider(title, body);
+  // }
 
-    Timer(const Duration(seconds: 2), () {
-      if (title == "News/Articles") {
-        Provider.of<NewsAndArticlesProvider>(
-          context,
-          listen: false,
-        ).addNewsArticles(title.toString(), body.toString());
-      } else {
-        Provider.of<TrainingWorkShopsProvider>(
-          context,
-          listen: false,
-        ).addTrainingsWorkshops(title.toString(), body.toString());
-      }
-    });
-  }
-
-  Future<void> _firebaseMessagingHandler(RemoteMessage message) async {
-    await Firebase.initializeApp();
-
-    final notification = PushNotification(
-      title: message.notification?.title,
-      body: message.notification?.body,
-      dataTitle: message.data['title'],
-      dataBody: message.data['body'],
-    );
-
-    final title = notification.dataTitle ?? notification.title;
-    final body = notification.dataBody ?? notification.body;
-
-    _showNotifDialogue(title, body);
-    _addNotificationToProvider(title, body);
-  }
-
-  Future<void> _firebaseMessagingHandlerOnAppOpen(RemoteMessage message) async {
-    await Firebase.initializeApp();
-
-    final notification = PushNotification(
-      title: message.notification?.title,
-      body: message.notification?.body,
-      dataTitle: message.data['title'],
-      dataBody: message.data['body'],
-    );
-
-    final title = notification.dataTitle ?? notification.title;
-    final body = notification.dataBody ?? notification.body;
-
-    _showNotifDialogue(title, body);
-    _addNotificationToProvider(title, body);
-  }
-
-  void _addNotificationToProvider(String? title, String? body) {
-    Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-
-      if (title == "News/Articles") {
-        Provider.of<NewsAndArticlesProvider>(
-          context,
-          listen: false,
-        ).addNewsArticles(title.toString(), body.toString());
-      } else {
-        Provider.of<TrainingWorkShopsProvider>(
-          context,
-          listen: false,
-        ).addTrainingsWorkshops(title.toString(), body.toString());
-      }
-    });
-  }
+  // void _addNotificationToProvider(String? title, String? body) {
+  //   Timer(const Duration(seconds: 2), () {
+  //     if (!mounted) return;
+  //
+  //     if (title == "News/Articles") {
+  //       Provider.of<NewsAndArticlesProvider>(
+  //         context,
+  //         listen: false,
+  //       ).addNewsArticles(title.toString(), body.toString());
+  //     } else {
+  //       Provider.of<TrainingWorkShopsProvider>(
+  //         context,
+  //         listen: false,
+  //       ).addTrainingsWorkshops(title.toString(), body.toString());
+  //     }
+  //   });
+  // }
 
   // Database operations
-  Future<void> _getDisplayName() async {
-    final db = await DBHelper.database();
-    final result = await db.rawQuery('SELECT * FROM first_time_user LIMIT 1');
+  // Future<void> _getDisplayName() async {
+  //   final db = await DBHelper.database();
+  //   final result = await db.rawQuery('SELECT * FROM first_time_user LIMIT 1');
+  //
+  //   if (mounted) {
+  //     setState(() {
+  //       _displayName = result.isNotEmpty
+  //           ? result[0]['displayName'].toString()
+  //           : "Guest User";
+  //     });
+  //   }
+  // }
 
-    if (mounted) {
-      setState(() {
-        _displayName = result.isNotEmpty
-            ? result[0]['displayName'].toString()
-            : "Guest User";
-      });
-    }
-  }
+  // Future<void> _initializeData() async {
+  //   // await _getDisplayName();
+  //
+  //   if (widget.userContact != null) {
+  //     regSP?.setString("userContact", widget.userContact!);
+  //   }
+  //
+  //   _ratingInitRun = regSP?.getBool("ratinginitrun") ?? false;
+  //   await _initializeUserRating();
+  //
+  //   _index = 0;
+  //   // await _loadFarmerData();
+  // }
 
-  // Farmer list operations
-  Future<void> _saveToLocalDBSeedling(Map<String, dynamic> farmer) async {
-    Provider.of<RegisteredFarmerListApiSeedlingApiProvider>(
-      context,
-      listen: false,
-    ).addRegisteredFarmerListApiSeedling(
-      farmer["farmerid"].toString(),
-      farmer["farmer_name"],
-      farmer["community_name"],
-      farmer["community"].toString(),
-      farmer["contact"],
-      farmer["baseline"].toString(),
-    );
-  }
-
-  Future<void> _saveToLocalDBAlternative(Map<String, dynamic> farmer) async {
-    Provider.of<RegisteredFarmerListApiAlternativeApiProvider>(
-      context,
-      listen: false,
-    ).addRegisteredFarmerListApiAlternative(
-      farmer["farmerid"].toString(),
-      farmer["farmer_name"],
-      farmer["community_name"],
-      farmer["community"].toString(),
-      farmer["contact"],
-      farmer["baseline"].toString(),
-    );
-  }
-
-  Future<bool> _farmerExists(String table, String contact) async {
-    final db = await DBHelper.database();
-    final result = await db.query(
-      table,
-      where: "fal${table == "farmer_api_list_seedling" ? "S" : "A"}Contact = ?",
-      whereArgs: [contact],
-    );
-    return result.isNotEmpty;
-  }
-
-  Future<void> _processFarmersList(
-    String formType,
-    List<dynamic> farmers,
-  ) async {
-    final table = formType == "seedling"
-        ? "farmer_api_list_seedling"
-        : "farmer_api_list_alternative";
-
-    for (final farmer in farmers) {
-      final exists = await _farmerExists(table, farmer["contact"]);
-      if (!exists) {
-        if (formType == "seedling") {
-          await _saveToLocalDBSeedling(farmer);
-        } else {
-          await _saveToLocalDBAlternative(farmer);
-        }
-      }
-    }
-  }
-
-  Future<void> _getFarmersApiList(String formType, BuildContext ctx) async {
-    try {
-      final url = '$stageBaseUrl/farmerlist/?form=$formType';
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        await _processFarmersList(formType, data);
-
-        if (formType == "alternative") {
-          overlayNotification('Data loaded successfully', "positive");
-        }
-      }
-    } on SocketException {
-      overlayNotification(
-        'Oops! Please connect to the internet to update local data.',
-        "negative",
-      );
-    } catch (e) {
-      print('Error loading $formType farmers: $e');
-    }
-  }
-
-  // Initialization methods
-  Future<void> _initializeData() async {
-    await _getDisplayName();
-
-    if (widget.userContact != null) {
-      regSP?.setString("userContact", widget.userContact!);
-    }
-
-    _ratingInitRun = regSP?.getBool("ratinginitrun") ?? false;
-    await _initializeUserRating();
-
-    _index = 0;
-    await _loadFarmerData();
-  }
-
-  Future<void> _initializeUserRating() async {
-    final contact = widget.userContact ?? regSP?.getString("userContact");
-    final rating = await _userRatingService.userRatingService(
-      context,
-      contact: contact,
-    );
-
-    if (mounted) {
-      setState(() {
-        _userRate = rating.toString();
-      });
-
-      if (_ratingInitRun == false) {
-        userRatingDialogue(context, rating.toString());
-      }
-    }
-  }
-
-  Future<void> _loadFarmerData() async {
-    await _getFarmersApiList("seedling", context);
-
-    Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _ratingInitRun = true;
-        });
-        _updateTreeFarmerList.saveTreeFarmerApiList(context);
-      }
-    });
-
-    await _getFarmersApiList("alternative", context);
-  }
+  // Future<void> _initializeUserRating() async {
+  //   final contact = widget.userContact ?? regSP?.getString("userContact");
+  //   final rating = await _userRatingService.userRatingService(
+  //     context,
+  //     contact: contact,
+  //   );
+  //
+  //   if (mounted) {
+  //     setState(() {
+  //       _userRate = rating.toString();
+  //     });
+  //
+  //     if (_ratingInitRun == false) {
+  //       userRatingDialogue(context, rating.toString());
+  //     }
+  //   }
+  // }
 
   // Firebase initialization
-  Future<void> _initializeFirebase() async {
-    await checkForInitialMessage();
-
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    FirebaseMessaging.onMessageOpenedApp.listen(
-      _firebaseMessagingHandlerOnAppOpen,
-    );
-    FirebaseMessaging.onMessage.listen(_firebaseMessagingHandler);
-  }
-
-  Future<void> checkForInitialMessage() async {
-    await Firebase.initializeApp();
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    // Initial message handling if needed
-  }
-
-  void _showNotifDialogue(String? title, String? body) {
-    showSimpleNotification(
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [fPrimaryColour, fPrimaryColour.withOpacity(0.8)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.notifications_active,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title ?? 'Notification',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              body ?? '',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-      duration: const Duration(seconds: 6),
-      slideDismissDirection: DismissDirection.horizontal,
-    );
-  }
+  // Future<void> _initializeFirebase() async {
+  //   await checkForInitialMessage();
+  //
+  //   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  //   FirebaseMessaging.onMessageOpenedApp.listen(
+  //     _firebaseMessagingHandlerOnAppOpen,
+  //   );
+  //   FirebaseMessaging.onMessage.listen(_firebaseMessagingHandler);
+  // }
+  //
+  // Future<void> checkForInitialMessage() async {
+  //   await Firebase.initializeApp();
+  //   final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  //   // Initial message handling if needed
+  // }
+  //
+  // void _showNotifDialogue(String? title, String? body) {
+  //   showSimpleNotification(
+  //     Container(
+  //       padding: const EdgeInsets.all(16),
+  //       decoration: BoxDecoration(
+  //         gradient: LinearGradient(
+  //           begin: Alignment.topLeft,
+  //           end: Alignment.bottomRight,
+  //           colors: [fPrimaryColour, fPrimaryColour.withOpacity(0.8)],
+  //         ),
+  //         borderRadius: BorderRadius.circular(12),
+  //       ),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               Container(
+  //                 padding: const EdgeInsets.all(8),
+  //                 decoration: BoxDecoration(
+  //                   color: Colors.white.withOpacity(0.2),
+  //                   shape: BoxShape.circle,
+  //                 ),
+  //                 child: const Icon(
+  //                   Icons.notifications_active,
+  //                   color: Colors.white,
+  //                   size: 20,
+  //                 ),
+  //               ),
+  //               const SizedBox(width: 12),
+  //               Expanded(
+  //                 child: Text(
+  //                   title ?? 'Notification',
+  //                   style: const TextStyle(
+  //                     color: Colors.white,
+  //                     fontSize: 16,
+  //                     fontWeight: FontWeight.w600,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 8),
+  //           Text(
+  //             body ?? '',
+  //             style: const TextStyle(color: Colors.white70, fontSize: 14),
+  //             maxLines: 3,
+  //             overflow: TextOverflow.ellipsis,
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //     duration: const Duration(seconds: 6),
+  //     slideDismissDirection: DismissDirection.horizontal,
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -467,64 +381,42 @@ class _IndexPageState extends State<IndexPage>
                     ),
                   ),
                   const SizedBox(height: 16),
+                  _user != null ?
                   Text(
-                    _displayName ?? "Loading...",
+                    "${_user!.fname ?? ''} ${_user!.sname ?? ''}",
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
+                  ):const SizedBox(),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.phone, color: Colors.white70, size: 16),
                       const SizedBox(width: 8),
+                      _user != null ?
                       Text(
-                        widget.userContact ??
-                            regSP?.getString("userContact") ??
-                            "N/A",
+                        _user!.contactNumber ?? '',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
                         ),
-                      ),
+                      ):const SizedBox(),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.emoji_events,
-                          color: Colors.yellow,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          'Rating: ',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        Text(
-                          _userRate ?? "0",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // const SizedBox(height: 12),
+                  // Container(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     horizontal: 12,
+                  //     vertical: 6,
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.white.withOpacity(0.2),
+                  //     borderRadius: BorderRadius.circular(20),
+                  //   ),
+                  //   child: Icon(Icons.sync)
+                  // ),
                 ],
               ),
             ),
@@ -556,22 +448,22 @@ class _IndexPageState extends State<IndexPage>
                       );
                     },
                   ),
-                  _buildDrawerItem(
-                    icon: Icons.campaign,
-                    title: 'Notice Board',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return NoticeBoard();
-                          },
-                        ),
-                      );
-                      // _showNoticeBoard();
-                    },
-                  ),
+                  // _buildDrawerItem(
+                  //   icon: Icons.campaign,
+                  //   title: 'Notice Board',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) {
+                  //           return NoticeBoard();
+                  //         },
+                  //       ),
+                  //     );
+                  //     // _showNoticeBoard();
+                  //   },
+                  // ),
                   const Divider(height: 32, indent: 16, endIndent: 16),
                   // _buildDrawerItem(
                   //   icon: Icons.settings,
@@ -597,6 +489,22 @@ class _IndexPageState extends State<IndexPage>
                   //     _showAboutDialog();
                   //   },
                   // ),
+
+                  _buildDrawerItem(
+                    icon: Icons.group,
+                    title: 'View Farmers',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return FarmerListScreen();
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -710,8 +618,9 @@ class _IndexPageState extends State<IndexPage>
                   ),
                 ),
                 const SizedBox(height: 2),
+                _user != null ?
                 Text(
-                  _displayName ?? "Loading...",
+                  "${_user!.fname!} ${_user!.sname!}",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -719,38 +628,33 @@ class _IndexPageState extends State<IndexPage>
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                ),
+                ):const SizedBox(),
               ],
             ),
           ),
-          _buildRatingBadge(),
+          _buildSyncBadge(),
         ],
       ),
     );
   }
 
-  Widget _buildRatingBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.emoji_events, color: Colors.yellow, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            _userRate ?? "0",
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+  Widget _buildSyncBadge() {
+    return InkWell(
+      onTap: (){
+        Get.to(() => SyncPage());
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        ),
+        child: Icon(
+          Icons.sync,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
     );
   }
@@ -1181,10 +1085,16 @@ class _IndexPageState extends State<IndexPage>
   }
 
   Future<void> _exitApp() async {
-    await DBHelper.updateLog("out", "0");
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) {
-      return UserSignIn();
-    }), (route) => false);
+    // await DBHelper.updateLog("out", "0");
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return UserSignIn();
+        },
+      ),
+      (route) => false,
+    );
 
     // if (Platform.isAndroid) {
     //   Future.delayed(const Duration(milliseconds: 500), () {

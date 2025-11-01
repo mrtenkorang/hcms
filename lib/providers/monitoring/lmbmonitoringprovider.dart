@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:hcms_revived2/controller/db.dart';
 import 'package:hcms_revived2/models/localdbmodel/localdbmodel.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../helpers/dbhelper.dart';
 
 import 'package:intl/intl.dart';
@@ -37,6 +39,8 @@ class LMBMonitoringProvider extends ChangeNotifier {
     String pickedlmbYouthBenefit,
     String pickedlmbConStat,
   ) {
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
     final newLMBMonitoring = LMBMonitoring(
       lmbId: DateTime.now().toString(),
       lmbTimeDisplay: formattedDat,
@@ -61,7 +65,7 @@ class LMBMonitoringProvider extends ChangeNotifier {
     // _lmbLists.insert(0, newLMBMonitoring);
     notifyListeners();
 
-    DBHelper.insert('lmb_monitoring', {
+    db.insert('lmb_monitoring', {
       'id': newLMBMonitoring.lmbId,
       'lmbTimeDisplay': newLMBMonitoring.lmbTimeDisplay,
       'lmbEnumeratorValue': newLMBMonitoring.lmbEnumeratorValue,
@@ -85,7 +89,9 @@ class LMBMonitoringProvider extends ChangeNotifier {
 
 
   Future<void> fetchAndSetLMBMonitoring() async {
-    final dataList = await DBHelper.fetchData('lmb_monitoring');
+    AppDatabaseHelper? db;
+    db = AppDatabaseHelper();
+    final dataList = await db.fetchData('lmb_monitoring');
     _lmbLists = dataList
         .map((lmbLists) => LMBMonitoring(
               lmbId: lmbLists['id'],
@@ -125,8 +131,8 @@ class LMBMonitoringProvider extends ChangeNotifier {
         // Update the local list
         _lmbLists[index] = updatedRecord;
 
-        // Update the database
-        final db = await DBHelper.database();
+        Database? db;
+        db = await AppDatabaseHelper().database;
 
         // Use parameterized query with proper column names
         final result = await db.rawUpdate(
@@ -149,7 +155,7 @@ class LMBMonitoringProvider extends ChangeNotifier {
           lmbMaleBenefit = ?,
           lmbYouthBenefit = ?,
           lmbConStat = ?
-        WHERE lmbId = ? 
+        WHERE id = ? 
         ''',
           [
             updatedRecord.lmbTimeDisplay,

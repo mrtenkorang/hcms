@@ -21,7 +21,7 @@ class TextFieldWidget extends StatelessWidget {
   final filled;
   final obscuretext;
   final bool readonly;
-
+  final bool enabled;
   final decoration; // does nothing
 
   const TextFieldWidget({
@@ -46,7 +46,7 @@ class TextFieldWidget extends StatelessWidget {
     this.obscuretext,
     this.readonly = false,
 
-    this.decoration,
+    this.decoration, this.enabled=true,
   });
 
   @override
@@ -55,6 +55,7 @@ class TextFieldWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
       child: TextFormField(
         maxLength: maxLength,
+        enabled: enabled,
         // maxLines: maxlines,
         obscureText: obscuretext ?? false,
         controller: controller,

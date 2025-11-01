@@ -251,16 +251,13 @@ class InitMethods {
             totalFarmers += pageFarmers.length;
             debugPrint('Fetched ${pageFarmers.length} farmers from page $page');
 
-            // Delete all records
+
             // await FarmerFromServerRepository().deleteAllFarmersFromServer();
             // Insert in batches to avoid memory issues
             await FarmerFromServerRepository().bulkInsertFarmers(pageFarmers);
           }
           
           page++;
-          
-          // Small delay between requests to avoid overwhelming the server
-          await Future.delayed(const Duration(milliseconds: 200));
           
         } else {
           debugPrint('Failed to fetch page $page. Status code: ${response.statusCode}');

@@ -6,95 +6,112 @@ import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/history/edit/
 import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/history/history_private_sector_controller.dart';
 import 'package:intl/intl.dart';
 
-class HistoryPrivateSectorHistory extends StatelessWidget {
+class HistoryPrivateSectorHistory extends StatefulWidget {
   const HistoryPrivateSectorHistory({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(HistoryPrivateSectorController());
-    controller.historyPrivateSectorHistoryContext = context;
+  State<HistoryPrivateSectorHistory> createState() => _HistoryPrivateSectorHistoryState();
+}
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Private Sector History'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Pending', icon: Icon(Icons.pending_actions)),
-              Tab(text: 'Submitted', icon: Icon(Icons.cloud_done)),
-            ],
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            indicatorColor: Colors.white,
+class _HistoryPrivateSectorHistoryState extends State<HistoryPrivateSectorHistory> with TickerProviderStateMixin {
+  final HistoryPrivateSectorController controller = Get.put(HistoryPrivateSectorController());
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+
+    // Load data after widget is built and context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.loadData(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Private Sector History'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Pending', icon: Icon(Icons.pending_actions)),
+            Tab(text: 'Submitted', icon: Icon(Icons.cloud_done)),
+          ],
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => controller.refreshData(context),
+            tooltip: 'Refresh',
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: controller.refreshData,
-              tooltip: 'Refresh',
+        ],
+      ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.errorMessage.value.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Error loading data',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                Text(controller.errorMessage.value),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => controller.refreshData(context),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return TabBarView(
+          controller: _tabController,
+          children: [
+            // Pending Tab
+            _buildRecordsList(
+              context,
+              controller.pendingRecords,
+              isPending: true,
+              onRefresh: () => controller.refreshData(context),
+            ),
+            // Submitted Tab
+            _buildRecordsList(
+              context,
+              controller.submittedRecords,
+              isPending: false,
+              onRefresh: () => controller.refreshData(context),
             ),
           ],
-        ),
-        body: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (controller.errorMessage.value.isNotEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Error loading data',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: Colors.red),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(controller.errorMessage.value),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: controller.refreshData,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return TabBarView(
-            children: [
-              // Pending Tab
-              _buildRecordsList(
-                context,
-                controller.pendingRecords,
-                isPending: true,
-                onRefresh: controller.refreshData,
-                onSubmitted: controller.submitRecord,
-              ),
-              // Submitted Tab
-              _buildRecordsList(
-                context,
-                controller.submittedRecords,
-                isPending: false,
-                onRefresh: controller.refreshData,
-              ),
-            ],
-          );
-        }),
-      ),
+        );
+      }),
     );
   }
 
   Widget _buildRecordsList(
-    BuildContext context,
-    List<LMBMonitoring> records, {
-    required bool isPending,
-    required Future<void> Function() onRefresh,
-    Future<void> Function(LMBMonitoring)? onSubmitted,
-  }) {
+      BuildContext context,
+      List<LMBMonitoring> records, {
+        required bool isPending,
+        required Future<void> Function() onRefresh,
+      }) {
     if (records.isEmpty) {
       return Center(
         child: Text(
@@ -111,44 +128,51 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
         itemCount: records.length,
         itemBuilder: (context, index) {
           final record = records[index];
-          return _buildRecordCard(context, record, isPending, onSubmitted);
+          return _buildRecordCard(context, record, isPending);
         },
       ),
     );
   }
 
   Widget _buildRecordCard(
-    BuildContext context,
-    LMBMonitoring record,
-    bool isPending,
-    Future<void> Function(LMBMonitoring)? onSubmitted,
-  ) {
-    final date = DateFormat(
-      'MMM d, y',
-    ).format(DateTime.parse(record.lmbFirstEngagement));
-    final bool isPrivateSector = record.lmbSector.toLowerCase().contains(
-      'private',
-    );
+      BuildContext context,
+      LMBMonitoring record,
+      bool isPending,
+      ) {
+    // Fix date parsing to handle missing leading zeros
+    String formattedDate;
+    try {
+      // Parse the date and handle various formats
+      final dateParts = record.lmbFirstEngagement.split('-');
+      if (dateParts.length == 3) {
+        // Ensure proper formatting with leading zeros
+        final year = dateParts[0];
+        final month = dateParts[1].padLeft(2, '0');
+        final day = dateParts[2].padLeft(2, '0');
+        final properDateString = '$year-$month-$day';
+        final DateTime dateTime = DateTime.parse(properDateString);
+        formattedDate = DateFormat('MMM d, y').format(dateTime);
+      } else {
+        // Fallback if the format is unexpected
+        formattedDate = 'Invalid Date';
+      }
+    } catch (e) {
+      debugPrint('Error parsing date: ${record.lmbFirstEngagement} - $e');
+      formattedDate = 'Date Error';
+    }
 
-    // Color scheme based on sector type
+    final bool isPrivateSector = record.lmbSector.toLowerCase().contains('private');
+
+    // Rest of the method remains the same...
     final Color primaryColor = isPrivateSector ? Colors.blue : Colors.green;
-    final Color backgroundColor = isPrivateSector
-        ? Colors.blue[50]!
-        : Colors.green[50]!;
-    final Color accentColor = isPrivateSector
-        ? Colors.blue[100]!
-        : Colors.green[100]!;
-    final IconData sectorIcon = isPrivateSector
-        ? Icons.business
-        : Icons.account_balance;
+    final Color backgroundColor = isPrivateSector ? Colors.blue[50]! : Colors.green[50]!;
 
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                EditPrivateSectorEngagementScreen(record: record),
+            builder: (context) => EditPrivateSectorEngagementScreen(record: record),
           ),
         );
       },
@@ -161,14 +185,6 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(color: fSecondaryColour),
-            // gradient: LinearGradient(
-            //   begin: Alignment.topLeft,
-            //   end: Alignment.bottomRight,
-            //   colors: [
-            //     backgroundColor,
-            //     Colors.white,
-            //   ],
-            // ),
             borderRadius: BorderRadius.circular(16.0),
           ),
           child: Padding(
@@ -189,7 +205,7 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12.0),
                           ),
                           child: Icon(
-                            sectorIcon,
+                            isPrivateSector ? Icons.business : Icons.account_balance,
                             color: primaryColor,
                             size: 20,
                           ),
@@ -213,9 +229,7 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                                 vertical: 2.0,
                               ),
                               decoration: BoxDecoration(
-                                color: isPending
-                                    ? Colors.orange[100]
-                                    : Colors.green[100],
+                                color: isPending ? Colors.orange[100] : Colors.green[100],
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                               child: Text(
@@ -223,9 +237,7 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
-                                  color: isPending
-                                      ? Colors.orange[800]
-                                      : Colors.green[800],
+                                  color: isPending ? Colors.orange[800] : Colors.green[800],
                                 ),
                               ),
                             ),
@@ -233,25 +245,6 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // if (isPending && onSubmitted != null)
-                    //   Container(
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.green,
-                    //       borderRadius: BorderRadius.circular(12.0),
-                    //       boxShadow: [
-                    //         BoxShadow(
-                    //           color: Colors.green.withOpacity(0.3),
-                    //           blurRadius: 4,
-                    //           offset: const Offset(0, 2),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //     child: IconButton(
-                    //       icon: const Icon(Icons.cloud_upload, color: Colors.white, size: 20),
-                    //       onPressed: () => onSubmitted(record),
-                    //       tooltip: 'Submit to server',
-                    //     ),
-                    //   ),
                   ],
                 ),
 
@@ -283,7 +276,7 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                       _buildDetailRow(
                         icon: Icons.calendar_today,
                         label: 'Engagement Date',
-                        value: date,
+                        value: formattedDate, // Use the formatted date here
                       ),
                       const SizedBox(height: 8),
                       if (record.lmbPartnershipType.isNotEmpty)
@@ -292,8 +285,7 @@ class HistoryPrivateSectorHistory extends StatelessWidget {
                           label: 'Partnership Type',
                           value: record.lmbPartnershipType,
                         ),
-                      if (record.lmbPartnershipType.isNotEmpty)
-                        const SizedBox(height: 8),
+                      if (record.lmbPartnershipType.isNotEmpty) const SizedBox(height: 8),
                       if (record.lmbTypeLoanService.isNotEmpty)
                         _buildDetailRow(
                           icon: Icons.credit_card,
