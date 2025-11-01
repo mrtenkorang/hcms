@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:get/get.dart';
@@ -10,7 +9,6 @@ import 'package:hcms_revived2/screens/treemonitoring/lmbMonitoring/history/edit/
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
 import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
 
-
 class EditPrivateSectorEngagementScreen extends StatefulWidget {
   const EditPrivateSectorEngagementScreen({super.key, required this.record});
 
@@ -21,37 +19,46 @@ class EditPrivateSectorEngagementScreen extends StatefulWidget {
 }
 
 class _EditPrivateSectorEngagementScreenState extends State<EditPrivateSectorEngagementScreen> {
-
-  EditPrivateSectorEngagementController controller = Get.put(EditPrivateSectorEngagementController());
+  late final EditPrivateSectorEngagementController controller;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    // Initialize controller once and set the record
+    controller = Get.put(EditPrivateSectorEngagementController());
+    controller.record = widget.record;
+
+    // Initialize fields after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.record = widget.record;
       controller.initializeFields();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Initialize controller with the record
-    final controller = Get.put(EditPrivateSectorEngagementController()..record = widget.record);
-    
     return _PrivateSectorEngagementView(controller: controller);
   }
 }
 
-class _PrivateSectorEngagementView extends StatelessWidget {
+class _PrivateSectorEngagementView extends StatefulWidget {
   final EditPrivateSectorEngagementController controller;
 
-  const _PrivateSectorEngagementView({super.key, required this.controller});
+  const _PrivateSectorEngagementView({required this.controller});
+
+  @override
+  State<_PrivateSectorEngagementView> createState() => _PrivateSectorEngagementViewState();
+}
+
+class _PrivateSectorEngagementViewState extends State<_PrivateSectorEngagementView> {
+  @override
+  void initState() {
+    super.initState();
+    // Set context and ensure fields are initialized
+    widget.controller.lmbScreenContext = context;
+  }
 
   @override
   Widget build(BuildContext context) {
-    controller.lmbScreenContext = context;
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildAppBar(context),
@@ -83,18 +90,6 @@ class _PrivateSectorEngagementView extends StatelessWidget {
           ),
         ],
       ),
-      actions: [
-        Tooltip(
-          message: "Back to Home",
-          child: IconButton(
-            icon: Icon(Icons.home_outlined, size: 24),
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => IndexPage()),
-            ),
-          ),
-        ),
-        SizedBox(width: 8),
-      ],
     );
   }
 
@@ -104,10 +99,6 @@ class _PrivateSectorEngagementView extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header Card
-          // _buildHeaderCard(),
-          // SizedBox(height: 24),
-
           // Main Form
           _buildForm(context),
         ],
@@ -115,56 +106,9 @@ class _PrivateSectorEngagementView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [fPrimaryColour.withOpacity(0.8), fPrimaryColour],
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: fPrimaryWhite, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "Engagement Information",
-                  style: TextStyle(
-                    color: fPrimaryWhite,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              "Please fill in the details about your sector engagement. All fields are required.",
-              style: TextStyle(
-                color: fPrimaryWhite.withOpacity(0.9),
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildForm(BuildContext context) {
     return Form(
-      key: controller.formKey,
+      key: widget.controller.formKey,
       child: Column(
         children: [
           // LMB Name Field
@@ -190,8 +134,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
 
           // Conditional Fields based on Sector
           Obx(() {
-            debugPrint("Sector: ${controller.sector.value}");
-            if (controller.sector.value.toLowerCase() == "private".toLowerCase()) {
+            if (widget.controller.sector.value.toLowerCase() == "private") {
               return Column(
                 children: [
                   _buildSection(
@@ -199,11 +142,11 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                     icon: Icons.group,
                     children: _buildPrivateSectorFields(context),
                   ),
-                  // Submit Button for Private Sector
-                  _buildSubmitButton(context),
+                  if (!(widget.controller.record!.lmbConStat == "connected"))
+                    _buildSubmitButton(context),
                 ],
               );
-            } else if (controller.sector.value == "financial") {
+            } else if (widget.controller.sector.value == "financial") {
               return Column(
                 children: [
                   _buildSection(
@@ -211,13 +154,11 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                     icon: Icons.monetization_on,
                     children: _buildFinancialSectorFields(context),
                   ),
-                  // Beneficiary Section for Financial Sector
                   _buildSection(
                     title: "Beneficiary Information",
                     icon: Icons.people,
                     children: [_buildBeneficiarySection()],
                   ),
-                  // Submit Button for Financial Sector
                   _buildSubmitButton(context),
                 ],
               );
@@ -284,7 +225,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               suffixIcon: Icon(Icons.business_center, color: Colors.grey[500]),
             ),
-            controller: controller.lmbName,
+            controller: widget.controller.lmbName,
             validator: (input) => input!.trim().isEmpty ? 'Please enter LMB name' : null,
           ),
         ),
@@ -305,10 +246,10 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                 title: "Private Sector",
                 subtitle: "Business partnerships",
                 icon: Icons.business,
-                isSelected: controller.selectedVisitRadio.value == 1,
+                isSelected: widget.controller.selectedVisitRadio.value == 1,
                 onTap: () {
-                  controller.selectedVisitRadio.value = 1;
-                  controller.toggleSectorValue("Private");
+                  widget.controller.selectedVisitRadio.value = 1;
+                  widget.controller.toggleSectorValue("Private");
                 },
               ),
             ),
@@ -318,10 +259,10 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                 title: "Financial Sector",
                 subtitle: "Loans & services",
                 icon: Icons.attach_money,
-                isSelected: controller.selectedVisitRadio.value == 2,
+                isSelected: widget.controller.selectedVisitRadio.value == 2,
                 onTap: () {
-                  controller.selectedVisitRadio.value = 2;
-                  controller.toggleSectorValue("Financial");
+                  widget.controller.selectedVisitRadio.value = 2;
+                  widget.controller.toggleSectorValue("Financial");
                 },
               ),
             ),
@@ -380,7 +321,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
   List<Widget> _buildCommonFields(BuildContext context) {
     return [
       Obx(() => _buildFieldLabel(
-        controller.sector.value == "Private"
+        widget.controller.sector.value.toLowerCase() == "Private".toLowerCase()
             ? "Private Sector Name"
             : "Financial Institution Name",
       )),
@@ -393,16 +334,16 @@ class _PrivateSectorEngagementView extends StatelessWidget {
         child: TextFieldWidget(
           keyboardType: TextInputType.text,
           decoration: InputDecoration(
-            hintText: controller.sector.value == "Private"
+            hintText: widget.controller.sector.value.toLowerCase() == "Private".toLowerCase()
                 ? "Enter private sector name"
                 : "Enter financial institution name",
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             suffixIcon: Icon(Icons.account_balance, color: Colors.grey[500]),
           ),
-          controller: controller.sector.value == "Private"
-              ? controller.privateName
-              : controller.financialName,
+          controller: widget.controller.sector.value.toLowerCase() == "Private".toLowerCase()
+              ? widget.controller.privateName
+              : widget.controller.financialName,
           validator: (input) => input!.trim().isEmpty ? 'Please enter a name' : null,
         ),
       )),
@@ -421,14 +362,14 @@ class _PrivateSectorEngagementView extends StatelessWidget {
           onTap: () {
             // Set initial date to current date or the existing date if available
             DateTime initialDate = DateTime.now();
-            if (controller.firstEngagement.value.isNotEmpty) {
+            if (widget.controller.firstEngagement.value.isNotEmpty) {
               try {
-                initialDate = DateTime.parse(controller.firstEngagement.value);
+                initialDate = DateTime.parse(widget.controller.firstEngagement.value);
               } catch (e) {
                 debugPrint('Error parsing initial date: $e');
               }
             }
-            
+
             DatePicker.showDatePicker(
               context,
               theme: DatePickerTheme(
@@ -442,7 +383,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
               minTime: DateTime(1800),
               maxTime: DateTime.now(),
               currentTime: initialDate,
-              onConfirm: (date) => controller.setEngagementDate(date),
+              onConfirm: (date) => widget.controller.setEngagementDate(date),
               locale: LocaleType.en,
             );
           },
@@ -465,11 +406,11 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    controller.isVisitDate.value && controller.visitDateYearInString.value.isNotEmpty
-                        ? controller.visitDateYearInString.value
+                    widget.controller.firstEngagement.value.isNotEmpty
+                        ? widget.controller.visitDateYearInString.value
                         : "Select engagement date",
                     style: TextStyle(
-                      color: controller.isVisitDate.value ? Colors.grey[800] : Colors.grey[500],
+                      color: widget.controller.firstEngagement.value.isNotEmpty ? Colors.grey[800] : Colors.grey[500],
                       fontSize: 16,
                     ),
                   ),
@@ -491,21 +432,21 @@ class _PrivateSectorEngagementView extends StatelessWidget {
       _buildTextFieldWithLabel(
         label: "Type of Partnership",
         hint: "e.g., Joint venture, Supply agreement",
-        controller: controller.partnershipType,
+        controller: widget.controller.partnershipType,
         icon: Icons.handshake,
       ),
       const SizedBox(height: 16),
       _buildTextFieldWithLabel(
         label: "Duration of Partnership",
         hint: "e.g., 2 years, Permanent",
-        controller: controller.partnershipDuration,
+        controller: widget.controller.partnershipDuration,
         icon: Icons.schedule,
       ),
       const SizedBox(height: 16),
       _buildTextFieldWithLabel(
         label: "MoU Signed?",
         hint: "Yes/No and details",
-        controller: controller.mouSigned,
+        controller: widget.controller.mouSigned,
         icon: Icons.description,
       ),
     ];
@@ -516,7 +457,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
       _buildTextFieldWithLabel(
         label: "Type of Loan/Financial Service",
         hint: "e.g., Agricultural loan, Microcredit",
-        controller: controller.typeLoanService,
+        controller: widget.controller.typeLoanService,
         icon: Icons.credit_card,
       ),
       const SizedBox(height: 16),
@@ -526,7 +467,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
             child: _buildTextFieldWithLabel(
               label: "Loan Duration (years)",
               hint: "e.g., 5",
-              controller: controller.loanDuration,
+              controller: widget.controller.loanDuration,
               icon: Icons.timelapse,
               keyboardType: TextInputType.number,
             ),
@@ -536,7 +477,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
             child: _buildTextFieldWithLabel(
               label: "Interest Rate (%)",
               hint: "e.g., 12.5",
-              controller: controller.loanInterest,
+              controller: widget.controller.loanInterest,
               icon: Icons.percent,
               keyboardType: TextInputType.number,
             ),
@@ -572,27 +513,21 @@ class _PrivateSectorEngagementView extends StatelessWidget {
             Expanded(
               child: _buildBeneficiaryField(
                 label: "Male",
-                controller: controller.maleBenefitting,
-                color: Colors.transparent,
-                iconColor: Colors.transparent,
+                controller: widget.controller.maleBenefitting,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildBeneficiaryField(
                 label: "Female",
-                controller: controller.femaleBenefitting,
-                color: Colors.transparent,
-                iconColor: Colors.transparent,
+                controller: widget.controller.femaleBenefitting,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildBeneficiaryField(
                 label: "Youth",
-                controller: controller.youthBenefitting,
-                color: Colors.transparent,
-                iconColor: Colors.transparent,
+                controller: widget.controller.youthBenefitting,
               ),
             ),
           ],
@@ -604,8 +539,6 @@ class _PrivateSectorEngagementView extends StatelessWidget {
   Widget _buildBeneficiaryField({
     required String label,
     required TextEditingController controller,
-    required Color color,
-    required Color iconColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,21 +553,20 @@ class _PrivateSectorEngagementView extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              // color: color,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              hintText: "0",
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: "0",
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                // suffixIcon: Icon(Icons.people, size: 16, color: iconColor),
-              ),
-              validator: (input) => input!.trim().isEmpty ? 'Enter number' : null,
-            )
+            validator: (input) => input!.trim().isEmpty ? 'Enter number' : null,
+          ),
         ),
       ],
     );
@@ -699,8 +631,8 @@ class _PrivateSectorEngagementView extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        onPressed: controller.isLoading.value ? null : _showSubmissionDialog,
-        child: controller.isLoading.value
+        onPressed: widget.controller.isLoading.value ? null : _showSubmissionDialog,
+        child: widget.controller.isLoading.value
             ? SizedBox(
           height: 20,
           width: 20,
@@ -712,8 +644,6 @@ class _PrivateSectorEngagementView extends StatelessWidget {
             : const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon(Icons.send, size: 20),
-            // SizedBox(width: 8),
             Text(
               "Finish",
               style: TextStyle(
@@ -728,12 +658,12 @@ class _PrivateSectorEngagementView extends StatelessWidget {
   }
 
   void _showSubmissionDialog() {
-    if (!controller.formKey.currentState!.validate()) {
+    if (!widget.controller.formKey.currentState!.validate()) {
       return;
     }
 
     showDialog(
-      context: controller.lmbScreenContext!,
+      context: widget.controller.lmbScreenContext!,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Confirm Submission"),
@@ -758,7 +688,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          controller.saveLocally();
+                          widget.controller.saveLocally();
                         },
                       ),
                     ),
@@ -774,8 +704,7 @@ class _PrivateSectorEngagementView extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onPressed: () {
-                        Navigator.pop(context);
-                        controller.attemptLMBUpload();
+                        widget.controller.attemptLMBUpload();
                       },
                     ),
                   ),

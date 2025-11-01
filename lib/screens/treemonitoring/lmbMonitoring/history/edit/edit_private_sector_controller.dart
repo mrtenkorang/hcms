@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
+import 'package:hcms_revived2/controller/models/communinty_model.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
+import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/models/localdbmodel/localdbmodel.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:http/http.dart' as http;
@@ -9,6 +13,8 @@ import 'package:hcms_revived2/helpers/dbhelper.dart';
 import 'package:hcms_revived2/providers/monitoring/lmbmonitoringprovider.dart';
 import 'package:hcms_revived2/services/serverurls.dart';
 import 'package:provider/provider.dart';
+
+import '../../../../../controller/constants/urls.dart';
 
 class EditPrivateSectorEngagementController extends GetxController {
   BuildContext? lmbScreenContext;
@@ -46,7 +52,7 @@ class EditPrivateSectorEngagementController extends GetxController {
 
   LMBMonitoring? record;
 
-  initializeFields() {
+  void initializeFields() {
     if (record == null) return;
 
     debugPrint("Record: ${record!}");
@@ -69,25 +75,121 @@ class EditPrivateSectorEngagementController extends GetxController {
     // Set sector and radio button
     final sectorValue = record?.lmbSector.toLowerCase() ?? '';
     sector.value = sectorValue;
-    
+    update();
+
     // Set radio button based on sector
     if (sectorValue.contains('private')) {
       selectedVisitRadio.value = 1;
     } else if (sectorValue.contains('financial')) {
       selectedVisitRadio.value = 2;
     } else {
-      selectedVisitRadio.value = 0; // Default to none selected
+      selectedVisitRadio.value = 0;
     }
 
-    // Set engagement date
+    // Set engagement date with proper error handling
     if (record?.lmbFirstEngagement != null && record!.lmbFirstEngagement.isNotEmpty) {
       try {
-        final date = DateTime.parse(record!.lmbFirstEngagement);
-        setEngagementDate(date);
+        final dateString = record!.lmbFirstEngagement;
+        debugPrint("Parsing date: $dateString");
+
+        // Handle various date formats
+        DateTime? parsedDate = _parseDateString(dateString);
+
+        if (parsedDate != null) {
+          setEngagementDate(parsedDate);
+        } else {
+          debugPrint('Unable to parse date: $dateString');
+          // Set a default value or leave empty
+          firstEngagement.value = '';
+          visitDateYearInString.value = '';
+        }
       } catch (e) {
         debugPrint('Error parsing date: $e');
+        // Set a default value or leave empty
+        firstEngagement.value = '';
+        visitDateYearInString.value = '';
       }
     }
+  }
+
+  DateTime? _parseDateString(String dateString) {
+    try {
+      // Try parsing as ISO format first
+      return DateTime.parse(dateString);
+    } catch (e) {
+      debugPrint('ISO parse failed, trying custom formats: $e');
+    }
+
+    try {
+      // Handle common date formats
+      if (dateString.contains('-')) {
+        final parts = dateString.split('-');
+        if (parts.length == 3) {
+          // Handle formats like "2025-11-1" (missing leading zeros)
+          final year = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final day = int.tryParse(parts[2]);
+
+          if (year != null && month != null && day != null) {
+            return DateTime(year, month, day);
+          }
+        }
+      }
+
+      // Handle formats with slashes
+      if (dateString.contains('/')) {
+        final parts = dateString.split('/');
+        if (parts.length == 3) {
+          // Try different order possibilities
+          final day = int.tryParse(parts[0]);
+          final month = int.tryParse(parts[1]);
+          final year = int.tryParse(parts[2]);
+
+          if (day != null && month != null && year != null) {
+            // Handle 2-digit years
+            final fullYear = year < 100 ? 2000 + year : year;
+            return DateTime(fullYear, month, day);
+          }
+        }
+      }
+
+      // Try parsing as milliseconds since epoch
+      final milliseconds = int.tryParse(dateString);
+      if (milliseconds != null) {
+        return DateTime.fromMillisecondsSinceEpoch(milliseconds);
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Custom date parsing failed: $e');
+      return null;
+    }
+  }
+
+  UserModel? user;
+
+
+  final communities = <CommunityModel>[].obs;
+  // Load communities from API
+  Future<void> loadCommunities() async {
+    try {
+      // isLoadingCommunities.value = true;
+      final result = await CommunityRepository().getAllCommunities();
+      communities.assignAll(result);
+
+      debugPrint("THE COMMUNITIES ::::::::::: ${communities.length}");
+    } catch (e) {
+      debugPrint("FAILED TO LOAD COMMUNITIES: $e");
+    } finally {
+      // isLoadingCommunities.value = false;
+    }
+  }
+
+  loadUser() async {
+    final cache = await CacheService.getInstance();
+    user = await cache.getUserInfo();
+    enumeratorValue.value = user!.id!;
+    update();
   }
 
   // Parameters from widget
@@ -100,7 +202,7 @@ class EditPrivateSectorEngagementController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    getEnumeratorValue();
+    loadUser();
   }
 
   @override
@@ -119,27 +221,6 @@ class EditPrivateSectorEngagementController extends GetxController {
     youthBenefitting.dispose();
     super.onClose();
   }
-
-  // Get enumerator value from database
-  Future<void> getEnumeratorValue() async {
-    try {
-      final db = await DBHelper.database();
-      var count = await db.rawQuery(
-        'SELECT enumeratorValue FROM first_time_user',
-      );
-      var list = count.toList();
-
-      if (list.isNotEmpty) {
-        enumeratorValue.value = int.parse(
-          list[0]['enumeratorValue'].toString(),
-        );
-        debugPrint("Enumerator Value - ${enumeratorValue.value}");
-      }
-    } catch (e) {
-      debugPrint("Error getting enumerator value: $e");
-    }
-  }
-
   // Set engagement date
   void setEngagementDate(DateTime date) {
     isVisitDate.value = true;
@@ -255,7 +336,7 @@ class EditPrivateSectorEngagementController extends GetxController {
     try {
       Globals().startWait(lmbScreenContext!);
       var submissionData = prepareSubmissionData();
-      var url = '$stageBaseUrl/lmbmonitoringapi/';
+      var url = '${URLS.baseUrl}${URLS.privateSectorEngagementURL}';
       var body = json.encode(submissionData);
 
       debugPrint("Uploading data: $body");
@@ -267,8 +348,10 @@ class EditPrivateSectorEngagementController extends GetxController {
       final response = json.decode(res.body);
       var status = response["status"];
 
-      if (status == "done") {
+      if (status == true) {
         saveToLocalDB("connected");
+        Get.back();
+        Get.back();
         Get.snackbar(
           'Success',
           'Data sent successfully!',
@@ -287,7 +370,7 @@ class EditPrivateSectorEngagementController extends GetxController {
       } else {
         Get.snackbar(
           'Error',
-          'Error occurred: ${response["error"]}',
+          'Data Exists already',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -351,34 +434,5 @@ class EditPrivateSectorEngagementController extends GetxController {
     firstEngagement.value = "";
     isVisitDate.value = false;
     visitDateYearInString.value = '';
-  }
-
-  // Show submission options
-  void showSubmissionOptions() {
-    if (!validateForm()) return;
-
-    Get.dialog(
-      AlertDialog(
-        title: Text('Submission Options'),
-        content: Text('Do you have internet connection?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back();
-              attemptLMBUpload();
-            },
-            child: Text('Send with Internet'),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              saveLocally();
-            },
-            child: Text('Save Locally'),
-          ),
-          TextButton(onPressed: () => Get.back(), child: Text('Cancel')),
-        ],
-      ),
-    );
   }
 }
