@@ -3,14 +3,7 @@ import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
-import 'package:hcms_revived2/boilerplate/widgets.dart';
-import 'package:hcms_revived2/main.dart';
-import 'package:hcms_revived2/models/apimodels/communitymodel.dart';
-import 'package:hcms_revived2/models/apimodels/farmerlistmodel.dart';
-import 'package:hcms_revived2/screens/home/index.dart';
-import 'package:hcms_revived2/screens/treemonitoring/initialpage.dart';
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
-import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
 import 'training_log_controller.dart';
 
 class TrainingLogScreen extends StatelessWidget {
@@ -32,22 +25,31 @@ class _TrainingLogView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.trainingLogScreenContext = context;
+    controller.loadCommunities();
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: _buildAppBar(context),
       body: SafeArea(
         child: Column(
           children: [
-            _buildProgressIndicator(),
             Expanded(
-              child: PageView(
-                physics: const NeverScrollableScrollPhysics(),
-                controller: PageController(viewportFraction: 1),
-                onPageChanged: (index) => controller.currentStep.value = index,
-                children: [
-                  _buildStep1(context),
-                  _buildStep2(context),
-                ],
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: controller.formKey,
+                  child: Column(
+                    children: [
+                      _buildEventDetailsSection(),
+                      const SizedBox(height: 24),
+                      _buildParticipantsSection(),
+                      const SizedBox(height: 24),
+                      _buildActionButtons(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -74,392 +76,474 @@ class _TrainingLogView extends StatelessWidget {
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.school, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            "Training Log",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        Tooltip(
-          message: "Go to homepage",
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.home, color: Colors.white, size: 20),
-            ),
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (BuildContext context) => const IndexPage()),
-            ),
-          ),
+      title: const Text(
+        "Training Log",
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
         ),
-        const SizedBox(width: 8),
-      ],
+      ),
+      centerTitle: true,
     );
   }
 
-  Widget _buildProgressIndicator() {
-    return Obx(() => Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  void _showCommunitySelectionBottomSheet() {
+    showModalBottomSheet(
+      context: controller.trainingLogScreenContext!,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildProgressStep(
-              1,
-              "Event Details",
-              controller.currentStep.value >= 0,
-              true,
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: controller.currentStep.value >= 1
-                      ? [fPrimaryColour, fPrimaryColour]
-                      : [Colors.grey[300]!, Colors.grey[300]!],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: _buildProgressStep(
-              2,
-              "Participants",
-              controller.currentStep.value >= 1,
-              false,
-            ),
-          ),
-        ],
-      ),
-    ));
-  }
-
-  Widget _buildProgressStep(int step, String label, bool isActive, bool isFirst) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            gradient: isActive
-                ? LinearGradient(
-              colors: [fPrimaryColour, fPrimaryColour.withOpacity(0.7)],
-            )
-                : null,
-            color: isActive ? null : Colors.grey[300],
-            shape: BoxShape.circle,
-            boxShadow: isActive
-                ? [
-              BoxShadow(
-                color: fPrimaryColour.withOpacity(0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ]
-                : null,
-          ),
-          child: Center(
-            child: Icon(
-              isFirst ? Icons.event_note : Icons.people,
-              color: isActive ? Colors.white : Colors.grey[600],
-              size: 24,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: isActive ? fPrimaryColour : Colors.grey[500],
-            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep1(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: controller.formKey,
-        child: Column(
-          children: [
-            _buildInfoCard(
-              icon: Icons.info_outline,
-              title: "Event Information",
-              description: "Please provide details about the training event",
-            ),
-            const SizedBox(height: 24),
-
-            _buildModernCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Community Selection", Icons.location_on),
-                  const SizedBox(height: 16),
-                  _buildCommunityDropdown(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildModernCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Topic", Icons.topic),
-                  const SizedBox(height: 16),
-                  TextFieldWidget(
-                    keyboardType: TextInputType.text,
-                    decoration: InputDecoration(
-                      labelText: "Enter training topic",
-                      prefixIcon: Icon(Icons.subject, color: fPrimaryColour),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    controller: controller.topic,
-                    validator: (input) => input!.trim().isEmpty ? 'Please enter topic' : null,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildModernCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Event Date", Icons.calendar_today),
-                  const SizedBox(height: 16),
-                  _buildDatePicker(
-                    context: context,
-                    label: "Date event began",
-                    isDateSelected: controller.isVisitDate.value,
-                    dateString: controller.visitDateYearInString.value,
-                    onTap: (date) => _showDatePicker(context, (selectedDate) {
-                      controller.setVisitDate(selectedDate);
-                    }),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildModernCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Event Duration", Icons.timer),
-                  const SizedBox(height: 16),
-                  _buildDurationFields(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            _buildModernCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader("Trainer Information", Icons.person),
-                  const SizedBox(height: 16),
-                  TextFieldWidget(
-                    keyboardType: TextInputType.text,
-                    decoration: InputDecoration(
-                      labelText: "Name of trainer",
-                      prefixIcon: Icon(Icons.person_outline, color: fPrimaryColour),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    controller: controller.trainerName,
-                    validator: (input) => input!.trim().isEmpty ? 'Please enter trainer name' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFieldWidget(
-                    keyboardType: TextInputType.text,
-                    decoration: InputDecoration(
-                      labelText: "Trainer's organisation",
-                      prefixIcon: Icon(Icons.business, color: fPrimaryColour),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    controller: controller.trainerOrg,
-                    validator: (input) => input!.trim().isEmpty ? 'Please enter organisation' : null,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            _buildNavigationButton(
-              text: "Next: Add Participants",
-              icon: Icons.arrow_forward,
-              onPressed: () {
-                if (controller.validateStep1()) {
-                  controller.setTLValues();
-                  controller.nextStep();
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStep2(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
+      builder: (context) => Obx(() {
+        return Container(
           padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.8,
           child: Column(
             children: [
-              _buildInfoCard(
-                icon: Icons.group_add,
-                title: "Add Participants",
-                description: "Select farmers who attended the training",
+              const Text(
+                'Select Community',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              _buildModernCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader("Select Farmer", Icons.person_search),
-                    const SizedBox(height: 16),
-                    _buildFarmerDropdown(),
-                  ],
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search communities...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (query) {
+                  // Implement search if needed
+                },
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: controller.isLoadingCommunities.value
+                    ? const Center(child: CircularProgressIndicator())
+                    : controller.communities.isEmpty
+                    ? const Center(child: Text('No communities available'))
+                    : ListView.builder(
+                  itemCount: controller.communities.length,
+                  itemBuilder: (context, index) {
+                    final community = controller.communities[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: fPrimaryColour,
+                        child: const Icon(
+                          Icons.location_city,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        community.community ?? 'Unknown Community',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      trailing: controller.selectedCommunity.value?.id ==
+                          community.id
+                          ? Icon(
+                        Icons.check_circle,
+                        color: fPrimaryColour,
+                      )
+                          : null,
+                      onTap: () {
+                        controller.selectCommunity(community);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        ),
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+        );
+      }),
+    );
+  }
+
+  void _showFarmerSelectionBottomSheet() {
+    if (controller.selectedCommunity.value == null) {
+      Get.snackbar(
+        'Error',
+        'Please select a community first',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: controller.trainingLogScreenContext!,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Obx(() {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              Text(
+                'Select Farmer (${controller.selectedCommunity.value?.community ?? ''})',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [fPrimaryColour.withOpacity(0.1), Colors.white],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search farmers...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.people, color: fPrimaryColour, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        "PARTICIPANTS LIST",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: fPrimaryColour,
+                ),
+                onChanged: (query) {
+                  controller.farmers.clear();
+                  controller.isLoadingFarmers.value = true;
+                  controller.loadFarmersByCommunity(controller.selectedCommunity.value!.id!);
+                },
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: controller.isLoadingFarmers.value
+                    ? const Center(child: CircularProgressIndicator())
+                    : controller.farmers.isEmpty
+                    ? const Center(child: Text('No farmers available'))
+                    : ListView.builder(
+                  itemCount: controller.farmers.length,
+                  itemBuilder: (context, index) {
+                    final farmer = controller.farmers[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: fPrimaryColour,
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        farmer.farmerName,
+                        style: const TextStyle(
                           fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: fPrimaryColour,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${controller.items.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      subtitle: Text(
+                        farmer.contact ?? '',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
                         ),
                       ),
-                    ],
-                  ),
+                      trailing: controller.selectedFarmer.value?.id ==
+                          farmer.id
+                          ? Icon(
+                        Icons.check_circle,
+                        color: fPrimaryColour,
+                      )
+                          : null,
+                      onTap: () {
+                        controller.selectFarmer(farmer);
+
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
                 ),
-                Expanded(
-                  child: controller.items.isEmpty
-                      ? _buildEmptyState()
-                      : SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: _buildParticipantsTable(),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildSearchableDropdownField({
+    required String title,
+    required dynamic selectedItem,
+    required String displayText,
+    required VoidCallback onTap,
+    required bool isLoading,
+    bool enabled = true,
+    String? disabledMessage,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel(title),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: enabled ? Colors.grey.shade400 : Colors.grey.shade300,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              color: enabled ? Colors.white : Colors.grey.shade100,
+            ),
+            child: Row(
+              children: [
+                if (isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: fPrimaryColour,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Text(
+                      displayText,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: enabled
+                            ? (selectedItem != null
+                            ? Colors.black87
+                            : Colors.grey)
+                            : Colors.grey.shade500,
+                      ),
+                    ),
                   ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_drop_down,
+                  color: enabled ? Colors.grey : Colors.grey.shade400,
                 ),
               ],
             ),
           ),
         ),
-        _buildStep2Buttons(),
+        if (!enabled && disabledMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              disabledMessage,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRequiredLabel(String text) {
+    return Text.rich(
+      TextSpan(
+        text: text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+        children: const [
+          TextSpan(
+            text: ' *',
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventDetailsSection() {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Community Selection
+          Obx(
+                () => _buildSearchableDropdownField(
+              title: "Community",
+              selectedItem: controller.selectedCommunity.value,
+              displayText: controller.selectedCommunity.value?.community ??
+                  "Select Community",
+              onTap: _showCommunitySelectionBottomSheet,
+              isLoading: controller.isLoadingCommunities.value,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Topic
+          _buildFormField(
+            label: "Training Topic *",
+            child: TextFieldWidget(
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                hintText: "Enter training topic",
+                prefixIcon: Icon(Icons.subject, color: fPrimaryColour),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              controller: controller.topic,
+              validator: (input) => input!.trim().isEmpty ? 'Please enter topic' : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Event Date
+          _buildFormField(
+            label: "Event Date *",
+            child: _buildDatePicker(
+              context: controller.trainingLogScreenContext,
+              label: "Date event began",
+              isDateSelected: controller.isVisitDate.value,
+              dateString: controller.visitDateYearInString.value,
+              onTap: (date) => _showDatePicker(controller.trainingLogScreenContext!, (selectedDate) {
+                controller.setVisitDate(selectedDate);
+              }),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Event Duration
+          _buildFormField(
+            label: "Event Duration *",
+            child: _buildDurationFields(),
+          ),
+          const SizedBox(height: 16),
+
+          // Trainer Information
+          _buildFormField(
+            label: "Trainer Name *",
+            child: TextFieldWidget(
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                hintText: "Name of trainer",
+                prefixIcon: Icon(Icons.person_outline, color: fPrimaryColour),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              controller: controller.trainerName,
+              validator: (input) => input!.trim().isEmpty ? 'Please enter trainer name' : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          _buildFormField(
+            label: "Trainer's Organisation *",
+            child: TextFieldWidget(
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                hintText: "Trainer's organisation",
+                prefixIcon: Icon(Icons.business, color: fPrimaryColour),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              controller: controller.trainerOrg,
+              validator: (input) => input!.trim().isEmpty ? 'Please enter organisation' : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParticipantsSection() {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader("Participants", Icons.group),
+          const SizedBox(height: 20),
+
+          // Add Farmer Section
+          _buildFormField(
+            label: "Add Participant",
+            child: _buildFarmerDropdown(),
+          ),
+          const SizedBox(height: 20),
+
+          // Participants List
+          _buildParticipantsList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParticipantsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.people, color: fPrimaryColour, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              "PARTICIPANTS LIST",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: fPrimaryColour,
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            if (controller.participants.isNotEmpty)
+              IconButton(
+                onPressed: controller.deleteSelected,
+                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                tooltip: "Delete selected",
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        controller.selectedParticipant.isEmpty
+            ? _buildEmptyState()
+            : _buildParticipantsTable(),
       ],
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_add_disabled, size: 80, color: Colors.grey[300]),
+          Icon(Icons.person_add_disabled, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'No participants added yet',
@@ -471,7 +555,7 @@ class _TrainingLogView extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Select farmers from the dropdown above',
+            'Select farmers from the dropdown above to add them',
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[400],
@@ -482,62 +566,164 @@ class _TrainingLogView extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
+  Widget _buildParticipantsTable() {
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [fPrimaryColour.withOpacity(0.1), Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: fPrimaryColour.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: fPrimaryColour.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          showCheckboxColumn: true,
+          columnSpacing: 30.0,
+          headingRowColor: MaterialStateProperty.all(fPrimaryColour.withOpacity(0.1)),
+          columns: [
+            DataColumn(
+              label: Row(
+                children: [
+                  Icon(Icons.person, color: fPrimaryColour, size: 18),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Farmer Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-            child: Icon(icon, color: fPrimaryColour, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: fPrimaryColour,
+            DataColumn(
+              label: Row(
+                children: [
+                  Icon(Icons.phone, color: fPrimaryColour, size: 18),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Contact',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
+                ],
+              ),
+            ),
+            DataColumn(
+              label: Row(
+                children: [
+                  Icon(Icons.location_on, color: fPrimaryColour, size: 18),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Community ID',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ],
+          rows: controller.selectedParticipant.map((farmer) {
+            final isSelected = controller.selectedParticipant.any((selected) => selected.id == farmer.id);
+            return DataRow(
+              selected: isSelected,
+              color: MaterialStateProperty.resolveWith<Color?>(
+                (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.selected)) {
+                    return fPrimaryColour.withOpacity(0.1);
+                  }
+                  return null;
+                },
+              ),
+              onSelectChanged: (selected) {
+                if (selected != null) {
+                  controller.onSelectedRow(selected, farmer);
+                }
+              },
+              cells: [
+                DataCell(Text(farmer.farmerName )),
+                DataCell(Text(farmer.contact)),
+                DataCell(Text(farmer.communityId.toString())),
               ],
-            ),
+            );
+          }).toList(),
+        ),
+      ),
+
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Obx(() => Row(
+      children: [
+        Expanded(
+          child: _buildActionButton(
+            text: "Save",
+            icon: Icons.save,
+            onPressed: () {
+              controller.saveTrainingLogOffline();
+            },
+            backgroundColor: Colors.orange,
+            isLoading: controller.isLoading.value,
           ),
-        ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildActionButton(
+            text: "Submit",
+            icon: Icons.cloud_upload,
+            onPressed: () {
+              controller.submitTrainingLog();
+            },
+            backgroundColor: Colors.green,
+            isLoading: controller.isLoading.value,
+          ),
+        ),
+      ],
+    ));
+  }
+
+  Widget _buildActionButton({
+    required String text,
+    required IconData icon,
+    required VoidCallback onPressed,
+    required Color backgroundColor,
+    bool isLoading = false,
+  }) {
+    return SizedBox(
+      height: 54,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          shadowColor: backgroundColor.withOpacity(0.4),
+        ),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? const SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildModernCard({required Widget child}) {
+  Widget _buildCard({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -558,12 +744,19 @@ class _TrainingLogView extends StatelessWidget {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, color: fPrimaryColour, size: 20),
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: fPrimaryColour.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: fPrimaryColour, size: 20),
+        ),
+        const SizedBox(width: 12),
         Text(
           title,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: fPrimaryColour,
           ),
@@ -572,65 +765,24 @@ class _TrainingLogView extends StatelessWidget {
     );
   }
 
-  Widget _buildCommunityDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.grey[50],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: FutureBuilder<List<CommunityJson>>(
-        future: controller.myCFuture,
-        builder: (context, AsyncSnapshot<List<CommunityJson>> snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          } else if (!snapshot.hasData) {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text("Operation failed. Sync to get data."),
-            );
-          } else if (snapshot.hasData) {
-            return DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: controller.community.value,
-                isExpanded: true,
-                icon: Icon(Icons.arrow_drop_down, color: fPrimaryColour),
-                items: snapshot.data!.map((CommunityJson dvalue) {
-                  return DropdownMenuItem<String>(
-                    value: dvalue.name,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Text(
-                        dvalue.name!,
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? value) {
-                  if (value != null) {
-                    final selectedCommunity = snapshot.data!.firstWhere(
-                          (element) => element.name == value,
-                    );
-                    controller.community.value = value;
-                    controller.communityVal.value = selectedCommunity.comcode;
-                    controller.onCommChanged(value, selectedCommunity.comcode!);
-                  }
-                },
-              ),
-            );
-          } else {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text("Please sync data"),
-            );
-          }
-        },
-      ),
+  Widget _buildFormField({
+    required String label,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
     );
   }
 
@@ -641,57 +793,25 @@ class _TrainingLogView extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         color: Colors.grey[50],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: FutureBuilder<List<FarmerListJson>>(
-        future: controller.myFlFuture,
-        builder: (context, AsyncSnapshot<List<FarmerListJson>> snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          } else if (!snapshot.hasData) {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text("Operation failed. Sync to get data."),
-            );
-          } else if (snapshot.hasData) {
-            return DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: controller.ffarmerlist,
-                isExpanded: true,
-                hint: const Text("Select a farmer"),
-                icon: Icon(Icons.arrow_drop_down, color: fPrimaryColour),
-                items: snapshot.data!.map((FarmerListJson dvalue) {
-                  return DropdownMenuItem<String>(
-                    value: dvalue.farmerid.toString(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Text(
-                        dvalue.farmername!,
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (String? value) {
-                  if (value != null) {
-                    final selectedFarmer = snapshot.data!.firstWhere(
-                          (element) => element?.farmerid.toString() == value,
-                    );
-                    controller.onFarmerListChanged(value, selectedFarmer);
-                  }
-                },
-              ),
-            );
-          } else {
-            return const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text("Please sync data"),
-            );
-          }
-        },
-      ),
+      child: Obx(() {
+        final selectedFarmer = controller.selectedFarmer.value;
+
+        return ListTile(
+          title: Text(
+            selectedFarmer?.farmerName ?? 'Select a farmer',
+            style: TextStyle(
+              color: selectedFarmer == null ? Colors.grey[600] : Colors.black87,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: selectedFarmer?.contact != null
+              ? Text(selectedFarmer!.contact)
+              : null,
+          trailing: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+          onTap: _showFarmerSelectionBottomSheet,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        );
+      }),
     );
   }
 
@@ -702,7 +822,7 @@ class _TrainingLogView extends StatelessWidget {
           child: TextFieldWidget(
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: "Hours",
+              hintText: "Hours",
               prefixIcon: Icon(Icons.access_time, color: fPrimaryColour),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -729,7 +849,7 @@ class _TrainingLogView extends StatelessWidget {
           child: TextFieldWidget(
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: "Minutes",
+              hintText: "Minutes",
               prefixIcon: Icon(Icons.timer, color: fPrimaryColour),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -788,163 +908,6 @@ class _TrainingLogView extends StatelessWidget {
     );
   }
 
-  Widget _buildParticipantsTable() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        showCheckboxColumn: true,
-        columnSpacing: 30.0,
-        headingRowColor: MaterialStateProperty.all(fPrimaryColour.withOpacity(0.1)),
-        columns: [
-          DataColumn(
-            label: Row(
-              children: [
-                Icon(Icons.person, color: fPrimaryColour, size: 18),
-                const SizedBox(width: 8),
-                const Text(
-                  'Farmer Name',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          DataColumn(
-            label: Row(
-              children: [
-                Icon(Icons.location_on, color: fPrimaryColour, size: 18),
-                const SizedBox(width: 8),
-                const Text(
-                  'Community',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-        ],
-        rows: controller.items.map((item) {
-          final isSelected = controller.selectedPoints.contains(item);
-          return DataRow(
-            selected: isSelected,
-            color: MaterialStateProperty.resolveWith<Color?>(
-                  (Set<MaterialState> states) {
-                if (states.contains(MaterialState.selected)) {
-                  return fPrimaryColour.withOpacity(0.1);
-                }
-                return null;
-              },
-            ),
-            onSelectChanged: (selected) {
-              if (selected != null) {
-                controller.onSelectedRow(selected, item);
-              }
-            },
-            cells: [
-              DataCell(Text(item.farmerName.toString())),
-              DataCell(Text(item.communityName ?? "not found")),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildStep2Buttons() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildNavigationButton(
-              text: "Back",
-              icon: Icons.arrow_back,
-              onPressed: controller.previousStep,
-              isSecondary: true,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Obx(() => _buildNavigationButton(
-              text: "Finish",
-              icon: Icons.check_circle,
-              onPressed: controller.isLoading.value ? null : () => _showSubmissionOptions(),
-              isLoading: controller.isLoading.value,
-            )),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              onPressed: controller.deleteSelected,
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
-              tooltip: "Delete selected",
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationButton({
-    required String text,
-    required IconData icon,
-    required VoidCallback? onPressed,
-    bool isSecondary = false,
-    bool isLoading = false,
-  }) {
-    return SizedBox(
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary ? Colors.grey[600] : fPrimaryColour,
-          foregroundColor: Colors.white,
-          elevation: isSecondary ? 0 : 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          shadowColor: isSecondary ? null : fPrimaryColour.withOpacity(0.4),
-        ),
-        onPressed: onPressed,
-        child: isLoading
-            ? const SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
-            : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showDatePicker(BuildContext context, Function(DateTime) onConfirm) {
     DatePicker.showDatePicker(
       context,
@@ -963,137 +926,4 @@ class _TrainingLogView extends StatelessWidget {
     );
   }
 
-  void _showSubmissionOptions() {
-    if (!controller.validateStep2()) {
-      Get.snackbar(
-        'Error',
-        'Please add at least one participant',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 12,
-        icon: const Icon(Icons.error_outline, color: Colors.white),
-      );
-      return;
-    }
-
-    controller.convertu();
-    controller.getTLValues();
-
-    showDialog(
-      context: Get.context!,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: fPrimaryColour.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.send, color: fPrimaryColour, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                "Submit Training Log",
-                style: TextStyle(fontSize: 18),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Choose how you want to submit your training log:",
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Online submission requires internet connection",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                "Cancel",
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                controller.saveToLocalDB("not connected");
-                Get.snackbar(
-                  'Success',
-                  'Training log saved locally',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                  snackPosition: SnackPosition.BOTTOM,
-                  margin: const EdgeInsets.all(16),
-                  borderRadius: 12,
-                  icon: const Icon(Icons.check_circle, color: Colors.white),
-                );
-                controller.clearAndNavigate();
-              },
-              icon: const Icon(Icons.save, size: 18),
-              label: const Text("Save Offline"),
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                controller.attemptSignup(Get.context!);
-              },
-              icon: const Icon(Icons.cloud_upload, size: 18),
-              label: const Text("Submit Online"),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
