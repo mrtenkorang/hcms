@@ -14,11 +14,11 @@ String socketAddUrl = "";
 
 void changeBaseUrlValue() {
   if (kDebugMode) {
-    stageBaseUrl = "http://172.104.147.113";
+    stageBaseUrl = "http://172.104.147.113/api/v1/";
     // socketBaseUrl = "wss://spark.detosphere.com";
     socketAddUrl = "/";
   } else {
-    stageBaseUrl = "http://172.104.147.113";
+    stageBaseUrl = "http://172.104.147.113/api/v1/";
     // socketBaseUrl = "https://api.52wse.com";
     socketAddUrl = "/";
   }

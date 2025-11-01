@@ -4,11 +4,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' hide DatePickerTheme;
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/helpers/dbhelper.dart';
 import 'package:hcms_revived2/models/firebase/pushnotifmodel.dart';
 import 'package:hcms_revived2/providers/notifications/newsandarticlesprovider.dart';
 import 'package:hcms_revived2/providers/notifications/trainingsandworkshops.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
+import 'package:hcms_revived2/screens/sync/sync_page.dart';
 import 'package:hcms_revived2/splash/intros/newintros.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -25,75 +27,40 @@ class _SplashState extends State<Splash> {
   static int? countos;
   static int? countoa;
 
-  String? logStatus;
-
-  static getNumber() async {
-    final db = await DBHelper.database();
-    counto = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT (*) FROM first_time_user'))!;
-    print("Counto counted was $counto");
-    return counto;
-  }
-
-  static getFarmerApiListSeedlingNumber() async {
-    final db = await DBHelper.database();
-    countos = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT (*) FROM farmer_api_list_seedling'));
-    print("Countos counted was $countos");
-    return countos;
-  }
-
-  static getFarmerApiListAlternativeNumber() async {
-    final db = await DBHelper.database();
-    countoa = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT (*) FROM farmer_api_list_alternative'));
-    print("Countoa counted was $countoa");
-    return countoa;
-  }
+  bool? logStatus;
 
   Future<dynamic> getLogStatus() async {
-    final db = await DBHelper.database();
-    var count = await db.rawQuery('SELECT log FROM first_time_user');
+    final cacheService = await CacheService.getInstance();
+    logStatus = cacheService.getLoginStatus();
+    debugPrint("Log status is $logStatus");
+    return logStatus;
+  }
 
-    var list = count.toList();
-
-    mounted
-        ? setState(() {
-            logStatus = (list.isNotEmpty ? list[0]['log'] : "") as String?;
-          })
-        : null;
+  Future<void> _initializeApp() async {
+    await getLogStatus();
+    if (logStatus == true) {
+      Navigator.of(context).pushReplacement(
+        CupertinoPageRoute(builder: (context) => const SyncPage()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        CupertinoPageRoute(builder: (context) => UserSignIn()),
+      );
+    }
+    // if (mounted) {
+    //   WidgetsBinding.instance.addPostFrameCallback((_) {
+    //     getLogStatus();
+    //     if (mounted) {
+    //
+    //     }
+    //   });
+    // }
   }
 
   @override
   void initState() {
     super.initState();
-    getNumber();
-    getLogStatus();
-    getFarmerApiListSeedlingNumber();
-    getFarmerApiListAlternativeNumber();
-
-    Timer(
-      Duration(seconds: 3),
-      () {
-        if (counto < 1) {
-          print("first one doing");
-          Navigator.of(context).pushReplacement(CupertinoPageRoute(
-            builder: (context) => NewIntros(),
-          ));
-        } else {
-          print("second one doing");
-          if (logStatus == "in") {
-            Navigator.of(context).pushReplacement(CupertinoPageRoute(
-              builder: (context) => IndexPage(),
-            ));
-          } else {
-            Navigator.of(context).pushReplacement(CupertinoPageRoute(
-              builder: (context) => UserSignIn(),
-            ));
-          }
-        }
-      },
-    );
+    _initializeApp();
   }
 
   @override

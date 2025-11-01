@@ -3,8 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart' hide DatePickerTheme;
 import 'package:hcms_revived2/boilerplate/constants.dart';
-import 'package:hcms_revived2/models/apimodels/getspeciesgallery.dart';
-import 'package:hcms_revived2/services/serverurls.dart';
+import 'package:hcms_revived2/controller/constants/urls.dart';
 import 'package:http/http.dart' as http;
 
 class SpeciesGallery extends StatefulWidget {
@@ -28,7 +27,7 @@ class _SpeciesGalleryState extends State<SpeciesGallery> {
     String newVibe = "";
     String error = "";
 
-    final Uri getdetailsurl = Uri.parse("$stageBaseUrl/treespecieslist/");
+    final Uri getdetailsurl = Uri.parse("${URLS.baseUrl}/treespecieslist/");
 
     try {
       var header = {"Accept": "application/json"};
