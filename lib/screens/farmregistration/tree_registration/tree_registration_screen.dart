@@ -64,11 +64,26 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
             const SizedBox(height: 20),
             _buildEstablishmentTypeSection(),
             const SizedBox(height: 20),
+            // if (!controller.showTreeDetailsSection)
             widget.isIndividual
                 ? _buildNextOfKinSection()
                 : _buildGroupOnlySection(),
             const SizedBox(height: 20),
-            _buildMappingSection(),
+
+
+            // NEW: Conditionally show tree details section
+            Obx(() {
+              if (controller.showTreeDetailsSection) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildTreeDetailsSection(),
+                  ],
+                );
+              }
+              return const SizedBox();
+            }),
+
             const SizedBox(height: 20),
             _buildActionButtons(),
           ],
@@ -187,14 +202,21 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
       builder: (controller) {
         final hasPolygon =
             controller.polygon.value != null &&
-            controller.polygon.value!.points.isNotEmpty;
+                controller.polygon.value!.points.isNotEmpty;
 
         return Column(
           children: [
             if (!hasPolygon) _buildEmptyMappingState(),
             if (hasPolygon) _buildMappingResult(context),
             const SizedBox(height: 16),
-            _buildMapTreesButton(),
+
+            // NEW: Conditionally show Map Trees button
+            Obx(() {
+              if (!controller.showTreeDetailsSection) {
+                return _buildMapTreesButton();
+              }
+              return const SizedBox();
+            }),
           ],
         );
       },
@@ -382,7 +404,7 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
 
   Widget _buildFarmerSelectionSection() {
     return Obx(
-      () => Column(
+          () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 12),
@@ -406,11 +428,11 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
       children: [
         // Region Dropdown
         Obx(
-          () => _buildSearchableDropdownField(
+              () => _buildSearchableDropdownField(
             title: "Region",
             selectedItem: controller.selectedRegion.value,
             displayText:
-                controller.selectedRegion.value?.regionName ?? "Select Region",
+            controller.selectedRegion.value?.regionName ?? "Select Region",
             onTap: () => _showRegionSelectionBottomSheet(),
             isLoading: controller.isLoadingRegions.value,
           ),
@@ -418,11 +440,11 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
         const SizedBox(height: 16),
         // District Dropdown
         Obx(
-          () => _buildSearchableDropdownField(
+              () => _buildSearchableDropdownField(
             title: "District",
             selectedItem: controller.selectedDistrict.value,
             displayText:
-                controller.selectedDistrict.value?.districtName ??
+            controller.selectedDistrict.value?.districtName ??
                 "Select District",
             onTap: controller.selectedRegion.value != null
                 ? () => _showDistrictSelectionBottomSheet()
@@ -437,7 +459,7 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
         const SizedBox(height: 16),
         // MMDA Dropdown
         Obx(
-          () => _buildSearchableDropdownField(
+              () => _buildSearchableDropdownField(
             title: "MMDA",
             selectedItem: controller.selectedMMDA.value,
             displayText: controller.selectedMMDA.value?.mmda ?? "Select MMDA",
@@ -454,11 +476,11 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
         const SizedBox(height: 16),
         // Community Dropdown
         Obx(
-          () => _buildSearchableDropdownField(
+              () => _buildSearchableDropdownField(
             title: "Community",
             selectedItem: controller.selectedCommunity.value,
             displayText:
-                controller.selectedCommunity.value?.community ??
+            controller.selectedCommunity.value?.community ??
                 "Select Community",
             onTap: () => _showCommunitySelectionBottomSheet(),
             isLoading: controller.isLoadingCommunities.value,
@@ -517,8 +539,8 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
                         fontSize: 16,
                         color: enabled
                             ? (selectedItem != null
-                                  ? Colors.black87
-                                  : Colors.grey)
+                            ? Colors.black87
+                            : Colors.grey)
                             : Colors.grey.shade500,
                       ),
                     ),
@@ -544,23 +566,122 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
     );
   }
 
+  // NEW: Updated Establishment Type Section with Chips
   Widget _buildEstablishmentTypeSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildRequiredLabel("Establishment Type"),
         const SizedBox(height: 8),
-        Obx(
-          () => _buildSearchableDropdownField(
-            title: "Establishment Type",
-            selectedItem: controller.selectedEstablishmentType.value,
-            displayText:
-                controller.selectedEstablishmentType.value?.esta_type ??
-                "Select Establishment Type",
-            onTap: () => _showEstablishmentTypeSelectionBottomSheet(),
-            isLoading: controller.isLoadingEstablishmentTypes.value,
-            enabled: !controller.isLoadingEstablishmentTypes.value,
+        const Text(
+          "Select all that apply",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
           ),
         ),
+        const SizedBox(height: 12),
+        Obx(() {
+          final selectedTypes = controller.selectedEstablishmentTypes;
+          final hasSpecialType = selectedTypes.any((type) =>
+          type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other');
+
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.establishmentTypesData.map((type) {
+              final typeName = type.esta_type ?? 'Unknown';
+              final isSelected = controller.isEstablishmentTypeSelected(typeName);
+
+              // Determine if this chip should be enabled
+              bool isEnabled = true;
+
+              if (hasSpecialType) {
+                // If any special type is selected, only allow selection of other special types
+                final isSpecialType = typeName == 'Woodlot' ||
+                    typeName == 'Commercial Plantation' ||
+                    typeName == 'Other';
+                final isSelectedSpecialType = selectedTypes.any((selected) =>
+                selected == 'Woodlot' || selected == 'Commercial Plantation' || selected == 'Other');
+
+                if (isSelectedSpecialType && !isSpecialType) {
+                  // If a special type is selected, disable non-special types
+                  isEnabled = false;
+                } else if (!isSelectedSpecialType && isSpecialType && selectedTypes.isNotEmpty) {
+                  // If non-special types are selected, disable special types
+                  isEnabled = false;
+                }
+              } else if (selectedTypes.isNotEmpty) {
+                // If no special type is selected but other types are selected, disable special types
+                final isSpecialType = typeName == 'Woodlot' ||
+                    typeName == 'Commercial Plantation' ||
+                    typeName == 'Other';
+                if (isSpecialType) {
+                  isEnabled = false;
+                }
+              }
+
+              return FilterChip(
+                label: Text(typeName),
+                selected: isSelected,
+                onSelected: isEnabled ? (selected) {
+                  controller.toggleEstablishmentType(typeName);
+                } : null,
+                selectedColor: fPrimaryColour.withOpacity(0.2),
+                checkmarkColor: fPrimaryColour,
+                labelStyle: TextStyle(
+                  color: isSelected ? fPrimaryColour :
+                  isEnabled ? Colors.black87 : Colors.grey.shade400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected ? fPrimaryColour :
+                    isEnabled ? Colors.grey.shade400 : Colors.grey.shade300,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                backgroundColor: isEnabled ? null : Colors.grey.shade100,
+              );
+            }).toList(),
+          );
+        }),
+        Obx(() {
+          if (controller.selectedEstablishmentTypes.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Please select at least one establishment type',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            );
+          }
+          return const SizedBox();
+        }),
+        // NEW: Help text explaining the selection rules
+        Obx(() {
+          final selectedTypes = controller.selectedEstablishmentTypes;
+          final hasSpecialType = selectedTypes.any((type) =>
+          type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other');
+          final hasNonSpecialType = selectedTypes.any((type) =>
+          type != 'Woodlot' && type != 'Commercial Plantation' && type != 'Other');
+
+          if (hasSpecialType && hasNonSpecialType) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Note: Woodlot, Commercial Plantation, and Other cannot be combined with other establishment types.',
+                style: TextStyle(
+                  color: Colors.orange.shade700,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            );
+          }
+          return const SizedBox();
+        }),
       ],
     );
   }
@@ -619,6 +740,7 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
     );
   }
 
+  // UPDATED: Stateful date of birth field
   Widget _buildKinDateOfBirthField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,8 +762,10 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
               minTime: DateTime(1800, 1, 1),
               maxTime: DateTime.now(),
               onConfirm: (date) {
-                controller.dobController.text =
-                    '${date.year}-${date.month}-${date.day}';
+                setState(() {
+                  controller.dobController.text =
+                  '${date.year}-${date.month}-${date.day}';
+                });
               },
               locale: LocaleType.en,
             );
@@ -675,43 +799,37 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
     );
   }
 
+  // UPDATED: Stateful gender field
   Widget _buildKinGenderField() {
-    return GetBuilder<TreeRegistrationController>(
-      builder: (controller) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Gender"),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
           children: [
-            _buildRequiredLabel("Gender"),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                _buildGenderChip("Male", "male"),
-                _buildGenderChip("Female", "female"),
-              ],
-            ),
+            _buildGenderChip("Male", "male"),
+            _buildGenderChip("Female", "female"),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 
   Widget _buildGenderChip(String label, String value) {
-    return GetBuilder<TreeRegistrationController>(
-      builder: (controller) {
-        final isSelected = controller.genderController.text == value;
-        return ChoiceChip(
-          label: Text(label),
-          selected: isSelected,
-          onSelected: (selected) {
-            controller.genderController.text = selected ? value : '';
-          },
-          selectedColor: fPrimaryColour,
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-          ),
-        );
+    return ChoiceChip(
+      label: Text(label),
+      selected: controller.genderController.text == value,
+      onSelected: (selected) {
+        setState(() {
+          controller.genderController.text = selected ? value : '';
+        });
       },
+      selectedColor: fPrimaryColour,
+      labelStyle: TextStyle(
+        color: controller.genderController.text == value ? Colors.white : Colors.black87,
+      ),
     );
   }
 
@@ -723,6 +841,14 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
             onPressed: () async {
               if (controller.validateForm()) {
                 await controller.saveTreeDataOffline();
+              } else {
+                Get.snackbar(
+                  'Validation Error',
+                  "Please fill all required fields",
+                  snackPosition: SnackPosition.TOP,
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
               }
             },
             style: OutlinedButton.styleFrom(
@@ -750,7 +876,7 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
               } else {
                 Get.snackbar(
                   'Validation Error',
-                  "Please fill all fields",
+                  "Please fill all required fields",
                   snackPosition: SnackPosition.TOP,
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
@@ -777,15 +903,338 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
     );
   }
 
-  // Helper widgets
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+  // NEW: Tree Details Section
+  Widget _buildTreeDetailsSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Tree Details",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildTreeNameField(),
+          const SizedBox(height: 16),
+          _buildPNField(),
+          const SizedBox(height: 16),
+          _buildTreeSpeciesField(),
+          const SizedBox(height: 16),
+          _buildTreeSizeField(),
+          const SizedBox(height: 16),
+          _buildYearOfEstablishment(),
+          const SizedBox(height: 20),
+          _buildAddTreeButton(),
+          const SizedBox(height: 16),
+          _buildTreeList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTreeNameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Tree Name"),
+        const SizedBox(height: 8),
+        TextFieldWidget(
+          controller: controller.treeNameController,
+          decoration: const InputDecoration(
+            hintText: "Enter tree name",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPNField() {
+    return Obx(() => _buildDropdown(
+      title: "P/N",
+      value: controller.pnValue.value,
+      items: controller.pnValues,
+      onChanged: (val) => controller.onPNChanged(val!),
+    ));
+  }
+
+  Widget _buildTreeSpeciesField() {
+    return Obx(() => _buildDropdown(
+      title: "Tree Species",
+      value: controller.treeSpeciesValue.value,
+      items: controller.treeSpeciesValues,
+      onChanged: (val) => controller.onTreeSpeciesChanged(val!),
+    ));
+  }
+
+  Widget _buildTreeSizeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Tree Size (dbh)"),
+        const SizedBox(height: 8),
+        TextFieldWidget(
+          keyboardType: TextInputType.number,
+          controller: controller.treeSizeController,
+          decoration: const InputDecoration(
+            hintText: "Enter tree size in cm",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // UPDATED: Stateful Year of Establishment
+  Widget _buildYearOfEstablishment() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRequiredLabel("Year of Establishment"),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _showYearPicker,
+            child: Obx(() {
+              final year = controller.yoEstablishment.value;
+              final hasError = year.isEmpty;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: hasError ? Colors.red : Colors.grey[300]!,
+                        width: hasError ? 1.5 : 1.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          year.isNotEmpty ? year : 'Select Year',
+                          style: TextStyle(
+                            color: year.isNotEmpty
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontSize: 16,
+                          ),
+                        ),
+                        Icon(Icons.calendar_today, color: fPrimaryColour),
+                      ],
+                    ),
+                  ),
+                  if (hasError)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, top: 4),
+                      child: Text(
+                        'This field is required',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddTreeButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          controller.addTreeFromDetails();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: fPrimaryColour,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: const Text(
+          'Add Tree',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTreeList() {
+    return Obx(() {
+      if (controller.treeData.isEmpty) {
+        return const Center(
+          child: Text(
+            "No trees added yet",
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Added Trees:",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...controller.treeData.map((tree) => Card(
+            child: ListTile(
+              leading: const Icon(Icons.park, color: Colors.green),
+              title: Text(tree['tree_name'] ?? 'Unknown Tree'),
+              subtitle: Text(
+                '${tree['species']} - ${tree['size']}cm - ${tree['yo_establishment']}',
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  controller.removeTree(tree['id']);
+                },
+              ),
+            ),
+          )).toList(),
+        ],
+      );
+    });
+  }
+
+  Widget _buildDropdown({
+    required String title,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    bool isRequired = true,
+  }) {
+    final String? validValue =
+    (value != null && value.isNotEmpty && items.contains(value))
+        ? value
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              if (isRequired)
+                const Text(
+                  ' *',
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: validValue,
+                isExpanded: true,
+                icon: Icon(Icons.arrow_drop_down, color: fPrimaryColour),
+                elevation: 2,
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                hint: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Select $title',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                  ),
+                ),
+                items: items.map<DropdownMenuItem<String>>((String item) {
+                  return DropdownMenuItem<String>(
+                    value: item,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(item, style: const TextStyle(fontSize: 16)),
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showYearPicker() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select Year"),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: YearPicker(
+              firstDate: DateTime(1800),
+              lastDate: DateTime.now(),
+              initialDate: DateTime.now(),
+              selectedDate: DateTime.now(),
+              onChanged: (DateTime date) {
+                Navigator.pop(context);
+                controller.setYearOfEstablishment('${date.year}');
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -814,7 +1263,7 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
     );
   }
 
-  // Bottom Sheet Methods
+  // Bottom Sheet Methods (unchanged, but included for completeness)
   void _showFarmerSelectionBottomSheet() {
     _showSearchableBottomSheet<FarmerFromServerModel>(
       title: "Select Farmer",
@@ -917,44 +1366,44 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
                     : controller.filteredDistricts.isEmpty
                     ? const Center(child: Text('No districts available'))
                     : ListView.builder(
-                        itemCount: controller.filteredDistricts.length,
-                        itemBuilder: (context, index) {
-                          final district = controller.filteredDistricts[index];
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            leading: CircleAvatar(
-                              backgroundColor: fPrimaryColour,
-                              child: const Icon(
-                                Icons.location_city,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            title: Text(
-                              district.districtName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            trailing:
-                                controller.selectedDistrict.value?.districtId ==
-                                    district.districtId
-                                ? Icon(
-                                    Icons.check_circle,
-                                    color: fPrimaryColour,
-                                  )
-                                : null,
-                            onTap: () {
-                              controller.selectDistrict(district);
-                              Navigator.pop(context);
-                            },
-                          );
-                        },
+                  itemCount: controller.filteredDistricts.length,
+                  itemBuilder: (context, index) {
+                    final district = controller.filteredDistricts[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
+                      leading: CircleAvatar(
+                        backgroundColor: fPrimaryColour,
+                        child: const Icon(
+                          Icons.location_city,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        district.districtName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      trailing:
+                      controller.selectedDistrict.value?.districtId ==
+                          district.districtId
+                          ? Icon(
+                        Icons.check_circle,
+                        color: fPrimaryColour,
+                      )
+                          : null,
+                      onTap: () {
+                        controller.selectDistrict(district);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),
@@ -1049,12 +1498,12 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
           type.esta_type ?? 'Unknown Type',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        trailing: controller.selectedEstablishmentType.value?.id == type.id
+        trailing: controller.selectedEstablishmentTypes.contains(type.esta_type)
             ? Icon(Icons.check_circle, color: fPrimaryColour)
             : null,
       ),
       onItemSelected: (type) {
-        controller.selectEstablishmentType(type);
+        controller.toggleEstablishmentType(type.esta_type ?? '');
         Navigator.pop(context);
       },
       filter: (type, query) {
@@ -1164,39 +1613,39 @@ class _TreeRegistrationScreenState extends State<TreeRegistrationScreen> {
                   Expanded(
                     child: filteredItems.isEmpty
                         ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  "No items found",
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: filteredItems.length,
-                            itemBuilder: (context, index) {
-                              final item = filteredItems[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                child: InkWell(
-                                  onTap: () => onItemSelected(item),
-                                  child: itemBuilder(item),
-                                ),
-                              );
-                            },
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey,
                           ),
+                          SizedBox(height: 16),
+                          Text(
+                            "No items found",
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                        : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: filteredItems.length,
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () => onItemSelected(item),
+                            child: itemBuilder(item),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16),

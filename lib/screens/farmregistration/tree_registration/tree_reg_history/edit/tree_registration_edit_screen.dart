@@ -12,25 +12,28 @@ import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/custom_button.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimmer.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
-import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map.dart';
 import 'package:hcms_revived2/screens/farmregistration/tree_registration/tree_reg_history/edit/tree_registration_edit_controller.dart';
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
 
 class TreeRegistrationEditScreen extends StatefulWidget {
+  final TreeRegistrationModel registrationModel;
+  final int registrationId;
+  final bool isIndividual;
+
   const TreeRegistrationEditScreen({
     super.key,
+    required this.registrationModel,
+    required this.registrationId,
     required this.isIndividual,
-    required this.existingRegistration,
   });
 
-  final bool isIndividual;
-  final TreeRegistrationModel existingRegistration;
-
   @override
-  State<TreeRegistrationEditScreen> createState() => _TreeRegistrationEditScreenState();
+  State<TreeRegistrationEditScreen> createState() =>
+      _TreeRegistrationEditScreenState();
 }
 
-class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen> {
+class _TreeRegistrationEditScreenState
+    extends State<TreeRegistrationEditScreen> {
   final TreeRegistrationEditController controller = Get.put(
     TreeRegistrationEditController(),
   );
@@ -40,112 +43,120 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.treeRegisterScreenContext = context;
-      // Load all data first
-      controller.loadAllData();
       // Initialize controller with existing data
-      controller.initializeWithData(widget.existingRegistration);
+      controller.initializeWithData(
+        widget.registrationModel,
+        widget.registrationId,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    controller.initializeWithData(widget.existingRegistration);
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Get.back();
-            controller.resetForm();
-            controller.clearAllTrees();
+            _showExitConfirmation();
           },
         ),
         title: const Text("Edit Tree Registration"),
         backgroundColor: fPrimaryColour,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.isIndividual) _buildFarmerSelectionSection(),
-            const SizedBox(height: 20),
-            _buildLocationSection(),
-            const SizedBox(height: 20),
-            _buildEstablishmentTypeSection(),
-            const SizedBox(height: 20),
-            widget.isIndividual
-                ? _buildNextOfKinSection()
-                : _buildGroupOnlySection(),
-            const SizedBox(height: 20),
-            _buildMappingSection(),
-            const SizedBox(height: 20),
-            _buildTreeDataSection(),
-            const SizedBox(height: 20),
-            _buildActionButtons(),
+      body: Obx(() {
+        if (controller.isLoadingData.value) {
+          return _buildLoadingScreen();
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.isIndividual) _buildFarmerSelectionSection(),
+              const SizedBox(height: 20),
+              _buildLocationSection(),
+              const SizedBox(height: 20),
+              _buildEstablishmentTypeSection(),
+              const SizedBox(height: 20),
+              // if (!controller.showTreeDetailsSection)
+              widget.isIndividual
+                  ? _buildNextOfKinSection()
+                  : _buildGroupOnlySection(),
+              const SizedBox(height: 20),
+
+              // Conditionally show tree details section
+              Obx(() {
+                if (controller.showTreeDetailsSection) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildTreeDetailsSection(),
+                    ],
+                  );
+                }
+                return const SizedBox();
+              }),
+
+              const SizedBox(height: 20),
+              _buildActionButtons(),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  void _showExitConfirmation() {
+    if (controller.hasChanges) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Unsaved Changes'),
+          content: const Text(
+            'You have unsaved changes. Are you sure you want to leave?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Get.back();
+              },
+              child: const Text('Leave', style: TextStyle(color: Colors.red)),
+            ),
           ],
         ),
+      );
+    } else {
+      Get.back();
+    }
+  }
+
+  Widget _buildLoadingScreen() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text(
+            'Loading registration data...',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTreeDataSection() {
-    return GetBuilder<TreeRegistrationEditController>(
-      builder: (controller) {
-        return Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Tree Data",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Number of trees: ${controller.treeData.length}",
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (controller.treeData.isNotEmpty)
-                  ...controller.treeData.map((tree) {
-                    debugPrint("THE TREE :::::::::::: ${tree}");
-                    return ListTile(
-                      leading: const Icon(Icons.park, color: Colors.green),
-                      title: Text(tree['tree_name'] ?? 'Unknown Species'),
-                      subtitle: Text('Size: ${tree['size'] ?? 'N/A'}'),
-                      // trailing: IconButton(
-                      //   icon: const Icon(Icons.delete, color: Colors.red),
-                      //   onPressed: () {
-                      //     controller.removeTree(tree['id'].toString());
-                      //   },
-                      // ),
-                    );
-                  }),
-                if (controller.treeData.isEmpty)
-                  const Center(
-                    child: Text(
-                      "No trees added yet",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // All the other widget methods remain the same as the original TreeRegistrationScreen
+  // but use controller instead of the original controller
 
   Widget _buildGroupOnlySection() {
     return Column(
@@ -233,20 +244,6 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
               borderSide: BorderSide(color: fPrimaryColour, width: 2),
             ),
           ),
-          validator: (input) {
-            if (isRequired && (input == null || input.trim().isEmpty)) {
-              return 'Please enter $title';
-            }
-            if (keyboardType == TextInputType.phone && input != null) {
-              if (input.trim().length < 10) {
-                return 'Phone number must be 10 digits';
-              }
-              if (input.trim().length > 10) {
-                return 'Phone number cannot exceed 10 digits';
-              }
-            }
-            return null;
-          },
         ),
       ],
     );
@@ -257,14 +254,20 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
       builder: (controller) {
         final hasPolygon =
             controller.polygon.value != null &&
-                controller.polygon.value!.points.isNotEmpty;
+            controller.polygon.value!.points.isNotEmpty;
 
         return Column(
           children: [
             if (!hasPolygon) _buildEmptyMappingState(),
             if (hasPolygon) _buildMappingResult(context),
             const SizedBox(height: 16),
-            _buildMapTreesButton(),
+
+            Obx(() {
+              if (!controller.showTreeDetailsSection) {
+                return _buildMapTreesButton();
+              }
+              return const SizedBox();
+            }),
           ],
         );
       },
@@ -272,49 +275,45 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
   }
 
   Widget _buildMapTreesButton() {
-    return GetBuilder<TreeRegistrationEditController>(
-      builder: (controller) {
-        return Container(
-          width: double.maxFinite,
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          decoration: BoxDecoration(
-            color: controller.treeData.isNotEmpty
-                ? fPrimaryColour.withOpacity(0.1)
-                : fSecondaryColour.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: controller.treeData.isNotEmpty
-                  ? fPrimaryColour
-                  : fSecondaryColour,
+    return Container(
+      width: double.maxFinite,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      decoration: BoxDecoration(
+        color: controller.treeData.isNotEmpty
+            ? fPrimaryColour.withOpacity(0.1)
+            : fSecondaryColour.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: controller.treeData.isNotEmpty
+              ? fPrimaryColour
+              : fSecondaryColour,
+        ),
+      ),
+      child: CustomButton(
+        isFullWidth: true,
+        horizontalPadding: 10,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (controller.treeData.isNotEmpty)
+              const Icon(Icons.check_circle, color: fPrimaryColour, size: 24),
+            const SizedBox(width: 5),
+            Text(
+              "Map Trees",
+              style: TextStyle(
+                color: controller.treeData.isNotEmpty
+                    ? fPrimaryColour
+                    : fSecondaryColour,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          child: CustomButton(
-            isFullWidth: true,
-            horizontalPadding: 10,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (controller.treeData.isNotEmpty)
-                  const Icon(Icons.check_circle, color: fPrimaryColour, size: 24),
-                const SizedBox(width: 5),
-                Text(
-                  "Add more trees",
-                  style: TextStyle(
-                    color: controller.treeData.isNotEmpty
-                        ? fPrimaryColour
-                        : fSecondaryColour,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            onTap: () {
-              controller.navigateToMap();
-            },
-          ),
-        );
-      },
+          ],
+        ),
+        onTap: () {
+          controller.navigateToMap();
+        },
+      ),
     );
   }
 
@@ -336,7 +335,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                 Icon(Icons.check_circle, color: fPrimaryColour, size: 60),
                 const SizedBox(height: 15),
                 const Text(
-                  "Boundary Mapped",
+                  "Boundary Mapped Successfully",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -356,11 +355,11 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                       ),
                       const SizedBox(height: 15),
                       Text(
-                        '${(controller.totalSizeAcres.value?.isNotEmpty ?? false) ? (double.tryParse(controller.totalSizeAcres.value ?? '0.0') ?? 0.0).truncateToDecimalPlaces(6).toString() : "0.0"} ha',
+                        '${controller.totalSizeAcres.value.isNotEmpty ? double.parse(controller.totalSizeAcres.value).truncateToDecimalPlaces(6).toString() : "0.0"} ha',
                         style: const TextStyle(
                           color: Colors.black87,
                           fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -368,18 +367,17 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                   ),
                 ),
                 const SizedBox(height: 25),
-
                 CustomButton(
                   horizontalPadding: 10,
                   isFullWidth: true,
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.redAccent,
                   verticalPadding: 16,
                   onTap: () {
                     Globals().primaryConfirmDialog(
                       context: ctx,
-                      title: "Edit Boundary",
+                      title: "New Boundary",
                       content: const Text(
-                        "Please take note that proceeding means you are going to remap the farm boundary.",
+                        "Please take note that proceeding means you are going to map the whole farm area again.",
                       ),
                       okayTap: () {
                         Navigator.pop(ctx);
@@ -388,7 +386,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                     );
                   },
                   child: const Text(
-                    'Edit Boundary',
+                    'Map New Boundary',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -441,7 +439,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                 controller.usePolygonDrawingTool();
               },
               child: const Text(
-                'Map Farm Boundary',
+                'Start Farm Mapping',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -457,10 +455,9 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
 
   Widget _buildFarmerSelectionSection() {
     return Obx(
-          () => Column(
+      () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // _buildSectionTitle("Select Farmer"),
           const SizedBox(height: 12),
           _buildSearchableDropdownField(
             title: "Farmer",
@@ -469,7 +466,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                 ? '${controller.selectedFarmer.value!.farmerName} - ${controller.selectedFarmer.value!.contact}'
                 : "Select Farmer",
             onTap: _showFarmerSelectionBottomSheet,
-            isLoading: false,
+            isLoading: controller.isLoadingFarmers.value,
           ),
         ],
       ),
@@ -480,25 +477,23 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Region Dropdown
         Obx(
-              () => _buildSearchableDropdownField(
+          () => _buildSearchableDropdownField(
             title: "Region",
             selectedItem: controller.selectedRegion.value,
             displayText:
-            controller.selectedRegion.value?.regionName ?? "Select Region",
+                controller.selectedRegion.value?.regionName ?? "Select Region",
             onTap: () => _showRegionSelectionBottomSheet(),
             isLoading: controller.isLoadingRegions.value,
           ),
         ),
         const SizedBox(height: 16),
-        // District Dropdown
         Obx(
-              () => _buildSearchableDropdownField(
+          () => _buildSearchableDropdownField(
             title: "District",
             selectedItem: controller.selectedDistrict.value,
             displayText:
-            controller.selectedDistrict.value?.districtName ??
+                controller.selectedDistrict.value?.districtName ??
                 "Select District",
             onTap: controller.selectedRegion.value != null
                 ? () => _showDistrictSelectionBottomSheet()
@@ -511,9 +506,8 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
           ),
         ),
         const SizedBox(height: 16),
-        // MMDA Dropdown
         Obx(
-              () => _buildSearchableDropdownField(
+          () => _buildSearchableDropdownField(
             title: "MMDA",
             selectedItem: controller.selectedMMDA.value,
             displayText: controller.selectedMMDA.value?.mmda ?? "Select MMDA",
@@ -528,13 +522,12 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
           ),
         ),
         const SizedBox(height: 16),
-        // Community Dropdown
         Obx(
-              () => _buildSearchableDropdownField(
+          () => _buildSearchableDropdownField(
             title: "Community",
             selectedItem: controller.selectedCommunity.value,
             displayText:
-            controller.selectedCommunity.value?.community ??
+                controller.selectedCommunity.value?.community ??
                 "Select Community",
             onTap: () => _showCommunitySelectionBottomSheet(),
             isLoading: controller.isLoadingCommunities.value,
@@ -593,8 +586,8 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                         fontSize: 16,
                         color: enabled
                             ? (selectedItem != null
-                            ? Colors.black87
-                            : Colors.grey)
+                                  ? Colors.black87
+                                  : Colors.grey)
                             : Colors.grey.shade500,
                       ),
                     ),
@@ -624,19 +617,108 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildRequiredLabel("Establishment Type"),
         const SizedBox(height: 8),
-        Obx(
-              () => _buildSearchableDropdownField(
-            title: "Establishment Type",
-            selectedItem: controller.selectedEstablishmentType.value,
-            displayText:
-            controller.selectedEstablishmentType.value?.esta_type ??
-                "Select Establishment Type",
-            onTap: () => _showEstablishmentTypeSelectionBottomSheet(),
-            isLoading: controller.isLoadingEstablishmentTypes.value,
-            enabled: !controller.isLoadingEstablishmentTypes.value,
-          ),
+        const Text(
+          "Select all that apply",
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
+        const SizedBox(height: 12),
+        Obx(() {
+          final selectedTypes = controller.selectedEstablishmentTypes;
+          final hasSpecialType = selectedTypes.any(
+            (type) =>
+                type == 'Woodlot' ||
+                type == 'Commercial Plantation' ||
+                type == 'Other',
+          );
+
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.establishmentTypesData.map((type) {
+              final typeName = type.esta_type ?? 'Unknown';
+              final isSelected = controller.isEstablishmentTypeSelected(
+                typeName,
+              );
+
+              bool isEnabled = true;
+
+              if (hasSpecialType) {
+                final isSpecialType =
+                    typeName == 'Woodlot' ||
+                    typeName == 'Commercial Plantation' ||
+                    typeName == 'Other';
+                final isSelectedSpecialType = selectedTypes.any(
+                  (selected) =>
+                      selected == 'Woodlot' ||
+                      selected == 'Commercial Plantation' ||
+                      selected == 'Other',
+                );
+
+                if (isSelectedSpecialType && !isSpecialType) {
+                  isEnabled = false;
+                } else if (!isSelectedSpecialType &&
+                    isSpecialType &&
+                    selectedTypes.isNotEmpty) {
+                  isEnabled = false;
+                }
+              } else if (selectedTypes.isNotEmpty) {
+                final isSpecialType =
+                    typeName == 'Woodlot' ||
+                    typeName == 'Commercial Plantation' ||
+                    typeName == 'Other';
+                if (isSpecialType) {
+                  isEnabled = false;
+                }
+              }
+
+              return FilterChip(
+                label: Text(typeName),
+                selected: isSelected,
+                onSelected: isEnabled
+                    ? (selected) {
+                        controller.toggleEstablishmentType(typeName);
+                      }
+                    : null,
+                selectedColor: fPrimaryColour.withOpacity(0.2),
+                checkmarkColor: fPrimaryColour,
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? fPrimaryColour
+                      : isEnabled
+                      ? Colors.black87
+                      : Colors.grey.shade400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected
+                        ? fPrimaryColour
+                        : isEnabled
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade300,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                backgroundColor: isEnabled ? null : Colors.grey.shade100,
+              );
+            }).toList(),
+          );
+        }),
+        Obx(() {
+          if (controller.selectedEstablishmentTypes.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Please select at least one establishment type',
+                style: TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            );
+          }
+          return const SizedBox();
+        }),
       ],
     );
   }
@@ -716,8 +798,10 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
               minTime: DateTime(1800, 1, 1),
               maxTime: DateTime.now(),
               onConfirm: (date) {
-                controller.dobController.text =
-                '${date.year}-${date.month}-${date.day}';
+                setState(() {
+                  controller.dobController.text =
+                      '${date.year}-${date.month}-${date.day}';
+                });
               },
               locale: LocaleType.en,
             );
@@ -752,42 +836,37 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
   }
 
   Widget _buildKinGenderField() {
-    return GetBuilder<TreeRegistrationEditController>(
-      builder: (controller) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Gender"),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
           children: [
-            _buildRequiredLabel("Gender"),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                _buildGenderChip("Male", "male"),
-                _buildGenderChip("Female", "female"),
-              ],
-            ),
+            _buildGenderChip("Male", "male"),
+            _buildGenderChip("Female", "female"),
           ],
-        );
-      },
+        ),
+      ],
     );
   }
 
   Widget _buildGenderChip(String label, String value) {
-    return GetBuilder<TreeRegistrationEditController>(
-      builder: (controller) {
-        final isSelected = controller.genderController.text == value;
-        return ChoiceChip(
-          label: Text(label),
-          selected: isSelected,
-          onSelected: (selected) {
-            controller.genderController.text = selected ? value : '';
-          },
-          selectedColor: fPrimaryColour,
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-          ),
-        );
+    return ChoiceChip(
+      label: Text(label),
+      selected: controller.genderController.text == value,
+      onSelected: (selected) {
+        setState(() {
+          controller.genderController.text = selected ? value : '';
+        });
       },
+      selectedColor: fPrimaryColour,
+      labelStyle: TextStyle(
+        color: controller.genderController.text == value
+            ? Colors.white
+            : Colors.black87,
+      ),
     );
   }
 
@@ -798,7 +877,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
           child: OutlinedButton(
             onPressed: () async {
               if (controller.validateForm()) {
-                await controller.updateTreeData();
+                await controller.saveTreeDataOffline();
               } else {
                 Get.snackbar(
                   'Validation Error',
@@ -830,7 +909,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
           child: ElevatedButton(
             onPressed: () async {
               if (controller.validateForm()) {
-                await controller.submitUpdatedTreeData();
+                await controller.submitTreeData();
               } else {
                 Get.snackbar(
                   'Validation Error',
@@ -861,15 +940,322 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
     );
   }
 
-  // Helper widgets
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
+  Widget _buildTreeDetailsSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Tree Details",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildTreeNameField(),
+          const SizedBox(height: 16),
+          _buildPNField(),
+          const SizedBox(height: 16),
+          _buildTreeSpeciesField(),
+          const SizedBox(height: 16),
+          _buildTreeSizeField(),
+          const SizedBox(height: 16),
+          _buildYearOfEstablishment(),
+          const SizedBox(height: 20),
+          _buildAddTreeButton(),
+          const SizedBox(height: 16),
+          _buildTreeList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTreeNameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Tree Name"),
+        const SizedBox(height: 8),
+        TextFieldWidget(
+          controller: controller.treeNameController,
+          decoration: const InputDecoration(
+            hintText: "Enter tree name",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPNField() {
+    return Obx(
+      () => _buildDropdown(
+        title: "P/N",
+        value: controller.pnValue.value,
+        items: controller.pnValues,
+        onChanged: (val) => controller.onPNChanged(val!),
+      ),
+    );
+  }
+
+  Widget _buildTreeSpeciesField() {
+    return Obx(
+      () => _buildDropdown(
+        title: "Tree Species",
+        value: controller.treeSpeciesValue.value,
+        items: controller.treeSpeciesValues,
+        onChanged: (val) => controller.onTreeSpeciesChanged(val!),
+      ),
+    );
+  }
+
+  Widget _buildTreeSizeField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRequiredLabel("Tree Size (dbh)"),
+        const SizedBox(height: 8),
+        TextFieldWidget(
+          keyboardType: TextInputType.number,
+          controller: controller.treeSizeController,
+          decoration: const InputDecoration(
+            hintText: "Enter tree size in cm",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildYearOfEstablishment() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRequiredLabel("Year of Establishment"),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _showYearPicker,
+            child: Obx(() {
+              final year = controller.yoEstablishment.value;
+              final hasError = year.isEmpty;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: hasError ? Colors.red : Colors.grey[300]!,
+                        width: hasError ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          year.isNotEmpty ? year : 'Select Year',
+                          style: TextStyle(
+                            color: year.isNotEmpty
+                                ? Colors.black87
+                                : Colors.grey[500],
+                            fontSize: 16,
+                          ),
+                        ),
+                        Icon(Icons.calendar_today, color: fPrimaryColour),
+                      ],
+                    ),
+                  ),
+                  if (hasError)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, top: 4),
+                      child: Text(
+                        'This field is required',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddTreeButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          controller.addTreeFromDetails();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: fPrimaryColour,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: const Text(
+          'Add Tree',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTreeList() {
+    return Obx(() {
+      if (controller.treeData.isEmpty) {
+        return const Center(
+          child: Text(
+            "No trees added yet",
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Added Trees:",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          ...controller.treeData
+              .map(
+                (tree) => Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.park, color: Colors.green),
+                    title: Text(tree['tree_name'] ?? 'Unknown Tree'),
+                    subtitle: Text(
+                      '${tree['species']} - ${tree['size']}cm - ${tree['yo_establishment']}',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        controller.removeTree(tree['id']);
+                      },
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ],
+      );
+    });
+  }
+
+  Widget _buildDropdown({
+    required String title,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    bool isRequired = true,
+  }) {
+    final String? validValue =
+        (value != null && value.isNotEmpty && items.contains(value))
+        ? value
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              if (isRequired)
+                const Text(
+                  ' *',
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: validValue,
+                isExpanded: true,
+                icon: Icon(Icons.arrow_drop_down, color: fPrimaryColour),
+                elevation: 2,
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                hint: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Select $title',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 16),
+                  ),
+                ),
+                items: items.map<DropdownMenuItem<String>>((String item) {
+                  return DropdownMenuItem<String>(
+                    value: item,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(item, style: const TextStyle(fontSize: 16)),
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showYearPicker() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select Year"),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: YearPicker(
+              firstDate: DateTime(1800),
+              lastDate: DateTime.now(),
+              initialDate: DateTime.now(),
+              selectedDate: DateTime.now(),
+              onChanged: (DateTime date) {
+                Navigator.pop(context);
+                controller.setYearOfEstablishment('${date.year}');
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -898,7 +1284,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
     );
   }
 
-  // Bottom Sheet Methods (same as original, but using EditController)
+  // Bottom Sheet Methods (same as original)
   void _showFarmerSelectionBottomSheet() {
     _showSearchableBottomSheet<FarmerFromServerModel>(
       title: "Select Farmer",
@@ -999,44 +1385,44 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                     : controller.filteredDistricts.isEmpty
                     ? const Center(child: Text('No districts available'))
                     : ListView.builder(
-                  itemCount: controller.filteredDistricts.length,
-                  itemBuilder: (context, index) {
-                    final district = controller.filteredDistricts[index];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        itemCount: controller.filteredDistricts.length,
+                        itemBuilder: (context, index) {
+                          final district = controller.filteredDistricts[index];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            leading: CircleAvatar(
+                              backgroundColor: fPrimaryColour,
+                              child: const Icon(
+                                Icons.location_city,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              district.districtName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing:
+                                controller.selectedDistrict.value?.districtId ==
+                                    district.districtId
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: fPrimaryColour,
+                                  )
+                                : null,
+                            onTap: () {
+                              controller.selectDistrict(district);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
                       ),
-                      leading: CircleAvatar(
-                        backgroundColor: fPrimaryColour,
-                        child: const Icon(
-                          Icons.location_city,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      title: Text(
-                        district.districtName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      trailing:
-                      controller.selectedDistrict.value?.districtId ==
-                          district.districtId
-                          ? Icon(
-                        Icons.check_circle,
-                        color: fPrimaryColour,
-                      )
-                          : null,
-                      onTap: () {
-                        controller.selectDistrict(district);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                ),
               ),
             ],
           ),
@@ -1129,12 +1515,12 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
           type.esta_type ?? 'Unknown Type',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        trailing: controller.selectedEstablishmentType.value?.id == type.id
+        trailing: controller.selectedEstablishmentTypes.contains(type.esta_type)
             ? Icon(Icons.check_circle, color: fPrimaryColour)
             : null,
       ),
       onItemSelected: (type) {
-        controller.selectEstablishmentType(type);
+        controller.toggleEstablishmentType(type.esta_type ?? '');
         Navigator.pop(context);
       },
       filter: (type, query) {
@@ -1212,7 +1598,7 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                     padding: const EdgeInsets.all(16),
                     child: TextField(
                       controller: searchController,
-                      // onChanged: (_) => controller!.update(),
+                      onChanged: (_) => controller.update(),
                       decoration: InputDecoration(
                         hintText: searchHint,
                         prefixIcon: const Icon(Icons.search),
@@ -1244,39 +1630,39 @@ class _TreeRegistrationEditScreenState extends State<TreeRegistrationEditScreen>
                   Expanded(
                     child: filteredItems.isEmpty
                         ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_off,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            "No items found",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  "No items found",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    )
+                          )
                         : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () => onItemSelected(item),
-                            child: itemBuilder(item),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: InkWell(
+                                  onTap: () => onItemSelected(item),
+                                  child: itemBuilder(item),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(16),

@@ -28,14 +28,15 @@ import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimme
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/polygon_drawing_tool/polygon_drawing_tool.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map.dart';
-import '../../../../addedMaps/dependencies/style.dart';
+
 
 class TreeRegistrationEditController extends GetxController {
   // Context for navigation and dialogs
   BuildContext? treeRegisterScreenContext;
 
-  // Existing registration data
-  TreeRegistrationModel? existingRegistration;
+  // The original model being edited
+  TreeRegistrationModel? originalModel;
+  int? registrationId;
 
   // Selected values with reactive observables
   var selectedFarmer = Rxn<FarmerFromServerModel>();
@@ -43,7 +44,18 @@ class TreeRegistrationEditController extends GetxController {
   var selectedDistrict = Rxn<DistrictModel>();
   var selectedMMDA = Rxn<MMDAModel>();
   var selectedCommunity = Rxn<CommunityModel>();
-  var selectedEstablishmentType = Rxn<EstaTypeModel>();
+
+  // Multi-select establishment types
+  var selectedEstablishmentTypes = <String>[].obs;
+
+  // Tree details controllers
+  final treeNameController = TextEditingController();
+  final treeSizeController = TextEditingController();
+  var pnValue = ''.obs;
+  var treeSpeciesValue = ''.obs;
+  var yoEstablishment = ''.obs;
+  final pnValues = ["Planted", "Natural"];
+  final treeSpeciesValues = ["Acacia", "Bamboo", "Teak", "Mahogany", "Other"];
 
   // Data lists
   var farmerData = <FarmerFromServerModel>[].obs;
@@ -81,53 +93,152 @@ class TreeRegistrationEditController extends GetxController {
   var isLoadingMMDAs = false.obs;
   var isLoadingCommunities = false.obs;
   var isLoadingEstablishmentTypes = false.obs;
+  var isLoadingData = false.obs;
 
   // Mapping related observables
   var markers = Rxn<Set<Marker>>();
   var polygon = Rxn<Polygon>();
   var totalSizeAcres = ''.obs;
 
-  final List<Map<String, dynamic>> treeData = [];
+  final treeData = <Map<String, dynamic>>[].obs;
+
+  // Computed properties
+  bool get showTreeDetailsSection {
+    final selectedTypes = selectedEstablishmentTypes;
+    return selectedTypes.contains('Woodlot') ||
+        selectedTypes.contains('Commercial Plantation') ||
+        selectedTypes.contains('Other');
+  }
 
   bool isTreeDataEmpty() {
     return treeData.isEmpty;
   }
 
+  // Initialize with existing data
+  Future<void> initializeWithData(TreeRegistrationModel model, int id) async {
+    isLoadingData.value = true;
+    originalModel = model;
+    registrationId = id;
+
+    try {
+      // Load all necessary data first
+      await _loadAllData();
+
+      // Initialize form fields with model data
+      _initializeFormFields(model);
+
+      // Initialize mapping data if available
+      _initializeMappingData(model);
+
+      // Initialize tree data
+      _initializeTreeData(model);
+
+    } catch (e) {
+      debugPrint('Error initializing edit form: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to load registration data',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoadingData.value = false;
+    }
+  }
+
+  void _initializeFormFields(TreeRegistrationModel model) {
+    // Initialize establishment types
+    if (model.establishmentType != null && model.establishmentType!.isNotEmpty) {
+      selectedEstablishmentTypes.assignAll(model.establishmentType!.split(', '));
+    }
+
+    // Initialize next of kin data
+    nextOfKinNameController.text = model.nextOfKinName ?? '';
+    relationShipWithNextOfKinController.text = model.farmerRelationshipWithNextOfKin ?? '';
+
+    if (model.nextOfKinDoB != null) {
+      dobController.text = '${model.nextOfKinDoB!.year}-${model.nextOfKinDoB!.month}-${model.nextOfKinDoB!.day}';
+    }
+
+    // Initialize selected region
+    selectedRegion.value = regionsData.firstWhere((region) => region.id == model.regionId);
+
+
+    genderController.text = model.nextOfKinGender ?? '';
+    phoneNumberController.text = model.nextOfKinPhoneNumber ?? '';
+    postalAddressController.text = model.nextOfKinPostalAddress ?? '';
+
+    // Initialize group data
+    groupNameController.text = model.groupName ?? '';
+    groupPresidentController.text = model.groupPresident ?? '';
+    groupSecretaryController.text = model.groupSecretary ?? '';
+    companyDirectorsController.text = model.companyDirectors ?? '';
+    groupPhoneController.text = model.groupPhoneNumber ?? '';
+    groupEmailController.text = model.groupEmail ?? '';
+    groupAddressController.text = model.groupPostalAddress ?? '';
+    groupregNumbController.text = model.groupRegNumb ?? '';
+
+    // Set farm size
+    if (model.farmSize != null) {
+      totalSizeAcres.value = model.farmSize!.toString();
+    }
+  }
+
+  void _initializeMappingData(TreeRegistrationModel model) {
+    if (model.farmBoundaryPolygon != null && model.farmBoundaryPolygon!.isNotEmpty) {
+      try {
+        final boundaryJson = utf8.decode(model.farmBoundaryPolygon!);
+        final boundaryData = jsonDecode(boundaryJson) as List;
+
+        final points = boundaryData.map((point) {
+          return LatLng(
+            point['latitude'] ?? 0.0,
+            point['longitude'] ?? 0.0,
+          );
+        }).toList();
+
+        if (points.isNotEmpty) {
+          polygon.value = Polygon(
+            polygonId: const PolygonId('farm_boundary'),
+            points: points,
+            strokeWidth: 2,
+            strokeColor: fPrimaryColour,
+            fillColor: fPrimaryColour.withOpacity(0.15),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error parsing boundary data: $e');
+      }
+    }
+  }
+
+  void _initializeTreeData(TreeRegistrationModel model) {
+    if (model.trees.isNotEmpty) {
+      treeData.assignAll(model.trees);
+    }
+  }
+
   // Method to add a tree to the list
   void addTree(Map<String, dynamic> tree) {
     treeData.add(tree);
-    update();
   }
 
   // Method to remove a tree from the list
   void removeTree(String treeId) {
     treeData.removeWhere((tree) => tree['id'] == treeId);
-    update();
   }
 
   // Method to clear all trees
   void clearAllTrees() {
     treeData.clear();
-    update();
   }
 
-  // Signature states
-  var farmerSignature = ''.obs;
-  var witnessSignature = ''.obs;
-  var farmerSig = Rxn<File>();
-  var witnessSig = Rxn<File>();
-
-  // Initialize with existing data
-  void initializeWithData(TreeRegistrationModel registration) {
-    existingRegistration = registration;
-    _populateFormData(registration);
+  @override
+  void onInit() {
+    super.onInit();
+    // Don't load data automatically - wait for initializeWithData call
   }
-
-  // @override
-  // void onInit() {
-  //   super.onInit();
-  //   _loadAllData();
-  // }
 
   @override
   void onClose() {
@@ -140,97 +251,13 @@ class TreeRegistrationEditController extends GetxController {
     postalAddressController.dispose();
     witnessNameController.dispose();
     witnessPhoneController.dispose();
+    treeNameController.dispose();
+    treeSizeController.dispose();
     super.onClose();
   }
 
-  /// Populates form with existing data
-  void _populateFormData(TreeRegistrationModel registration) {
-
-    final data = registration.toJson();
-    debugPrint("THE REGISTRATION DATA ::::::::::: $data");
-    // Populate farmer data if available
-    if (registration.farmerId.toString().isNotEmpty) {
-      // Find and set the farmer from farmerData
-      final farmer = farmerData.firstWhereOrNull(
-              (f) => f.id == registration.farmerId
-      );
-      if (farmer != null) {
-        selectedFarmer.value = farmer;
-      }
-    }
-
-    debugPrint("THE SELECTED FARMER ::::::::::: ${selectedFarmer.value}");
-
-    // Populate text fields
-    nextOfKinNameController.text = registration.nextOfKinName!;
-    relationShipWithNextOfKinController.text = registration.farmerRelationshipWithNextOfKin!;
-    dobController.text = registration.nextOfKinDoB!.toIso8601String().split('T')[0];
-    genderController.text = registration.nextOfKinGender!;
-    phoneNumberController.text = registration.nextOfKinPhoneNumber!;
-    postalAddressController.text = registration.nextOfKinPostalAddress!;
-
-    selectedRegion.value = regionsData.firstWhereOrNull((r) => r.districtId == registration.districtId);
-    selectedDistrict.value = filteredDistricts.firstWhereOrNull((d) => d.districtId == registration.districtId);
-    selectedMMDA.value = mmdasData.firstWhereOrNull((m) => m.id == registration.mmdaId);
-    selectedCommunity.value = communitiesData.firstWhereOrNull((c) => c.id == registration.communityId);
-    selectedEstablishmentType.value = establishmentTypesData.firstWhereOrNull((e) => e.id == registration.id);
-
-    selectRegion(selectedRegion.value);
-    selectDistrict(selectedRegion.value);
-    selectMMDA(selectedMMDA.value);
-    selectCommunity(selectedCommunity.value);
-    selectEstablishmentType(selectedEstablishmentType.value);
-
-    debugPrint("THE SELECTED REGION ::::::::::: ${selectedRegion.value}");
-    debugPrint("THE SELECTED DISTRICT ::::::::::: ${selectedDistrict.value}");
-    debugPrint("THE SELECTED MMDA ::::::::::: ${selectedMMDA.value}");
-    debugPrint("THE SELECTED COMMUNITY ::::::::::: ${selectedCommunity.value}");
-    debugPrint("THE SELECTED ESTABLISHMENT TYPE ::::::::::: ${selectedEstablishmentType.value}");
-
-    // Populate group fields
-    groupNameController.text = registration.groupName!;
-    groupPresidentController.text = registration.groupPresident!;
-    groupSecretaryController.text = registration.groupSecretary!;
-    companyDirectorsController.text = registration.companyDirectors!;
-    groupPhoneController.text = registration.groupPhoneNumber!;
-    groupEmailController.text = registration.groupEmail!;
-    groupAddressController.text = registration.groupPostalAddress!;
-    groupregNumbController.text = registration.groupRegNumb!;
-
-    totalSizeAcres.value = registration.farmSize.toString();
-
-    // Populate tree data
-    treeData.clear();
-    treeData.addAll(registration.trees);
-
-    // Populate polygon data if available
-    if (registration.farmBoundaryPolygon!.isNotEmpty) {
-      try {
-        final boundaryJson = utf8.decode(registration.farmBoundaryPolygon!);
-        final boundaryData = jsonDecode(boundaryJson) as List;
-        final points = boundaryData.map((point) => LatLng(
-          point['latitude'] as double,
-          point['longitude'] as double,
-        )).toList();
-
-        if (points.isNotEmpty) {
-          polygon.value = Polygon(
-            polygonId: const PolygonId('existing_polygon'),
-            points: points,
-            strokeWidth: 2,
-            strokeColor: fPrimaryColour,
-            fillColor: fPrimaryColour.withOpacity(0.15),
-          );
-          // totalSizeAcres.value = '0.0';
-        }
-      } catch (e) {
-        debugPrint('Error parsing boundary data: $e');
-      }
-    }
-  }
-
   /// Loads all initial data required for the form
-  Future<void> loadAllData() async {
+  Future<void> _loadAllData() async {
     await Future.wait([
       loadEstablishmentTypesData(),
       loadFarmerData(),
@@ -239,12 +266,73 @@ class TreeRegistrationEditController extends GetxController {
       loadCommunitiesData(),
     ]);
 
-    debugPrint("THE FARMER FROM SERVER ::::::: ${farmerData.length}");
-    debugPrint("THE REGIONS FROM SERVER ::::::: ${regionsData.length}");
-    debugPrint("THE DISTRICTS FROM SERVER ::::::: ${filteredDistricts.length}");
-    debugPrint("THE MMDAS FROM SERVER ::::::: ${mmdasData.length}");
-    debugPrint("THE COMMUNITIES FROM SERVER ::::::: ${communitiesData.length}");
-    debugPrint("THE ESTABLISHMENT TYPES FROM SERVER ::::::: ${establishmentTypesData.length}");
+    // After loading data, set the selected values from the model
+    _setSelectedValuesFromModel();
+  }
+
+  void _setSelectedValuesFromModel() {
+    if (originalModel == null) return;
+
+    // Set selected farmer
+    if (originalModel!.farmerId != null) {
+      final farmer = farmerData.firstWhereOrNull(
+              (f) => f.id == originalModel!.farmerId
+      );
+      if (farmer != null) {
+        selectedFarmer.value = farmer;
+      }
+    }
+
+    // Set selected region
+    if (originalModel!.regionId != null) {
+      final region = regionsData.firstWhereOrNull(
+              (r) => r.id == originalModel!.regionId
+      );
+      if (region != null) {
+        selectedRegion.value = region;
+        _updateFilteredDistricts().then((_) {
+          selectedDistrict.value = filteredDistricts.firstWhereOrNull(
+                  (d) => d.districtId == originalModel!.districtId
+          );
+          // After districts are loaded, set selected district
+          _setDistrictAndMMDA();
+        });
+      }
+    }
+  }
+
+  void _setDistrictAndMMDA() {
+    if (originalModel == null) return;
+
+    // Set selected district
+    if (originalModel!.districtId != null) {
+      final district = filteredDistricts.firstWhereOrNull(
+              (d) => d.districtId == originalModel!.districtId
+      );
+      if (district != null) {
+        selectedDistrict.value = district;
+      }
+    }
+
+    // Set selected MMDA
+    if (originalModel!.mmdaId != null) {
+      final mmda = mmdasData.firstWhereOrNull(
+              (m) => m.id == originalModel!.mmdaId
+      );
+      if (mmda != null) {
+        selectedMMDA.value = mmda;
+      }
+    }
+
+    // Set selected community
+    if (originalModel!.communityId != null) {
+      final community = communitiesData.firstWhereOrNull(
+              (c) => c.id == originalModel!.communityId
+      );
+      if (community != null) {
+        selectedCommunity.value = community;
+      }
+    }
   }
 
   /// Fetches farmer data from repository
@@ -252,18 +340,7 @@ class TreeRegistrationEditController extends GetxController {
     isLoadingFarmers.value = true;
     try {
       final farmers = await FarmerFromServerRepository().getAllFarmers();
-      debugPrint("THE FARMER FROM SERVER ::::::: ${farmers.length}");
       farmerData.assignAll(farmers);
-
-      // If we have existing registration, set the farmer after data is loaded
-      if (existingRegistration != null) {
-        final farmer = farmers.firstWhereOrNull(
-                (f) => f.id == existingRegistration!.farmerId
-        );
-        if (farmer != null) {
-          selectedFarmer.value = farmer;
-        }
-      }
     } catch (e) {
       debugPrint('Error loading farmers: $e');
     } finally {
@@ -281,6 +358,7 @@ class TreeRegistrationEditController extends GetxController {
         districtName: obj.districtName,
         districtId: obj.districtId,
         regionId: obj.regionId,
+        id: obj.id,
       )).toList();
       regionsData.assignAll(regionModels);
     } catch (e) {
@@ -319,27 +397,75 @@ class TreeRegistrationEditController extends GetxController {
 
   /// Fetches establishment types data from repository
   Future<void> loadEstablishmentTypesData() async {
-    debugPrint("Loading establishments");
     isLoadingEstablishmentTypes.value = true;
     try {
       final establishmentTypes = await EstaTypeRepository().getAllEstaTypes();
       if (establishmentTypes.isNotEmpty) {
         establishmentTypesData.assignAll(establishmentTypes);
+        establishmentTypesData.add(EstaTypeModel(id: establishmentTypes.length + 1, esta_type: 'Other'));
       } else {
+        // Fallback data
         establishmentTypesData.assignAll([
-          EstaTypeModel(id: 1, esta_type: 'Farmer'),
-          EstaTypeModel(id: 2, esta_type: 'Group'),
+          EstaTypeModel(id: 1, esta_type: 'Woodlot'),
+          EstaTypeModel(id: 2, esta_type: 'Commercial Plantation'),
+          EstaTypeModel(id: 3, esta_type: 'Home Garden'),
+          EstaTypeModel(id: 4, esta_type: 'Other'),
         ]);
       }
     } catch (e) {
       debugPrint('Error loading establishment types: $e');
       establishmentTypesData.assignAll([
-        EstaTypeModel(id: 1, esta_type: 'Farmer'),
-        EstaTypeModel(id: 2, esta_type: 'Group'),
+        EstaTypeModel(id: 1, esta_type: 'Woodlot'),
+        EstaTypeModel(id: 2, esta_type: 'Commercial Plantation'),
+        EstaTypeModel(id: 3, esta_type: 'Home Garden'),
+        EstaTypeModel(id: 4, esta_type: 'Other'),
       ]);
     } finally {
       isLoadingEstablishmentTypes.value = false;
     }
+  }
+
+  // Establishment type selection methods
+  void toggleEstablishmentType(String type) {
+    final isSpecialType = type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other';
+    final hasSpecialType = selectedEstablishmentTypes.any((selected) =>
+    selected == 'Woodlot' || selected == 'Commercial Plantation' || selected == 'Other');
+    final hasNonSpecialType = selectedEstablishmentTypes.any((selected) =>
+    selected != 'Woodlot' && selected != 'Commercial Plantation' && selected != 'Other');
+
+    if (selectedEstablishmentTypes.contains(type)) {
+      // Deselecting
+      selectedEstablishmentTypes.remove(type);
+    } else {
+      // Selecting new type
+      if (isSpecialType && hasNonSpecialType) {
+        Get.snackbar(
+          'Selection Error',
+          'Woodlot, Commercial Plantation, and Other cannot be combined with other establishment types.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      } else if (!isSpecialType && hasSpecialType) {
+        Get.snackbar(
+          'Selection Error',
+          'Other establishment types cannot be combined with Woodlot, Commercial Plantation, or Other.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      } else {
+        // Valid selection
+        selectedEstablishmentTypes.add(type);
+      }
+    }
+    update();
+  }
+
+  bool isEstablishmentTypeSelected(String type) {
+    return selectedEstablishmentTypes.contains(type);
   }
 
   // Selection methods
@@ -371,8 +497,19 @@ class TreeRegistrationEditController extends GetxController {
     selectedCommunity.value = community;
   }
 
-  void selectEstablishmentType(EstaTypeModel? establishmentType) {
-    selectedEstablishmentType.value = establishmentType;
+  // Tree details methods
+  void onTreeSpeciesChanged(String value) {
+    treeSpeciesValue.value = value;
+    update();
+  }
+
+  void onPNChanged(String value) {
+    pnValue.value = value;
+    update();
+  }
+
+  void setYearOfEstablishment(String year) {
+    yoEstablishment.value = year;
     update();
   }
 
@@ -402,7 +539,7 @@ class TreeRegistrationEditController extends GetxController {
         selectedDistrict.value != null &&
         selectedMMDA.value != null &&
         selectedCommunity.value != null &&
-        selectedEstablishmentType.value != null &&
+        selectedEstablishmentTypes.isNotEmpty &&
         nextOfKinNameController.text.isNotEmpty &&
         relationShipWithNextOfKinController.text.isNotEmpty &&
         dobController.text.isNotEmpty &&
@@ -418,7 +555,7 @@ class TreeRegistrationEditController extends GetxController {
     selectedDistrict.value = null;
     selectedMMDA.value = null;
     selectedCommunity.value = null;
-    selectedEstablishmentType.value = null;
+    selectedEstablishmentTypes.clear();
 
     nextOfKinNameController.clear();
     relationShipWithNextOfKinController.clear();
@@ -428,26 +565,16 @@ class TreeRegistrationEditController extends GetxController {
     postalAddressController.clear();
     witnessNameController.clear();
     witnessPhoneController.clear();
+    treeNameController.clear();
+    treeSizeController.clear();
 
-    groupNameController.clear();
-    groupPresidentController.clear();
-    groupSecretaryController.clear();
-    groupDirectorsController.clear();
-    companyDirectorsController.clear();
-    groupPhoneController.clear();
-    groupregNumbController.clear();
-    groupEmailController.clear();
-    groupAddressController.clear();
-
-    farmerSignature.value = '';
-    witnessSignature.value = '';
-    farmerSig.value = null;
-    witnessSig.value = null;
+    pnValue.value = '';
+    treeSpeciesValue.value = '';
+    yoEstablishment.value = '';
 
     polygon.value = null;
     markers.value = null;
     totalSizeAcres.value = '';
-    treeData.clear();
   }
 
   // Mapping functionality
@@ -487,39 +614,6 @@ class TreeRegistrationEditController extends GetxController {
             markers.value = mkr;
             totalSizeAcres.value = area.truncateToDecimalPlaces(6).toString();
             update();
-
-            debugPrint("THE SIZE OF THE FARM :::::::::::: ${totalSizeAcres.value}");
-
-            if (treeRegisterScreenContext != null) {
-              Globals().showOkayDialog(
-                context: treeRegisterScreenContext!,
-                title: 'Measurement Result',
-                image: 'lib/libassets/logos/hcmslogo.jpeg',
-                content: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'measured area estimates in hectares',
-                        style: TextStyle(color: AppColor.black),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 15),
-                      Text(
-                        '${area.truncateToDecimalPlaces(6).toString()} ha',
-                        style: TextStyle(
-                          color: AppColor.black,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
           }
         },
       ),
@@ -527,29 +621,84 @@ class TreeRegistrationEditController extends GetxController {
     );
   }
 
-  // Update existing registration
-  Future<void> updateTreeData() async {
+  // Tree details validation
+  bool validateTreeDetails() {
+    return treeNameController.text.isNotEmpty &&
+        pnValue.value.isNotEmpty &&
+        treeSpeciesValue.value.isNotEmpty &&
+        treeSizeController.text.isNotEmpty &&
+        yoEstablishment.value.isNotEmpty;
+  }
+
+  void addTreeFromDetails() {
+    if (!validateTreeDetails()) {
+      Get.snackbar(
+        'Validation Error',
+        'Please fill all tree details',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    final tree = {
+      'id': 'tree_${DateTime.now().millisecondsSinceEpoch}',
+      'tree_name': treeNameController.text,
+      'pn': pnValue.value,
+      'species': treeSpeciesValue.value,
+      'size': treeSizeController.text,
+      'yo_establishment': yoEstablishment.value,
+    };
+
+    addTree(tree);
+
+    // Clear tree details after adding
+    treeNameController.clear();
+    treeSizeController.clear();
+    pnValue.value = '';
+    treeSpeciesValue.value = '';
+    yoEstablishment.value = '';
+
+    Get.snackbar(
+      'Success',
+      'Tree added successfully',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
+  }
+
+
+  submitTreeData() async {
     try {
-      if (polygon.value != null && polygon.value!.points.isNotEmpty) {
-        polygon.value!.points.add(polygon.value!.points.first);
+      if (polygon.value == null || polygon.value!.points.isEmpty) {
+        throw Exception('Farm boundary is required');
       }
 
-      // Convert polygon to coordinate format
-      var boundaryCoordinates = polygon.value?.points
-          .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
-          .toList() ?? [];
 
-      TreeRegistrationModel updatedRegistration = TreeRegistrationModel(
-        id: existingRegistration?.id,
-        farmerId: selectedFarmer.value?.id ?? existingRegistration?.farmerId,
-        regionId: selectedRegion.value?.id ?? existingRegistration?.regionId ?? 0,
-        districtId: selectedDistrict.value?.districtId ?? existingRegistration?.districtId ?? 0,
-        mmdaId: selectedMMDA.value?.id ?? existingRegistration?.mmdaId ?? 0,
-        communityId: selectedCommunity.value?.id ?? existingRegistration?.communityId ?? 0,
-        establishmentType: selectedEstablishmentType.value?.esta_type ?? existingRegistration?.establishmentType ?? '',
+      List<Map<String, double>> boundaryCoordinates;
+      if(!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
+      }
+
+      TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
+        id: registrationId,
+        farmerId: selectedFarmer.value!.id,
+        regionId: selectedRegion.value!.id!,
+        districtId: selectedDistrict.value!.id!,
+        mmdaId: selectedMMDA.value!.id!,
+        communityId: selectedCommunity.value!.id!,
+        establishmentType: selectedEstablishmentTypes.join(', '),
         nextOfKinName: nextOfKinNameController.text,
         farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text,
-        nextOfKinDoB: DateTime.tryParse(dobController.text) ?? existingRegistration?.nextOfKinDoB ?? DateTime.now(),
+        nextOfKinDoB: DateTime.parse(dobController.text),
         nextOfKinGender: genderController.text,
         nextOfKinPhoneNumber: phoneNumberController.text,
         nextOfKinPostalAddress: postalAddressController.text,
@@ -558,7 +707,7 @@ class TreeRegistrationEditController extends GetxController {
         ),
         farmSize: double.tryParse(totalSizeAcres.value),
         trees: treeData,
-        groupName: groupNameController.text,
+        groupName: groupPresidentController.text,
         groupPresident: groupPresidentController.text,
         groupSecretary: groupSecretaryController.text,
         companyDirectors: companyDirectorsController.text,
@@ -566,126 +715,153 @@ class TreeRegistrationEditController extends GetxController {
         groupEmail: groupEmailController.text,
         groupPostalAddress: groupAddressController.text,
         groupRegNumb: groupregNumbController.text,
-        isSynced: 0,
-        createdAt: existingRegistration?.createdAt ?? DateTime.now(),
+        isSynced: 1,
+        createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      final data  = updatedRegistration.toJson();
-      debugPrint("THE DATA FOR TREE UPDATE ::::::::::: $data");
-
       Globals().startWait(treeRegisterScreenContext!);
-
-      // Update in local database
-      int rowsAffected = await TreeRegistrationRepository().updateTreeRegistration(updatedRegistration);
-
+      final result = await APIMethods.submitTreeRegistration(treeRegistrationModel);
       Globals().endWait(treeRegisterScreenContext!);
 
-      if (rowsAffected > 0) {
-        Get.offAll(() => IndexPage());
+      if (result['success']) {
+        TreeRegistrationRepository().updateTreeRegistration(treeRegistrationModel);
+
+        resetForm();
+        clearAllTrees();
         Globals().showSnackBar(
           title: "Success",
-          message: 'Tree registration updated successfully!',
+          message: 'Tree registration submitted to server successfully!',
           backgroundColor: Colors.green,
         );
-      } else {
+
+         } else {
         Globals().showSnackBar(
-          title: "Update Failed",
-          message: 'Failed to update tree registration',
+          title: "Submission Failed",
+          message: 'Failed to submit: ${result['error']}',
           backgroundColor: Colors.orange,
         );
+
+        await saveTreeDataOffline();
       }
     } catch (e) {
       Globals().endWait(treeRegisterScreenContext!);
-      debugPrint("Error updating tree data: $e");
+      await saveTreeDataOffline();
+      Globals().showSnackBar(
+        title: "Network Error",
+        message: 'Saved offline due to network issue',
+        backgroundColor: Colors.orange,
+      );
+    }
+  }
+
+  saveTreeDataOffline() async {
+    try {
+      if (treeRegisterScreenContext == null) {
+        throw Exception('Context is not initialized');
+      }
+
+      Globals().startWait(treeRegisterScreenContext!);
+
+      if (selectedFarmer.value == null || selectedRegion.value == null) {
+        throw Exception('Farmer and Region are required fields');
+      }
+
+      List<Map<String, double>> boundaryCoordinates;
+      if(!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
+      }
+
+      final treeRegistrationModel = TreeRegistrationModel(
+        id: registrationId,
+        farmerId: selectedFarmer.value!.id,
+        regionId: int.tryParse(selectedRegion.value!.regionId) ?? 0,
+        districtId: selectedDistrict.value?.districtId ?? 0,
+        mmdaId: selectedMMDA.value?.id ?? 0,
+        communityId: selectedCommunity.value?.id ?? 0,
+        establishmentType: selectedEstablishmentTypes.join(', '),
+        nextOfKinName: nextOfKinNameController.text.trim(),
+        farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text.trim(),
+        nextOfKinDoB: DateTime.tryParse(dobController.text) ?? DateTime.now(),
+        nextOfKinGender: genderController.text.trim(),
+        nextOfKinPhoneNumber: phoneNumberController.text.trim(),
+        nextOfKinPostalAddress: postalAddressController.text.trim(),
+        farmBoundaryPolygon: Uint8List.fromList(
+          utf8.encode(jsonEncode(boundaryCoordinates)),
+        ),
+        farmSize: double.tryParse(totalSizeAcres.value),
+        trees: treeData,
+        groupName: groupPresidentController.text.trim(),
+        groupPresident: groupPresidentController.text.trim(),
+        groupSecretary: groupSecretaryController.text.trim(),
+        companyDirectors: companyDirectorsController.text.trim(),
+        groupPhoneNumber: groupPhoneController.text.trim(),
+        groupEmail: groupEmailController.text.trim(),
+        groupPostalAddress: groupAddressController.text.trim(),
+        groupRegNumb: groupregNumbController.text.trim(),
+        createdAt: DateTime.now(),
+        isSynced: 0,
+        updatedAt: DateTime.now(),
+      );
+
+      final Map<String, dynamic> data = treeRegistrationModel.toJson();
+      debugPrint("THE TREE REG DATA ::::::::::::::: $data");
+
+      int id = await TreeRegistrationRepository().updateTreeRegistration(
+        treeRegistrationModel,
+      );
+
+      Globals().endWait(treeRegisterScreenContext!);
+
+      if (id > 0) {
+        Get.offAll(()=> IndexPage());
+        resetForm();
+        clearAllTrees();
+
+        Globals().showSnackBar(
+          title: "Success",
+          message: 'Tree registration saved successfully!',
+          backgroundColor: Colors.green,
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint("THE ERROR ::::: $e");
+      debugPrint("THE ERROR ::::: $stackTrace");
+      Globals().endWait(treeRegisterScreenContext!);
       Globals().showSnackBar(
         title: "Error",
-        message: 'An error occurred while updating',
+        message: 'An unknown error occurred',
         backgroundColor: Colors.red,
       );
     }
   }
 
-  // Submit updated data to server
-  Future<void> submitUpdatedTreeData() async {
-    try {
-      if (polygon.value != null && polygon.value!.points.isNotEmpty) {
-        polygon.value!.points.add(polygon.value!.points.first);
-      }
 
-      var boundaryCoordinates = polygon.value?.points
-          .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
-          .toList() ?? [];
+  // Check if form has changes
+  bool get hasChanges {
+    if (originalModel == null) return true;
 
-      TreeRegistrationModel updatedRegistration = TreeRegistrationModel(
-        id: existingRegistration?.id,
-        farmerId: selectedFarmer.value?.id ?? existingRegistration?.farmerId,
-        regionId: selectedRegion.value?.id ?? existingRegistration?.regionId ?? 0,
-        districtId: selectedDistrict.value?.districtId ?? existingRegistration?.districtId ?? 0,
-        mmdaId: selectedMMDA.value?.id ?? existingRegistration?.mmdaId ?? 0,
-        communityId: selectedCommunity.value?.id ?? existingRegistration?.communityId ?? 0,
-        establishmentType: selectedEstablishmentType.value?.esta_type ?? existingRegistration?.establishmentType ?? '',
-        nextOfKinName: nextOfKinNameController.text,
-        farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text,
-        nextOfKinDoB: DateTime.tryParse(dobController.text) ?? existingRegistration?.nextOfKinDoB ?? DateTime.now(),
-        nextOfKinGender: genderController.text,
-        nextOfKinPhoneNumber: phoneNumberController.text,
-        nextOfKinPostalAddress: postalAddressController.text,
-        farmBoundaryPolygon: Uint8List.fromList(
-          utf8.encode(jsonEncode(boundaryCoordinates)),
-        ),
-        farmSize: double.tryParse(totalSizeAcres.value),
-        trees: treeData,
-        groupName: groupNameController.text,
-        groupPresident: groupPresidentController.text,
-        groupSecretary: groupSecretaryController.text,
-        companyDirectors: companyDirectorsController.text,
-        groupPhoneNumber: groupPhoneController.text,
-        groupEmail: groupEmailController.text,
-        groupPostalAddress: groupAddressController.text,
-        groupRegNumb: groupregNumbController.text,
-        isSynced: 1, // Mark as synced
-        createdAt: existingRegistration?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      Globals().startWait(treeRegisterScreenContext!);
-
-      // Submit to server
-      final result = await APIMethods.submitTreeRegistration(updatedRegistration);
-
-      Globals().endWait(treeRegisterScreenContext!);
-
-      if (result['success']) {
-        // Update local record with synced status using copyWith
-        updatedRegistration = updatedRegistration.copyWith(isSynced: 1);
-        await TreeRegistrationRepository().updateTreeRegistration(updatedRegistration);
-
-        Get.back(result: true);
-        // Get.offAll(() => IndexPage());
-        Globals().showSnackBar(
-          title: "Success",
-          message: 'Tree registration updated and synced successfully!',
-          backgroundColor: Colors.green,
-        );
-      } else {
-        // Save locally if server submission fails
-        await updateTreeData();
-        Globals().showSnackBar(
-          title: "Update Saved Offline",
-          message: 'Updated saved locally due to network issue',
-          backgroundColor: Colors.orange,
-        );
-      }
-    } catch (e) {
-      Globals().endWait(treeRegisterScreenContext!);
-      // Fallback to local update
-      await updateTreeData();
-      Globals().showSnackBar(
-        title: "Network Error",
-        message: 'Updated saved offline due to network issue',
-        backgroundColor: Colors.orange,
-      );
+    // Compare establishment types
+    final currentEstablishmentTypes = selectedEstablishmentTypes.join(', ');
+    if (currentEstablishmentTypes != (originalModel!.establishmentType ?? '')) {
+      return true;
     }
+
+    // Compare other fields
+    if (nextOfKinNameController.text != (originalModel!.nextOfKinName ?? '')) return true;
+    if (relationShipWithNextOfKinController.text != (originalModel!.farmerRelationshipWithNextOfKin ?? '')) return true;
+    if (phoneNumberController.text != (originalModel!.nextOfKinPhoneNumber ?? '')) return true;
+    if (postalAddressController.text != (originalModel!.nextOfKinPostalAddress ?? '')) return true;
+
+    // Compare tree data
+    if (treeData.length != (originalModel!.trees.length ?? 0)) return true;
+
+    return false;
   }
 }
