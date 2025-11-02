@@ -7,6 +7,7 @@ class UserModel {
   String? contactNumber;
   bool? verified;
   String? createdDate;
+  String? assignedDistrictIds;
 
   UserModel({
     this.id,
@@ -17,6 +18,7 @@ class UserModel {
     this.contactNumber,
     this.verified,
     this.createdDate,
+    this.assignedDistrictIds,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class UserModel {
       contactNumber: json['contact_number']?.toString(),
       verified: json['verified'] is bool ? json['verified'] : (json['verified']?.toString() == 'true'),
       createdDate: json['created_date']?.toString(),
+      assignedDistrictIds: json['assigned_district_ids']?.toString(),
     );
   }
 
@@ -42,6 +45,7 @@ class UserModel {
       'contact_number': contactNumber,
       'verified': verified,
       'created_date': createdDate,
+      'assigned_district_ids': assignedDistrictIds,
     };
   }
 
@@ -55,6 +59,7 @@ class UserModel {
       'contact_number': contactNumber,
       'verified': verified == true ? 1 : 0,
       'created_date': createdDate,
+      'assigned_district_ids': assignedDistrictIds,
     };
   }
 
@@ -68,6 +73,7 @@ class UserModel {
       contactNumber: map['contact_number'],
       verified: map['verified'] == 1,
       createdDate: map['created_date'],
+      assignedDistrictIds: map['assigned_district_ids'],
     );
   }
 

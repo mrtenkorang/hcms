@@ -6,6 +6,7 @@ class URLS {
   static const String checkAppVersionURL = "version/check/";
   static const String deforestationReportURL = "deforestation/";
   static const String loginURL = "auth/enumerator/login/";
+  static const String estaTypeUrl = "establishment-types/";
   static const String farmerRegistrationURL = "farmers/";
   static const String trainingLogURL = "trainings/";
   static const String seedlingMonitoringURL = "monitoring/seedlings/";
