@@ -164,19 +164,15 @@ class _TreeRegHistoryState extends State<TreeRegHistory> {
   ) {
     return InkWell(
       onTap: () async {
-        bool res = await Get.to(
+        Get.to(
           () => TreeRegistrationEditScreen(
             isIndividual:
                 registration.farmerId != null ||
                 registration.farmerId.toString() != '',
-            existingRegistration: registration,
+            registrationModel: registration,
+            registrationId: registration.id!,
           ),
         );
-
-        if(res){
-          controller.loadTreeData();
-          setState(() {});
-        }
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),

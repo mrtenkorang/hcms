@@ -52,6 +52,11 @@ class _SyncPageState extends State<SyncPage> with SingleTickerProviderStateMixin
       function: InitMethods().fetchMMDA,
       icon: Icons.people,
     ),
+    SyncStep(
+      title: "Establishment Types",
+      function: InitMethods().fetchEstaTypes,
+      icon: Icons.people,
+    ),
   ];
 
   @override

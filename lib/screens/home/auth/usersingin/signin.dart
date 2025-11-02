@@ -79,10 +79,13 @@ class _UserSignInState extends State<UserSignIn> {
   void _handleLogin() async {
     if (_debounceTimer?.isActive ?? false) return;
 
+    Globals().startWait(context);
     final loginRes = await APIMethods.login(
       _phonenumController.text.trim(),
       _passwordController.text.trim(),
     );
+
+    Globals().endWait(context);
 
     if (loginRes["success"]) {
       _navigateToHome();
@@ -181,8 +184,8 @@ class _UserSignInState extends State<UserSignIn> {
           _buildLoginButton(size),
           SizedBox(height: 24),
           _buildForgotPassword(),
-          Spacer(),
-          _buildRegisterSection(),
+          // Spacer(),
+          // _buildRegisterSection(),
           SizedBox(height: 24),
         ],
       ),

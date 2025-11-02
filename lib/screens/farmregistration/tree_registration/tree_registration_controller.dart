@@ -40,7 +40,18 @@ class TreeRegistrationController extends GetxController {
   var selectedDistrict = Rxn<DistrictModel>();
   var selectedMMDA = Rxn<MMDAModel>();
   var selectedCommunity = Rxn<CommunityModel>();
-  var selectedEstablishmentType = Rxn<EstaTypeModel>();
+
+  // NEW: Multi-select establishment types
+  var selectedEstablishmentTypes = <String>[].obs;
+
+  // Tree details controllers
+  final treeNameController = TextEditingController();
+  final treeSizeController = TextEditingController();
+  var pnValue = ''.obs;
+  var treeSpeciesValue = ''.obs;
+  var yoEstablishment = ''.obs;
+  final pnValues = ["Planted", "Natural"];
+  final treeSpeciesValues = ["Acacia", "Bamboo", "Teak", "Mahogany", "Other"];
 
   // Data lists
   var farmerData = <FarmerFromServerModel>[].obs;
@@ -84,7 +95,15 @@ class TreeRegistrationController extends GetxController {
   var polygon = Rxn<Polygon>();
   var totalSizeAcres = ''.obs;
 
-  final List<Map<String, dynamic>> treeData = [];
+  final treeData = <Map<String, dynamic>>[].obs; // Made reactive with .obs
+
+  // Computed properties
+  bool get showTreeDetailsSection {
+    final selectedTypes = selectedEstablishmentTypes;
+    return selectedTypes.contains('Woodlot') ||
+        selectedTypes.contains('Commercial Plantation') ||
+        selectedTypes.contains('Other');
+  }
 
   bool isTreeDataEmpty() {
     return treeData.isEmpty;
@@ -93,19 +112,18 @@ class TreeRegistrationController extends GetxController {
   // Method to add a tree to the list
   void addTree(Map<String, dynamic> tree) {
     treeData.add(tree);
-    update();
   }
 
   // Method to remove a tree from the list
   void removeTree(String treeId) {
     treeData.removeWhere((tree) => tree['id'] == treeId);
-    update();
+    // No need for update() as treeData is now reactive
   }
 
   // Method to clear all trees
   void clearAllTrees() {
     treeData.clear();
-    update();
+    // No need for update() as treeData is now reactive
   }
 
   // Signature states
@@ -131,6 +149,8 @@ class TreeRegistrationController extends GetxController {
     postalAddressController.dispose();
     witnessNameController.dispose();
     witnessPhoneController.dispose();
+    treeNameController.dispose();
+    treeSizeController.dispose();
     super.onClose();
   }
 
@@ -154,7 +174,6 @@ class TreeRegistrationController extends GetxController {
       farmerData.assignAll(farmers);
     } catch (e) {
       debugPrint('Error loading farmers: $e');
-      // Show error to user if needed
     } finally {
       isLoadingFarmers.value = false;
     }
@@ -186,20 +205,12 @@ class TreeRegistrationController extends GetxController {
     try {
       final mmdas = await MMDARepository().getAllMMDAs();
       mmdasData.assignAll(mmdas);
-
-      //for test
-      mmdasData.assignAll([
-        MMDAModel(id: 1, mmda: 'MMDA 1'),
-        MMDAModel(id: 2, mmda: 'MMDA 2'),
-      ]);
     } catch (e) {
       debugPrint('Error loading MMDAs: $e');
     } finally {
       isLoadingMMDAs.value = false;
     }
   }
-
-
 
   /// Fetches communities data from repository
   Future<void> loadCommunitiesData() async {
@@ -219,41 +230,85 @@ class TreeRegistrationController extends GetxController {
     debugPrint("Loading establishments");
     isLoadingEstablishmentTypes.value = true;
     try {
-      // First try to load from API
       final establishmentTypes = await EstaTypeRepository().getAllEstaTypes();
-
       debugPrint("THE ESTABLISHMENT TYPES ::::::::::: ${establishmentTypes.length}");
 
-      // If API call is successful and returns data, use it
       if (establishmentTypes.isNotEmpty) {
         establishmentTypesData.assignAll(establishmentTypes);
+        establishmentTypes.add(EstaTypeModel(id: establishmentTypes.length, esta_type: 'Other'));
       } else {
-        // Fallback to test data if API returns empty
+        // Fallback data
         establishmentTypesData.assignAll([
-          EstaTypeModel(id: 1, esta_type: 'test'),
-          EstaTypeModel(id: 2, esta_type: 'test'),
+          EstaTypeModel(id: 1, esta_type: 'Woodlot'),
+          EstaTypeModel(id: 2, esta_type: 'Commercial Plantation'),
+          EstaTypeModel(id: 3, esta_type: 'Home Garden'),
+          EstaTypeModel(id: 4, esta_type: 'Other'),
         ]);
       }
     } catch (e) {
       debugPrint('Error loading establishment types: $e');
-      // On error, use test data as fallback
       establishmentTypesData.assignAll([
-        EstaTypeModel(id: 1, esta_type: 'Farmer'),
-        EstaTypeModel(id: 2, esta_type: 'Group'),
+        EstaTypeModel(id: 1, esta_type: 'Woodlot'),
+        EstaTypeModel(id: 2, esta_type: 'Commercial Plantation'),
+        EstaTypeModel(id: 3, esta_type: 'Home Garden'),
+        EstaTypeModel(id: 4, esta_type: 'Other'),
       ]);
     } finally {
       isLoadingEstablishmentTypes.value = false;
     }
   }
 
-  // Selection methods
+  // NEW: Establishment type selection methods
+  // Add this method to your TreeRegistrationController
+  void toggleEstablishmentType(String type) {
+    final isSpecialType = type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other';
+    final hasSpecialType = selectedEstablishmentTypes.any((selected) =>
+    selected == 'Woodlot' || selected == 'Commercial Plantation' || selected == 'Other');
+    final hasNonSpecialType = selectedEstablishmentTypes.any((selected) =>
+    selected != 'Woodlot' && selected != 'Commercial Plantation' && selected != 'Other');
 
-  /// Sets the selected farmer and triggers UI update
+    if (selectedEstablishmentTypes.contains(type)) {
+      // Deselecting
+      selectedEstablishmentTypes.remove(type);
+    } else {
+      // Selecting new type
+      if (isSpecialType && hasNonSpecialType) {
+        // Cannot select special type when non-special types are selected
+        Get.snackbar(
+          'Selection Error',
+          'Woodlot, Commercial Plantation, and Other cannot be combined with other establishment types.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      } else if (!isSpecialType && hasSpecialType) {
+        // Cannot select non-special type when special types are selected
+        Get.snackbar(
+          'Selection Error',
+          'Other establishment types cannot be combined with Woodlot, Commercial Plantation, or Other.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      } else {
+        // Valid selection
+        selectedEstablishmentTypes.add(type);
+      }
+    }
+    update();
+  }
+
+  bool isEstablishmentTypeSelected(String type) {
+    return selectedEstablishmentTypes.contains(type);
+  }
+
+  // Selection methods
   void selectFarmer(FarmerFromServerModel? farmer) {
     selectedFarmer.value = farmer;
   }
 
-  /// Sets the selected region and filters districts accordingly
   Future<void> selectRegion(DistrictModel? region) async {
     selectedRegion.value = region;
     selectedDistrict.value = null;
@@ -265,25 +320,32 @@ class TreeRegistrationController extends GetxController {
     update();
   }
 
-  /// Sets the selected district
   void selectDistrict(DistrictModel? district) {
     selectedDistrict.value = district;
     update();
   }
 
-  /// Sets the selected MMDA
   void selectMMDA(MMDAModel? mmda) {
     selectedMMDA.value = mmda;
   }
 
-  /// Sets the selected community
   void selectCommunity(CommunityModel? community) {
     selectedCommunity.value = community;
   }
 
-  /// Sets the selected establishment type
-  void selectEstablishmentType(EstaTypeModel? establishmentType) {
-    selectedEstablishmentType.value = establishmentType;
+  // Tree details methods
+  void onTreeSpeciesChanged(String value) {
+    treeSpeciesValue.value = value;
+    update();
+  }
+
+  void onPNChanged(String value) {
+    pnValue.value = value;
+    update();
+  }
+
+  void setYearOfEstablishment(String year) {
+    yoEstablishment.value = year;
     update();
   }
 
@@ -307,15 +369,13 @@ class TreeRegistrationController extends GetxController {
   }
 
   // Validation methods
-
-  /// Validates the main form fields
   bool validateForm() {
     return selectedFarmer.value != null &&
         selectedRegion.value != null &&
         selectedDistrict.value != null &&
         selectedMMDA.value != null &&
         selectedCommunity.value != null &&
-        selectedEstablishmentType.value != null &&
+        selectedEstablishmentTypes.isNotEmpty &&
         nextOfKinNameController.text.isNotEmpty &&
         relationShipWithNextOfKinController.text.isNotEmpty &&
         dobController.text.isNotEmpty &&
@@ -324,24 +384,14 @@ class TreeRegistrationController extends GetxController {
         postalAddressController.text.isNotEmpty;
   }
 
-  /// Validates the declaration section (signatures and witness info)
-  // bool validateDeclarationForm() {
-  //   return farmerSignature.value.isNotEmpty &&
-  //       witnessSignature.value.isNotEmpty &&
-  //       witnessNameController.text.isNotEmpty &&
-  //       witnessPhoneController.text.isNotEmpty;
-  // }
-
   // Form reset
-
-  /// Resets all form fields and selections
   void resetForm() {
     selectedFarmer.value = null;
     selectedRegion.value = null;
     selectedDistrict.value = null;
     selectedMMDA.value = null;
     selectedCommunity.value = null;
-    selectedEstablishmentType.value = null;
+    selectedEstablishmentTypes.clear();
 
     nextOfKinNameController.clear();
     relationShipWithNextOfKinController.clear();
@@ -351,6 +401,12 @@ class TreeRegistrationController extends GetxController {
     postalAddressController.clear();
     witnessNameController.clear();
     witnessPhoneController.clear();
+    treeNameController.clear();
+    treeSizeController.clear();
+
+    pnValue.value = '';
+    treeSpeciesValue.value = '';
+    yoEstablishment.value = '';
 
     farmerSignature.value = '';
     witnessSignature.value = '';
@@ -363,8 +419,6 @@ class TreeRegistrationController extends GetxController {
   }
 
   // Mapping functionality
-
-  /// Navigates to the tree mapping screen
   void navigateToMap() {
     if (treeRegisterScreenContext == null) return;
 
@@ -381,13 +435,12 @@ class TreeRegistrationController extends GetxController {
     );
   }
 
-  /// Opens the polygon drawing tool for boundary mapping
   void usePolygonDrawingTool() {
     Set<Polygon> polys = HashSet<Polygon>();
     if (polygon.value != null) polys.add(polygon.value!);
 
     Get.to(
-      () => PolygonDrawingTool(
+          () => PolygonDrawingTool(
         layers: polys,
         initialPolygon: polygon.value,
         viewInitialPolygon: polygon.value != null,
@@ -404,7 +457,6 @@ class TreeRegistrationController extends GetxController {
 
             update();
 
-            // Show measurement result dialog
             if (treeRegisterScreenContext != null) {
               Globals().showOkayDialog(
                 context: treeRegisterScreenContext!,
@@ -442,136 +494,71 @@ class TreeRegistrationController extends GetxController {
     );
   }
 
-  // Signature handling
-
-  /// Handles farmer signature capture and conversion to base64
-  // Future<void> onFarmerSign(File pickedImage) async {
-  //   farmerSig.value = pickedImage;
-  //   final base64String = await _convertImageToBase64(pickedImage);
-  //   farmerSignature.value = base64String;
-  //   await _saveFormDataToSP(); // Auto-save when signature is added
-  // }
-  //
-  // /// Handles witness signature capture and conversion to base64
-  // Future<void> onWitnessSign(File pickedImage) async {
-  //   witnessSig.value = pickedImage;
-  //   final base64String = await _convertImageToBase64(pickedImage);
-  //   witnessSignature.value = base64String;
-  //   await _saveFormDataToSP(); // Auto-save when signature is added
-  // }
-
-  // Data persistence
-
-  /// Saves all form data to SharedPreferences for persistence
-  // Future<void> _saveFormDataToSP() async {
-  //   // Save farmer data
-  //   await regSP?.setString('_beneficiaryType', 'Individual');
-  //   await regSP?.setString('farmerId', selectedFarmer.value?.id ?? '');
-  //   await regSP?.setString(
-  //     'farmerfirstName',
-  //     selectedFarmer.value?.farmerName ?? '',
-  //   );
-  //   await regSP?.setString(
-  //     'farmerPhoneNum',
-  //     selectedFarmer.value?.contact ?? '',
-  //   );
-  //
-  //   // Save location data
-  //   await regSP?.setString('region', selectedRegion.value?.region ?? '');
-  //   await regSP?.setString(
-  //     'forestDistrict',
-  //     selectedDistrict.value?.name ?? '',
-  //   );
-  //   await regSP?.setString('mddasName', selectedMMDA.value?.mmda ?? '');
-  //   await regSP?.setInt('mddas', selectedMMDA.value?.id ?? 0);
-  //   await regSP?.setString(
-  //     'community',
-  //     selectedCommunity.value?.community ?? '',
-  //   );
-  //   await regSP?.setString('family', selectedDistrict.value?.name ?? '');
-  //   await regSP?.setStringList('est', [
-  //     selectedEstablishmentType.value?.esta_type ?? '',
-  //   ]);
-  //
-  //   // Save farm coordinates
-  //   await regSP?.setString(
-  //     'farmID',
-  //     'farm_${DateTime.now().millisecondsSinceEpoch}',
-  //   );
-  //   await regSP?.setString('farmArea', totalSizeAcres.value);
-  //   await regSP?.setString('pointsString', _encodePolygonPoints());
-  //
-  //   // Save next of kin data
-  //   await regSP?.setString('kinName', nextOfKinNameController.text);
-  //   await regSP?.setString(
-  //     'kinRelationship',
-  //     relationShipWithNextOfKinController.text,
-  //   );
-  //   await regSP?.setString('kinDoB', dobController.text);
-  //   await regSP?.setString('kinGender', genderController.text);
-  //   await regSP?.setString('kinPhoneNum', phoneNumberController.text);
-  //   await regSP?.setString('kinPostal', postalAddressController.text);
-  //
-  //   // Save witness data
-  //   await regSP?.setString('witnessName', witnessNameController.text);
-  //   await regSP?.setString('witnessPhone', witnessPhoneController.text);
-  //
-  //   // Save signatures
-  //   await regSP?.setString('base64signature', farmerSignature.value);
-  //   await regSP?.setString('witnessbase64signature', witnessSignature.value);
-  // }
-
-  /// Encodes polygon points for storage
-  String _encodePolygonPoints() {
-    if (polygon.value == null || polygon.value!.points.isEmpty) {
-      return '';
-    }
-
-    final points = polygon.value!.points.map((point) {
-      return FarmInformationArray(
-        date: DateTime.now().toString(),
-        latitude: point.latitude,
-        longitude: point.longitude,
-        accuracy: 0.0,
-        pointID: 'point_${point.latitude}_${point.longitude}',
-        wayPointNumber: 'way_${point.latitude}_${point.longitude}',
-      );
-    }).toList();
-
-    return FarmInformationArray.encode(points);
+  // Tree details validation
+  bool validateTreeDetails() {
+    return treeNameController.text.isNotEmpty &&
+        pnValue.value.isNotEmpty &&
+        treeSpeciesValue.value.isNotEmpty &&
+        treeSizeController.text.isNotEmpty &&
+        yoEstablishment.value.isNotEmpty;
   }
 
-  // Utility methods
-
-  /// Converts image file to base64 string with compression
-  Future<String> _convertImageToBase64(File imageFile) async {
-    try {
-      final bytes = await imageFile.readAsBytes();
-
-      // Resize and compress image to reduce storage size
-      final originalImage = img.decodeImage(bytes);
-      if (originalImage != null) {
-        // Resize to max 800px width while maintaining aspect ratio
-        final resizedImage = img.copyResize(originalImage, width: 800);
-        final resizedBytes = img.encodeJpg(resizedImage, quality: 80);
-        return base64Encode(resizedBytes);
-      }
-
-      return base64Encode(bytes);
-    } catch (e) {
-      debugPrint("Error converting image to base64: $e");
-      return "";
+  void addTreeFromDetails() {
+    if (!validateTreeDetails()) {
+      Get.snackbar(
+        'Validation Error',
+        'Please fill all tree details',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
     }
+
+    final tree = {
+      'id': 'tree_${DateTime.now().millisecondsSinceEpoch}',
+      'tree_name': treeNameController.text,
+      'pn': pnValue.value,
+      'species': treeSpeciesValue.value,
+      'size': treeSizeController.text,
+      'yo_establishment': yoEstablishment.value,
+    };
+
+    addTree(tree);
+
+    // Clear tree details after adding
+    treeNameController.clear();
+    treeSizeController.clear();
+    pnValue.value = '';
+    treeSpeciesValue.value = '';
+    yoEstablishment.value = '';
+
+    Get.snackbar(
+      'Success',
+      'Tree added successfully',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
   }
 
   submitTreeData() async {
     try {
-      polygon.value!.points.add(polygon.value!.points.first);
+      if (polygon.value == null || polygon.value!.points.isEmpty) {
+        throw Exception('Farm boundary is required');
+      }
 
-      // Convert polygon to coordinate format
-      var boundaryCoordinates = polygon.value!.points
-          .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
-          .toList();
+
+      List<Map<String, double>> boundaryCoordinates;
+      if(!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
+      }
 
       TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
         farmerId: selectedFarmer.value!.id,
@@ -579,7 +566,7 @@ class TreeRegistrationController extends GetxController {
         districtId: selectedDistrict.value!.id!,
         mmdaId: selectedMMDA.value!.id!,
         communityId: selectedCommunity.value!.id!,
-        establishmentType: selectedEstablishmentType.value!.esta_type,
+        establishmentType: selectedEstablishmentTypes.join(', '),
         nextOfKinName: nextOfKinNameController.text,
         farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text,
         nextOfKinDoB: DateTime.parse(dobController.text),
@@ -604,24 +591,19 @@ class TreeRegistrationController extends GetxController {
         updatedAt: DateTime.now(),
       );
 
-
       Globals().startWait(treeRegisterScreenContext!);
-      // Submit to server
       final result = await APIMethods.submitTreeRegistration(treeRegistrationModel);
-
       Globals().endWait(treeRegisterScreenContext!);
 
       if (result['success']) {
         resetForm();
         clearAllTrees();
-        // Navigator.of(treeRegisterScreenContext!).pop();
         Globals().showSnackBar(
           title: "Success",
           message: 'Tree registration submitted to server successfully!',
           backgroundColor: Colors.green,
         );
 
-        // save the synced data locally
         TreeRegistrationRepository().insertTreeRegistration(treeRegistrationModel);
       } else {
         Globals().showSnackBar(
@@ -630,15 +612,11 @@ class TreeRegistrationController extends GetxController {
           backgroundColor: Colors.orange,
         );
 
-        // Fallback to offline save
         await saveTreeDataOffline();
       }
     } catch (e) {
       Globals().endWait(treeRegisterScreenContext!);
-
-      // Fallback to offline save on any error
       await saveTreeDataOffline();
-
       Globals().showSnackBar(
         title: "Network Error",
         message: 'Saved offline due to network issue',
@@ -647,9 +625,7 @@ class TreeRegistrationController extends GetxController {
     }
   }
 
-
-  /// Saves tree registration data to local database
-   saveTreeDataOffline() async {
+  saveTreeDataOffline() async {
     try {
       if (treeRegisterScreenContext == null) {
         throw Exception('Context is not initialized');
@@ -657,42 +633,28 @@ class TreeRegistrationController extends GetxController {
 
       Globals().startWait(treeRegisterScreenContext!);
 
-      // Validate required fields
       if (selectedFarmer.value == null || selectedRegion.value == null) {
         throw Exception('Farmer and Region are required fields');
       }
 
-      // Convert boundary coordinates to JSON-serializable format
-      final boundaryCoordinates = polygon.value!.points
-          .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
-          .toList();
-
-      // Helper function to safely get value from Rx types
-      dynamic getValue(dynamic value) {
-        if (value == null) return null;
-        if (value is RxString) return value.value;
-        if (value is RxInt) return value.value;
-        if (value is RxDouble) return value.value;
-        if (value is RxBool) return value.value;
-        if (value is Rx) return value.value;
-        return value;
+      List<Map<String, double>> boundaryCoordinates;
+      if(!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
       }
 
-      // Process tree data to handle any reactive values
-      final processedTreeData = treeData.map((tree) {
-        return Map<String, dynamic>.fromEntries(
-          tree.entries.map((e) => MapEntry(e.key, getValue(e.value)))
-        );
-      }).toList();
-
-      // Create the model with all required fields
       final treeRegistrationModel = TreeRegistrationModel(
         farmerId: selectedFarmer.value!.id,
         regionId: int.tryParse(selectedRegion.value!.regionId) ?? 0,
         districtId: selectedDistrict.value?.districtId ?? 0,
         mmdaId: selectedMMDA.value?.id ?? 0,
         communityId: selectedCommunity.value?.id ?? 0,
-        establishmentType: selectedEstablishmentType.value?.esta_type ?? '',
+        establishmentType: selectedEstablishmentTypes.join(', '),
         nextOfKinName: nextOfKinNameController.text.trim(),
         farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text.trim(),
         nextOfKinDoB: DateTime.tryParse(dobController.text) ?? DateTime.now(),
@@ -703,7 +665,7 @@ class TreeRegistrationController extends GetxController {
           utf8.encode(jsonEncode(boundaryCoordinates)),
         ),
         farmSize: double.tryParse(totalSizeAcres.value),
-        trees: processedTreeData,
+        trees: treeData,
         groupName: groupPresidentController.text.trim(),
         groupPresident: groupPresidentController.text.trim(),
         groupSecretary: groupSecretaryController.text.trim(),
@@ -712,13 +674,12 @@ class TreeRegistrationController extends GetxController {
         groupEmail: groupEmailController.text.trim(),
         groupPostalAddress: groupAddressController.text.trim(),
         groupRegNumb: groupregNumbController.text.trim(),
-
         createdAt: DateTime.now(),
+        isSynced: 0,
         updatedAt: DateTime.now(),
       );
 
       final Map<String, dynamic> data = treeRegistrationModel.toJson();
-
       debugPrint("THE TREE REG DATA ::::::::::::::: $data");
 
       int id = await TreeRegistrationRepository().insertTreeRegistration(
