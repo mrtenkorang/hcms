@@ -190,6 +190,16 @@ class APIMethods {
 
         debugPrint("THE LOGIN RES ::::::::::::; $responseData");
 
+        final assignedDistrictIds = responseData["data"]["assigned_districts"];
+        String assignedDistrictIdsString = "";
+        for (var d in assignedDistrictIds) {
+          assignedDistrictIdsString += d["id"].toString();
+          if (d != assignedDistrictIds.last) {
+            assignedDistrictIdsString += ",";
+          }
+        }
+
+        responseData["data"]["assigned_district_ids"] = assignedDistrictIdsString;
         final user = UserModel.fromJson(responseData["data"]);
 
         // Cache user data

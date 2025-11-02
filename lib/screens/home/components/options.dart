@@ -7,6 +7,7 @@ import 'package:hcms_revived2/screens/Deforestation/deforestation_report_screen.
 import 'package:hcms_revived2/screens/Deforestation/defquestions.dart';
 import 'package:hcms_revived2/screens/Deforestation/history/deforestation_history_screen.dart';
 import 'package:hcms_revived2/screens/Deforestation/viewdef.dart';
+import 'package:hcms_revived2/screens/farmregistration/farmer_list/farmer_list_screen.dart';
 import 'package:hcms_revived2/screens/farmregistration/register_farmer/farmer_type_selection.dart';
 import 'package:hcms_revived2/screens/farmregistration/register_farmer/history/register_farmer_history.dart';
 import 'package:hcms_revived2/screens/farmregistration/register_farmer/register_farmer.dart';
@@ -24,15 +25,24 @@ class Options extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SizedBox(height: 20),
-        _buildModernOptionCard(
+        // SizedBox(height: 20),
+        _buildOptionCard(
           context: context,
           icon: Icons.person_2,
           iconColor: fSecondaryColour,
           gradientColors: [Colors.yellow[50]!, Colors.white],
           title: "Register Farmer",
           description: "add farmer bio data",
-          buttonText: "View Registered Farmers",
+          buttonText: "History",
+          buttonText2: " Farmers List",
+          isRow: true,
+          onButtonTap2: () {
+            Navigator.of(context).push(
+              CupertinoPageRoute(
+                builder: (BuildContext context) => FarmerListScreen()
+              ),
+            );
+          },
           onMainTap: () {
             Navigator.of(context).push(
               CupertinoPageRoute(
@@ -48,14 +58,14 @@ class Options extends StatelessWidget {
             );
           },
         ),
-        _buildModernOptionCard(
+        _buildOptionCard(
           context: context,
           icon: Icons.forest,
           iconColor: Colors.green,
           gradientColors: [Colors.green[50]!, Colors.white],
           title: "Register Tree",
           description: "Register and manage tree data",
-          buttonText: "View Registered Trees",
+          buttonText: "History",
           onMainTap: () {
             regSP?.setString('_beneficiaryType', "Individual");
             Navigator.of(context).push(
@@ -73,7 +83,7 @@ class Options extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
-        _buildModernOptionCard(
+        _buildOptionCard(
           context: context,
           icon: Icons.landscape,
           iconColor: Colors.teal,
@@ -97,14 +107,14 @@ class Options extends StatelessWidget {
           },
         ),
         const SizedBox(height: 16),
-        _buildModernOptionCard(
+        _buildOptionCard(
           context: context,
           icon: Icons.warning_amber_rounded,
           iconColor: Colors.red,
           gradientColors: [Colors.red[50]!, Colors.white],
           title: "Deforestation Reports",
           description: "Track and report deforestation activities",
-          buttonText: "View Reports",
+          buttonText: "History",
           onMainTap: () {
             Navigator.of(context).push(
               CupertinoPageRoute(
@@ -124,7 +134,7 @@ class Options extends StatelessWidget {
     );
   }
 
-  Widget _buildModernOptionCard({
+  Widget _buildOptionCard({
     required BuildContext context,
     required IconData icon,
     required Color iconColor,
@@ -134,6 +144,9 @@ class Options extends StatelessWidget {
     required String buttonText,
     required VoidCallback onMainTap,
     required VoidCallback onButtonTap,
+    bool isRow = false,
+    String? buttonText2,
+    VoidCallback? onButtonTap2,
   }) {
     return Card(
       elevation: 3,
@@ -223,31 +236,65 @@ class Options extends StatelessWidget {
                 // Action Button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: fPrimaryColour.withOpacity(0.2),
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: onButtonTap,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.visibility, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          buttonText,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      if (isRow)
+                      Expanded(child:  ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: fPrimaryColour.withOpacity(0.6),
+                          foregroundColor: Colors.black,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ],
-                    ),
+                        onPressed: onButtonTap2,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.visibility, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              buttonText2 ?? "List",
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                      SizedBox(width: 5,),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: fPrimaryColour.withOpacity(0.2),
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: onButtonTap,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.visibility, size: 18),
+                              const SizedBox(width: 8),
+                              Text(
+                                buttonText,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

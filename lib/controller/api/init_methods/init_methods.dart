@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart' show debugPrint;
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/constants/urls.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'dart:convert';
@@ -9,6 +10,7 @@ import 'package:hcms_revived2/controller/models/establishment_type_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/controller/models/mmda_model.dart';
 import 'package:hcms_revived2/controller/models/ta_stool_skin_family%20model.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
 import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/dsitrict_region_repos.dart';
 import 'package:hcms_revived2/controller/repos/establishment_repo.dart';
@@ -22,11 +24,18 @@ class InitMethods {
   final DistrictRepository _regionDistrictRepo =
   DistrictRepository();
 
+  UserModel? user;
+
   // Fetch districts and regions from API and store in database
   Future<bool> fetchDistrictAndRegion() async {
     try {
+
+
+
       debugPrint('Fetching districts and regions from API...');
       final String url = URLS.baseUrl + URLS.regionDistrictURL;
+      debugPrint('URL DISTRICT REGION FETCH ::::::::::;: $url');
+
       final response = await http.get(
         Uri.parse(url),
         headers: {
@@ -138,6 +147,8 @@ class InitMethods {
             .map<MMDAModel>((item) => MMDAModel.fromJson(item as Map<String, dynamic>))
             .toList();
 
+        debugPrint("THE MMDA DATA ::::::::::: $data");
+
         await MMDARepository().deleteAllMMDAs();
         await  MMDARepository().bulkInsertMMDAs(types);
 
@@ -193,7 +204,14 @@ class InitMethods {
 
   Future<void> fetAllFarmers() async {
     try {
-      String? nextUrl = '${URLS.baseUrl}${URLS.farmersFromServerUrl}';
+
+      final cache = await CacheService.getInstance();
+      user = await cache.getUserInfo();
+
+      final userData = user!.toJson();
+      debugPrint("USER DATAAAAAAAAAA :::::::::::::: $userData");
+
+      String? nextUrl = '${URLS.baseUrl}${URLS.farmersFromServerUrl}?districts=${user!.assignedDistrictIds!}';
       int totalFarmers = 0;
       int page = 1;
       final List<FarmerFromServerModel> allFarmers = [];
@@ -287,7 +305,7 @@ class InitMethods {
   Future<bool> fetchEstaTypes() async {
     try {
       final response = await http.get(
-        Uri.parse('$stageBaseUrl/esta_types/'),
+        Uri.parse('${URLS.baseUrl}${URLS.estaTypeUrl}'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -295,10 +313,13 @@ class InitMethods {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
+        final responseData = json.decode(response.body);
+        final List data = responseData['data'] as List;
         final estaTypes = data
-            .map((item) => EstaTypeModel.fromJson(item))
+            .map((item) => EstaTypeModel.fromJson(item as Map<String, dynamic>))
             .toList();
+
+        debugPrint("THE ESTA TYPE DATA ::::::::::: ${data}");
 
         await _estaTypeRepo.deleteAllEstaTypes();
         await _estaTypeRepo.bulkInsertEstaTypes(estaTypes);
