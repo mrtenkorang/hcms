@@ -805,100 +805,35 @@ class _AlternativeLivelihoodView extends StatelessWidget {
   }
 
   Widget _buildSubmissionButtons(BuildContext context) {
-    return Obx(
-      () => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDialogButton(
+            text: "Save",
+            icon: Icons.save,
+            onPressed: () {
+              Navigator.pop(context);
+              controller.saveOffline();
+            },
+            color: Colors.orange,
+          ),
         ),
-        child: Column(
-          children: [
-            if (controller.isLoading.value)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Processing...',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            Row(
-              children: [
-                // Expanded(
-                //   child: _buildActionButton(
-                //     text: "Clear",
-                //     onPressed: controller.clearForm,
-                //     isSecondary: true,
-                //     icon: Icons.clear_all,
-                //   ),
-                // ),
-                // const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: _buildActionButton(
-                    text: "Finish",
-                    onPressed: controller.isLoading.value
-                        ? null
-                        : () => _showSubmissionOptions(context),
-                    // icon: Icons.send,
-                  ),
-                ),
-              ],
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildDialogButton(
+            text: "Submit",
+            icon: Icons.cloud_upload,
+            onPressed: () {
+              Navigator.pop(context);
+              controller.submitOnline();
+            },
+            color: Colors.green,
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildActionButton({
-    required String text,
-    required VoidCallback? onPressed,
-    bool isSecondary = false,
-    IconData? icon,
-  }) {
-    return SizedBox(
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary ? Colors.grey[600] : fPrimaryColour,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: isSecondary ? 0 : 2,
-          shadowColor: isSecondary ? null : fPrimaryColour.withOpacity(0.4),
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showDatePicker(BuildContext context, Function(DateTime) onConfirm) {
     DatePicker.showDatePicker(
@@ -986,125 +921,6 @@ class _AlternativeLivelihoodView extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-
-  void _showSubmissionOptions(BuildContext context) {
-    if (!controller.validateAllFields()) return;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        fPrimaryColour.withOpacity(0.2),
-                        fPrimaryColour.withOpacity(0.1),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.cloud_upload,
-                    size: 48,
-                    color: fPrimaryColour,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Finish",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "Choose how you want to submit your data",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue[700],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          "Online submission requires internet",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // const SizedBox(height: 24),
-                // Row(
-                //   children: [
-                //     Expanded(
-                //       child: _buildDialogButton(
-                //         text: "Cancel",
-                //         onPressed: () => Navigator.pop(context),
-                //         isSecondary: true,
-                //       ),
-                //     ),
-                //   ],
-                // ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildDialogButton(
-                        text: "Save Offline",
-                        icon: Icons.save,
-                        onPressed: () {
-                          Navigator.pop(context);
-                          controller.saveOffline();
-                        },
-                        color: Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDialogButton(
-                        text: "Submit",
-                        icon: Icons.cloud_upload,
-                        onPressed: () {
-                          Navigator.pop(context);
-                          controller.submitOnline();
-                        },
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 

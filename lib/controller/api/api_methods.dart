@@ -10,6 +10,7 @@ import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/controller/models/training_log_model.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
 import 'package:hcms_revived2/controller/models/user_model.dart';
+import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
 import 'package:http/http.dart' as http;
 
 class APIMethods {
@@ -26,6 +27,7 @@ class APIMethods {
       );
 
       debugPrint("THE RESPONSE :::::::::::: ${response.body}");
+      debugPrint("THE RESPONSE :::::::::::: ${response.statusCode}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
@@ -34,6 +36,8 @@ class APIMethods {
           'data': responseData,
           'message': 'Seedling monitoring submitted successfully',
         };
+      } else if (response.statusCode == 400) {
+        return {'success': false, 'error': 'A record with same farmer exists'};
       } else {
         debugPrint("THE RESPONSE :::::::::::: ${response.body}");
         return {
@@ -49,7 +53,7 @@ class APIMethods {
       debugPrint("THE STACKTRACE :::::::::::: $stackTrace");
       return {
         'success': false,
-        'error': 'Failed to submit seedling monitoring',
+        'error': 'Unknown error: Failed to submit seedling monitoring',
       };
     }
   }
@@ -64,8 +68,6 @@ class APIMethods {
         headers: {'Content-Type': 'application/json'},
         body: json.encode(trainingLog),
       );
-
-
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = json.decode(response.body);
@@ -199,7 +201,8 @@ class APIMethods {
           }
         }
 
-        responseData["data"]["assigned_district_ids"] = assignedDistrictIdsString;
+        responseData["data"]["assigned_district_ids"] =
+            assignedDistrictIdsString;
         final user = UserModel.fromJson(responseData["data"]);
 
         // Cache user data
@@ -229,12 +232,25 @@ class APIMethods {
   }
 
   // Submit tree registration to server
+  // Helper function to convert sets to lists for JSON serialization
+  static dynamic _convertToJsonSerializable(dynamic value) {
+    if (value is Set) {
+      return value.map((e) => _convertToJsonSerializable(e)).toList();
+    } else if (value is Map) {
+      return value.map((key, value) => MapEntry(
+          key.toString(), _convertToJsonSerializable(value)));
+    } else if (value is Iterable) {
+      return value.map((e) => _convertToJsonSerializable(e)).toList();
+    }
+    return value;
+  }
+
   static Future<Map<String, dynamic>> submitTreeRegistration(
-    TreeRegistrationModel registration,
+    Map<String, dynamic> registration,
   ) async {
     try {
-      // Convert to JSON
-      final jsonData = registration.toJson();
+      // Convert any Sets to Lists for JSON serialization
+      final jsonData = _convertToJsonSerializable(registration);
 
       // Make POST request
       final response = await http.post(
@@ -246,6 +262,9 @@ class APIMethods {
         body: jsonEncode(jsonData),
       );
 
+      debugPrint("THE RESPONSE :::::::::::: ${response.body}");
+
+
       // Handle response
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
@@ -254,7 +273,11 @@ class APIMethods {
           'data': responseData,
           'message': 'Tree registration submitted successfully',
         };
-      } else {
+      }
+      else if (response.statusCode == 409) {
+        return {'success': false, 'error': 'A Record with same farmer exists'};
+      }
+      else {
         return {
           'success': false,
           'error': 'Failed to submit: ${response.statusCode}',
@@ -262,6 +285,7 @@ class APIMethods {
         };
       }
     } catch (e) {
+      debugPrint("THE ERRORRRRRRRRRRRRRRRRRRRRRRR :::::::::::: $e");
       return {'success': false, 'error': 'Network error: $e'};
     }
   }
