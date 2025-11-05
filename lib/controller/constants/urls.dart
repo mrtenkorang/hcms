@@ -9,6 +9,7 @@ class URLS {
   static const String estaTypeUrl = "establishment-types/";
   static const String farmerRegistrationURL = "farmers/";
   static const String trainingLogURL = "trainings/";
+  static const String categoryURL = "small-holder-categories/";
   static const String seedlingMonitoringURL = "monitoring/seedlings/";
   static const String privateSectorEngagementURL = "monitoring/lmb/";
   static const String alternativeLivelihoodLogURL = "monitoring/alternative-livelihoods/";
@@ -17,10 +18,11 @@ class URLS {
   static const int buildNumber = 1;
 
 
+  static const String treeSpeciesURL = "tree-species/";
   static const String farmersFromServerUrl = "farmers/";
   static const String taStoolUrl = "stools/";
   static const String mmdaUrl = "mmdas/";
   static const String communityUrl = "communities/";
   static const String regionDistrictURL = "districts/";
-  static const String treeRegistrationURL = "";
+  static const String treeRegistrationURL = "beneficiary/save/";
 }
