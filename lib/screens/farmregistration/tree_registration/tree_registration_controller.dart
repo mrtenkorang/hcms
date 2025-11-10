@@ -3,8 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:hcms_revived2/controller/api/api_methods.dart';
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
 import 'package:hcms_revived2/controller/repos/tree_reg_repo.dart';
+import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/cupertino.dart';
@@ -28,6 +31,7 @@ import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimme
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/polygon_drawing_tool/polygon_drawing_tool.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map.dart';
+import 'package:intl/intl.dart';
 import '../../addedMaps/dependencies/style.dart';
 
 class TreeRegistrationController extends GetxController {
@@ -51,7 +55,7 @@ class TreeRegistrationController extends GetxController {
   var treeSpeciesValue = ''.obs;
   var yoEstablishment = ''.obs;
   final pnValues = ["Planted", "Natural"];
-  final treeSpeciesValues = ["Acacia", "Bamboo", "Teak", "Mahogany", "Other"];
+  List<String> treeSpeciesValues = [];
 
   // Data lists
   var farmerData = <FarmerFromServerModel>[].obs;
@@ -136,6 +140,7 @@ class TreeRegistrationController extends GetxController {
   void onInit() {
     super.onInit();
     _loadAllData();
+    loadTreeSpeciesData();
   }
 
   @override
@@ -183,14 +188,44 @@ class TreeRegistrationController extends GetxController {
   Future<void> loadRegionsData() async {
     try {
       isLoadingRegions.value = true;
+      List<DistrictModel> regionsNew = [];
+      List regionsNames = [];
+      List regionsIds = [];
       final regions = await DistrictRepository().getAllDistricts();
-      final regionModels = regions.map((obj) => DistrictModel(
-        regionName: obj.regionName,
-        districtName: obj.districtName,
-        districtId: obj.districtId,
-        regionId: obj.regionId,
-      )).toList();
-      regionsData.assignAll(regionModels);
+
+      for (var ele in regions) {
+        if (regionsNames.contains(ele.regionName)) {
+          continue;
+        }
+        regionsNames.add(ele.regionName);
+        regionsIds.add(ele.regionId);
+      }
+
+      // create region models
+      for (var i = 0; i < regionsNames.length; i++) {
+        regionsNew.add(
+          DistrictModel(
+            regionName: regionsNames[i],
+            districtName: "",
+            districtId: 0,
+            regionId: regionsIds[i],
+          ),
+        );
+      }
+
+      // final regionModels = regions
+      //     .map(
+      //       (obj) => DistrictModel(
+      //         regionName: obj.regionName,
+      //         districtName: obj.districtName,
+      //         districtId: obj.districtId,
+      //         regionId: obj.regionId,
+      //       ),
+      //     )
+      //     .toList();
+      regionsData.assignAll(regionsNew);
+
+
     } catch (e) {
       debugPrint('Error loading regions: $e');
       Get.snackbar('Error', 'Failed to load regions');
@@ -231,11 +266,15 @@ class TreeRegistrationController extends GetxController {
     isLoadingEstablishmentTypes.value = true;
     try {
       final establishmentTypes = await EstaTypeRepository().getAllEstaTypes();
-      debugPrint("THE ESTABLISHMENT TYPES ::::::::::: ${establishmentTypes.length}");
+      debugPrint(
+        "THE ESTABLISHMENT TYPES ::::::::::: ${establishmentTypes.length}",
+      );
 
       if (establishmentTypes.isNotEmpty) {
         establishmentTypesData.assignAll(establishmentTypes);
-        establishmentTypes.add(EstaTypeModel(id: establishmentTypes.length, esta_type: 'Other'));
+        establishmentTypes.add(
+          EstaTypeModel(id: establishmentTypes.length, esta_type: 'Other'),
+        );
       } else {
         // Fallback data
         establishmentTypesData.assignAll([
@@ -261,11 +300,20 @@ class TreeRegistrationController extends GetxController {
   // NEW: Establishment type selection methods
   // Add this method to your TreeRegistrationController
   void toggleEstablishmentType(String type) {
-    final isSpecialType = type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other';
-    final hasSpecialType = selectedEstablishmentTypes.any((selected) =>
-    selected == 'Woodlot' || selected == 'Commercial Plantation' || selected == 'Other');
-    final hasNonSpecialType = selectedEstablishmentTypes.any((selected) =>
-    selected != 'Woodlot' && selected != 'Commercial Plantation' && selected != 'Other');
+    final isSpecialType =
+        type == 'Woodlot' || type == 'Commercial Plantation' || type == 'Other';
+    final hasSpecialType = selectedEstablishmentTypes.any(
+      (selected) =>
+          selected == 'Woodlot' ||
+          selected == 'Commercial Plantation' ||
+          selected == 'Other',
+    );
+    final hasNonSpecialType = selectedEstablishmentTypes.any(
+      (selected) =>
+          selected != 'Woodlot' &&
+          selected != 'Commercial Plantation' &&
+          selected != 'Other',
+    );
 
     if (selectedEstablishmentTypes.contains(type)) {
       // Deselecting
@@ -358,7 +406,9 @@ class TreeRegistrationController extends GetxController {
 
     try {
       final regionName = selectedRegion.value!.regionName;
-      final districts = await DistrictRepository().getDistrictsByRegionName(regionName);
+      final districts = await DistrictRepository().getDistrictsByRegionName(
+        regionName,
+      );
       filteredDistricts.assignAll(districts);
     } catch (e) {
       debugPrint('Error loading districts: $e');
@@ -366,6 +416,24 @@ class TreeRegistrationController extends GetxController {
       filteredDistricts.clear();
     }
     update();
+  }
+
+  bool validateGroupDetails() {
+    return groupNameController.text.isNotEmpty &&
+        groupPresidentController.text.isNotEmpty &&
+        groupSecretaryController.text.isNotEmpty &&
+        companyDirectorsController.text.isNotEmpty &&
+        groupPhoneController.text.isNotEmpty &&
+        groupregNumbController.text.isNotEmpty &&
+        groupEmailController.text.isNotEmpty &&
+        groupAddressController.text.isNotEmpty &&
+        groupAddressController.text.isNotEmpty &&
+        selectedEstablishmentTypes.isNotEmpty &&
+        selectedRegion.value != null &&
+        selectedDistrict.value != null &&
+        selectedMMDA.value != null &&
+        selectedCommunity.value != null &&
+        treeData.isNotEmpty;
   }
 
   // Validation methods
@@ -416,6 +484,16 @@ class TreeRegistrationController extends GetxController {
     polygon.value = null;
     markers.value = null;
     totalSizeAcres.value = '';
+
+    // clear group details
+    groupNameController.clear();
+    groupPresidentController.clear();
+    groupSecretaryController.clear();
+    companyDirectorsController.clear();
+    groupPhoneController.clear();
+    groupregNumbController.clear();
+    groupEmailController.clear();
+    groupAddressController.clear();
   }
 
   // Mapping functionality
@@ -440,7 +518,7 @@ class TreeRegistrationController extends GetxController {
     if (polygon.value != null) polys.add(polygon.value!);
 
     Get.to(
-          () => PolygonDrawingTool(
+      () => PolygonDrawingTool(
         layers: polys,
         initialPolygon: polygon.value,
         viewInitialPolygon: polygon.value != null,
@@ -542,15 +620,39 @@ class TreeRegistrationController extends GetxController {
     );
   }
 
-  submitTreeData() async {
+  String? _getPolygonAsGeoJson() {
     try {
-      if (polygon.value == null || polygon.value!.points.isEmpty) {
-        throw Exception('Farm boundary is required');
+      final coordinates = polygon.value!.points
+          .map((point) => [point.longitude, point.latitude])
+          .toList();
+
+      if (coordinates.isNotEmpty && coordinates.first != coordinates.last) {
+        coordinates.add(coordinates.first);
       }
 
+      final geoJson = {
+        "type": "Polygon",
+        "coordinates": [coordinates],
+      };
+
+      return json.encode(geoJson);
+    } catch (e) {
+      debugPrint('Error converting polygon to GeoJSON: $e');
+      return null;
+    }
+  }
+
+  submitTreeGroupData() async {
+    try {
+      // if (polygon.value == null || polygon.value!.points.isEmpty) {
+      //   throw Exception('Farm boundary is required');
+      // }
+
+      final c = await CacheService.getInstance();
+      UserModel? user = await c.getUserInfo();
 
       List<Map<String, double>> boundaryCoordinates;
-      if(!showTreeDetailsSection) {
+      if (!showTreeDetailsSection) {
         // polygon.value!.points.add(polygon.value!.points.first);
         // Convert polygon to coordinate format
         boundaryCoordinates = polygon.value!.points
@@ -560,16 +662,44 @@ class TreeRegistrationController extends GetxController {
         boundaryCoordinates = [];
       }
 
+      // Parse date with format handling
+      DateTime parseDate(String dateString) {
+        try {
+          // Try parsing with different formats
+          final formats = [
+            'y-M-d', // 2025-11-3
+            'd/M/y', // 3/11/2025
+            'M/d/y', // 11/3/2025
+            'yyyy-MM-dd', // 2025-11-03
+            'dd/MM/yyyy', // 03/11/2025
+          ];
+
+          for (var format in formats) {
+            try {
+              return DateFormat(format).parse(dateString);
+            } catch (e) {
+              continue;
+            }
+          }
+          // If no format matches, return current date as fallback
+          return DateTime.now();
+        } catch (e) {
+          debugPrint('Error parsing date: $e');
+          return DateTime.now(); // Return current date as fallback
+        }
+      }
+
       TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
-        farmerId: selectedFarmer.value!.id,
-        regionId: selectedRegion.value!.id!,
-        districtId: selectedDistrict.value!.id!,
-        mmdaId: selectedMMDA.value!.id!,
-        communityId: selectedCommunity.value!.id!,
+        farmerId: 0,
+        regionId: int.tryParse(selectedRegion.value!.regionId),
+        districtId: selectedDistrict.value!.districtId,
+        mmdaId: selectedDistrict.value!.id,
+        communityId: selectedCommunity.value!.id,
         establishmentType: selectedEstablishmentTypes.join(', '),
         nextOfKinName: nextOfKinNameController.text,
-        farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text,
-        nextOfKinDoB: DateTime.parse(dobController.text),
+        farmerRelationshipWithNextOfKin:
+            relationShipWithNextOfKinController.text,
+        nextOfKinDoB: parseDate(dobController.text),
         nextOfKinGender: genderController.text,
         nextOfKinPhoneNumber: phoneNumberController.text,
         nextOfKinPostalAddress: postalAddressController.text,
@@ -591,54 +721,111 @@ class TreeRegistrationController extends GetxController {
         updatedAt: DateTime.now(),
       );
 
+      final submissionDataGroup = {
+        "beneficiaryDetails": {
+          "beneficiaryType": "Group",
+          "groupName": groupNameController.text,
+          "groupPresident": groupPresidentController.text,
+          "groupSecretary": groupSecretaryController.text,
+          "companyDirectors": companyDirectorsController.text,
+          "phoneNumber": groupPhoneController.text,
+          "enumerator": user!.id,
+          "passportImageBase64String": "",
+        },
+        "location": {
+          "forestDistrict": selectedDistrict.value!.districtName,
+          "family": "Akan",
+          "mmdas": selectedDistrict.value!.id,
+          "community": selectedCommunity.value!.community,
+        },
+
+        "treeFarmInformationArray": [
+          {
+            "typeOfEstablishments": selectedEstablishmentTypes.join(', '),
+            //
+            "farmInformationArray":
+                polygon.value?.points
+                    .map(
+                      (point) => ({
+                        "longitude": point.longitude,
+                        "latitude": point.latitude,
+                      }),
+                    )
+                    .toList() ??
+                [],
+            // create a list of objects with the tree information
+            "treeInformationOption1Array": treeData
+                .map(
+                  (e) => {
+                    {
+                      "speciesPlanted": e["species"],
+                      "numberOfTrees": treeData.length,
+                      "plantingDistance": 3,
+                      "yearOfEstablishment": e["yo_establishment"],
+                      // "treeSize": e["size"],
+                    },
+                  },
+                )
+                .toList(),
+          },
+        ],
+      };
+
+      debugPrint("THE TREE REG DATA ::::::::::::::: $submissionDataGroup");
+
       Globals().startWait(treeRegisterScreenContext!);
-      final result = await APIMethods.submitTreeRegistration(treeRegistrationModel);
+      final result = await APIMethods.submitTreeRegistration(
+        submissionDataGroup,
+      );
       Globals().endWait(treeRegisterScreenContext!);
 
       if (result['success']) {
+        await TreeRegistrationRepository().insertTreeRegistration(
+          treeRegistrationModel,
+        );
         resetForm();
         clearAllTrees();
+        Get.back();
+        Get.back();
         Globals().showSnackBar(
           title: "Success",
           message: 'Tree registration submitted to server successfully!',
           backgroundColor: Colors.green,
         );
-
-        TreeRegistrationRepository().insertTreeRegistration(treeRegistrationModel);
       } else {
         Globals().showSnackBar(
           title: "Submission Failed",
-          message: 'Failed to submit: ${result['error']}',
+          message: 'An unknown error occurred',
           backgroundColor: Colors.orange,
         );
 
-        await saveTreeDataOffline();
+        // await saveTreeDataOffline();
       }
-    } catch (e) {
-      Globals().endWait(treeRegisterScreenContext!);
-      await saveTreeDataOffline();
+    } catch (e, stackTrace) {
+      debugPrint("THE ERROR ::::: $e");
+      debugPrint("THE ERROR ::::: $stackTrace");
+      // Globals().endWait(treeRegisterScreenContext!);
+      // await saveTreeDataOffline();
       Globals().showSnackBar(
-        title: "Network Error",
-        message: 'Saved offline due to network issue',
+        title: "Error",
+        message: 'Unknown error occurred',
         backgroundColor: Colors.orange,
       );
     }
   }
 
-  saveTreeDataOffline() async {
+  submitTreeDataIndividual() async {
+    // debugPrint("THE TREE REG DATA ffffffffffffff::::::::::::::: ${selectedRegion.value!.toMap()}");
     try {
-      if (treeRegisterScreenContext == null) {
-        throw Exception('Context is not initialized');
-      }
+      // if (polygon.value == null || polygon.value!.points.isEmpty) {
+      //   throw Exception('Farm boundary is required');
+      // }
 
-      Globals().startWait(treeRegisterScreenContext!);
-
-      if (selectedFarmer.value == null || selectedRegion.value == null) {
-        throw Exception('Farmer and Region are required fields');
-      }
+      final c = await CacheService.getInstance();
+      UserModel? user = await c.getUserInfo();
 
       List<Map<String, double>> boundaryCoordinates;
-      if(!showTreeDetailsSection) {
+      if (!showTreeDetailsSection) {
         // polygon.value!.points.add(polygon.value!.points.first);
         // Convert polygon to coordinate format
         boundaryCoordinates = polygon.value!.points
@@ -648,34 +835,259 @@ class TreeRegistrationController extends GetxController {
         boundaryCoordinates = [];
       }
 
-      final treeRegistrationModel = TreeRegistrationModel(
+      debugPrint(
+        "THE TREE REG DATA ::::::::::::::: ${selectedRegion.value!.toMap()}",
+      );
+
+      // Parse date with format handling
+      DateTime parseDate(String dateString) {
+        try {
+          // Try parsing with different formats
+          final formats = [
+            'y-M-d', // 2025-11-3
+            'd/M/y', // 3/11/2025
+            'M/d/y', // 11/3/2025
+            'yyyy-MM-dd', // 2025-11-03
+            'dd/MM/yyyy', // 03/11/2025
+          ];
+
+          for (var format in formats) {
+            try {
+              return DateFormat(format).parse(dateString);
+            } catch (e) {
+              continue;
+            }
+          }
+          // If no format matches, return current date as fallback
+          return DateTime.now();
+        } catch (e) {
+          debugPrint('Error parsing date: $e');
+          return DateTime.now(); // Return current date as fallback
+        }
+      }
+
+      TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
         farmerId: selectedFarmer.value!.id,
-        regionId: int.tryParse(selectedRegion.value!.regionId) ?? 0,
-        districtId: selectedDistrict.value?.districtId ?? 0,
-        mmdaId: selectedMMDA.value?.id ?? 0,
-        communityId: selectedCommunity.value?.id ?? 0,
+        regionId: int.tryParse(selectedRegion.value!.regionId),
+        districtId: selectedDistrict.value!.districtId,
+        mmdaId: selectedDistrict.value!.id,
+        communityId: selectedCommunity.value!.id,
         establishmentType: selectedEstablishmentTypes.join(', '),
-        nextOfKinName: nextOfKinNameController.text.trim(),
-        farmerRelationshipWithNextOfKin: relationShipWithNextOfKinController.text.trim(),
-        nextOfKinDoB: DateTime.tryParse(dobController.text) ?? DateTime.now(),
-        nextOfKinGender: genderController.text.trim(),
-        nextOfKinPhoneNumber: phoneNumberController.text.trim(),
-        nextOfKinPostalAddress: postalAddressController.text.trim(),
+        nextOfKinName: nextOfKinNameController.text,
+        farmerRelationshipWithNextOfKin:
+            relationShipWithNextOfKinController.text,
+        nextOfKinDoB: parseDate(dobController.text),
+        nextOfKinGender: genderController.text,
+        nextOfKinPhoneNumber: phoneNumberController.text,
+        nextOfKinPostalAddress: postalAddressController.text,
         farmBoundaryPolygon: Uint8List.fromList(
           utf8.encode(jsonEncode(boundaryCoordinates)),
         ),
         farmSize: double.tryParse(totalSizeAcres.value),
         trees: treeData,
-        groupName: groupPresidentController.text.trim(),
-        groupPresident: groupPresidentController.text.trim(),
-        groupSecretary: groupSecretaryController.text.trim(),
-        companyDirectors: companyDirectorsController.text.trim(),
-        groupPhoneNumber: groupPhoneController.text.trim(),
-        groupEmail: groupEmailController.text.trim(),
-        groupPostalAddress: groupAddressController.text.trim(),
-        groupRegNumb: groupregNumbController.text.trim(),
+        groupName: groupPresidentController.text,
+        groupPresident: groupPresidentController.text,
+        groupSecretary: groupSecretaryController.text,
+        companyDirectors: companyDirectorsController.text,
+        groupPhoneNumber: groupPhoneController.text,
+        groupEmail: groupEmailController.text,
+        groupPostalAddress: groupAddressController.text,
+        groupRegNumb: groupregNumbController.text,
+        isSynced: 1,
         createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final submissionDataIndividual = {
+        "beneficiaryDetails": {
+          "beneficiaryType": "Individual",
+          "farmerbiodata_id": selectedFarmer.value!.id,
+          "firstName": "",
+          "surname": "",
+          "otherNames": "",
+          "gender": "",
+          "dateOfBirth": DateFormat(
+            'yyyy-MM-dd',
+          ).format(DateTime.tryParse(dobController.text) ?? DateTime.now()),
+
+          "address": "",
+          "phoneNumber": "",
+          "email": "",
+          "enumerator": user!.id,
+          "passportImageBase64String": "",
+          "nextOfKin": {
+            "name": nextOfKinNameController.text,
+            "phoneNumber": phoneNumberController.text,
+            "relationship": relationShipWithNextOfKinController.text,
+            "gender": genderController.text,
+            "address": postalAddressController.text,
+            "dateOfBirth": DateFormat(
+              'yyyy-MM-dd',
+            ).format(DateTime.tryParse(dobController.text) ?? DateTime.now()),
+          },
+        },
+        "location": {
+          "forestDistrict": selectedDistrict.value!.districtName,
+          "family": "",
+          "mmdas_id": selectedDistrict.value!.id,
+          "community": selectedCommunity.value!.community,
+        },
+        "treeFarmInformationArray": [
+          {
+            "typeOfEstablishments": selectedEstablishmentTypes.join(', '),
+            // create a list of objects with the lat and long of each tree
+            "farmInformationArray":
+                polygon.value?.points
+                    .map(
+                      (point) => ({
+                        "longitude": point.longitude,
+                        "latitude": point.latitude,
+                      }),
+                    )
+                    .toList() ??
+                [],
+            // create a list of objects with the tree information
+            "treeInformationOption1Array": treeData
+                .map(
+                  (e) => {
+                    {
+                      "numberOfTrees": treeData.length,
+                      "plantingDistance": 3,
+                      "yearOfEstablishment": e["yo_establishment"],
+                      // "treeSize": e["size"],
+                    },
+                  },
+                )
+                .toList(),
+          },
+        ],
+      };
+
+      debugPrint("THE TREE REG DATA ::::::::::::::: $submissionDataIndividual");
+
+      Globals().startWait(treeRegisterScreenContext!);
+      final result = await APIMethods.submitTreeRegistration(
+        submissionDataIndividual,
+      );
+      Globals().endWait(treeRegisterScreenContext!);
+
+      if (result['success']) {
+        await TreeRegistrationRepository().insertTreeRegistration(
+          treeRegistrationModel,
+        );
+
+        resetForm();
+        clearAllTrees();
+        Get.back();
+        Get.back();
+
+        Globals().showSnackBar(
+          title: "Success",
+          message: 'Tree registration submitted to server successfully!',
+          backgroundColor: Colors.green,
+        );
+      } else {
+        Globals().showSnackBar(
+          title: "Submission Failed",
+          message: '${result['error']}',
+          backgroundColor: Colors.orange,
+        );
+
+        // await saveTreeDataOffline();
+      }
+    } catch (e, stackTrace) {
+      debugPrint("THE ERROR ::::: $e");
+      debugPrint("THE ERROR ::::: $stackTrace");
+      // Globals().endWait(treeRegisterScreenContext!);
+      // await saveTreeDataOffline();
+      Globals().showSnackBar(
+        title: "Network Error",
+        message: 'An unknown error occurred',
+        backgroundColor: Colors.orange,
+      );
+    }
+  }
+
+  saveTreeDataOffline() async {
+    // Parse date with format handling
+    DateTime parseDate(String dateString) {
+      try {
+        // Try parsing with different formats
+        final formats = [
+          'y-M-d', // 2025-11-3
+          'd/M/y', // 3/11/2025
+          'M/d/y', // 11/3/2025
+          'yyyy-MM-dd', // 2025-11-03
+          'dd/MM/yyyy', // 03/11/2025
+        ];
+
+        for (var format in formats) {
+          try {
+            return DateFormat(format).parse(dateString);
+          } catch (e) {
+            continue;
+          }
+        }
+        // If no format matches, return current date as fallback
+        return DateTime.now();
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+        return DateTime.now(); // Return current date as fallback
+      }
+    }
+
+    try {
+      if (treeRegisterScreenContext == null) {
+        throw Exception('Context is not initialized');
+      }
+
+      Globals().startWait(treeRegisterScreenContext!);
+      if (selectedFarmer.value == null || selectedRegion.value == null) {
+        throw Exception('Farmer and Region are required fields');
+      }
+      // if (selectedFarmer.value == null || selectedRegion.value == null) {
+      //   throw Exception('Farmer and Region are required fields');
+      // }
+
+      List<Map<String, double>> boundaryCoordinates;
+      if (!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
+      }
+      TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
+        farmerId: selectedFarmer.value!.id,
+        regionId: int.tryParse(selectedRegion.value!.regionId),
+        districtId: selectedDistrict.value!.districtId,
+        mmdaId: selectedDistrict.value!.districtId,
+        communityId: selectedCommunity.value!.id,
+        establishmentType: selectedEstablishmentTypes.join(', '),
+        nextOfKinName: nextOfKinNameController.text,
+        farmerRelationshipWithNextOfKin:
+            relationShipWithNextOfKinController.text,
+        nextOfKinDoB: parseDate(dobController.text),
+        nextOfKinGender: genderController.text,
+        nextOfKinPhoneNumber: phoneNumberController.text,
+        nextOfKinPostalAddress: postalAddressController.text,
+        farmBoundaryPolygon: Uint8List.fromList(
+          utf8.encode(jsonEncode(boundaryCoordinates)),
+        ),
+        farmSize: double.tryParse(totalSizeAcres.value),
+        trees: treeData,
+        groupName: groupPresidentController.text,
+        groupPresident: groupPresidentController.text,
+        groupSecretary: groupSecretaryController.text,
+        companyDirectors: companyDirectorsController.text,
+        groupPhoneNumber: groupPhoneController.text,
+        groupEmail: groupEmailController.text,
+        groupPostalAddress: groupAddressController.text,
+        groupRegNumb: groupregNumbController.text,
         isSynced: 0,
+        createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
@@ -689,7 +1101,8 @@ class TreeRegistrationController extends GetxController {
       Globals().endWait(treeRegisterScreenContext!);
 
       if (id > 0) {
-        Get.offAll(()=> IndexPage());
+        debugPrint("THE TREE REG DATA ::::::::::::::: $id");
+        Get.offAll(() => IndexPage());
         resetForm();
         clearAllTrees();
 
@@ -708,6 +1121,127 @@ class TreeRegistrationController extends GetxController {
         message: 'An unknown error occurred',
         backgroundColor: Colors.red,
       );
+    }
+  }
+
+  saveTreeDataOfflineGroup() async {
+    // Parse date with format handling
+    DateTime parseDate(String dateString) {
+      try {
+        // Try parsing with different formats
+        final formats = [
+          'y-M-d', // 2025-11-3
+          'd/M/y', // 3/11/2025
+          'M/d/y', // 11/3/2025
+          'yyyy-MM-dd', // 2025-11-03
+          'dd/MM/yyyy', // 03/11/2025
+        ];
+
+        for (var format in formats) {
+          try {
+            return DateFormat(format).parse(dateString);
+          } catch (e) {
+            continue;
+          }
+        }
+        // If no format matches, return current date as fallback
+        return DateTime.now();
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+        return DateTime.now(); // Return current date as fallback
+      }
+    }
+
+    try {
+      if (treeRegisterScreenContext == null) {
+        throw Exception('Context is not initialized');
+      }
+
+      Globals().startWait(treeRegisterScreenContext!);
+
+      List<Map<String, double>> boundaryCoordinates;
+      if (!showTreeDetailsSection) {
+        // polygon.value!.points.add(polygon.value!.points.first);
+        // Convert polygon to coordinate format
+        boundaryCoordinates = polygon.value!.points
+            .map((e) => {'latitude': e.latitude, 'longitude': e.longitude})
+            .toList();
+      } else {
+        boundaryCoordinates = [];
+      }
+      TreeRegistrationModel treeRegistrationModel = TreeRegistrationModel(
+        // farmerId: selectedFarmer.value!.id,
+        regionId: int.tryParse(selectedRegion.value!.regionId),
+        districtId: selectedDistrict.value!.districtId,
+        mmdaId: selectedDistrict.value!.districtId,
+        communityId: selectedCommunity.value!.id,
+        establishmentType: selectedEstablishmentTypes.join(', '),
+        nextOfKinName: nextOfKinNameController.text,
+        farmerRelationshipWithNextOfKin:
+            relationShipWithNextOfKinController.text,
+        nextOfKinDoB: parseDate(dobController.text),
+        nextOfKinGender: genderController.text,
+        nextOfKinPhoneNumber: phoneNumberController.text,
+        nextOfKinPostalAddress: postalAddressController.text,
+        farmBoundaryPolygon: Uint8List.fromList(
+          utf8.encode(jsonEncode(boundaryCoordinates)),
+        ),
+        farmSize: double.tryParse(totalSizeAcres.value),
+        trees: treeData,
+        groupName: groupPresidentController.text,
+        groupPresident: groupPresidentController.text,
+        groupSecretary: groupSecretaryController.text,
+        companyDirectors: companyDirectorsController.text,
+        groupPhoneNumber: groupPhoneController.text,
+        groupEmail: groupEmailController.text,
+        groupPostalAddress: groupAddressController.text,
+        groupRegNumb: groupregNumbController.text,
+        isSynced: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final Map<String, dynamic> data = treeRegistrationModel.toJson();
+      debugPrint("THE TREE REG DATA ::::::::::::::: $data");
+
+      int id = await TreeRegistrationRepository().insertTreeRegistration(
+        treeRegistrationModel,
+      );
+
+      Globals().endWait(treeRegisterScreenContext!);
+
+      if (id > 0) {
+        debugPrint("THE TREE REG DATA ::::::::::::::: $id");
+        Get.offAll(() => IndexPage());
+        resetForm();
+        clearAllTrees();
+
+        Globals().showSnackBar(
+          title: "Success",
+          message: 'Tree registration saved successfully!',
+          backgroundColor: Colors.green,
+        );
+      }
+    } catch (e, stackTrace) {
+      debugPrint("THE ERROR ::::: $e");
+      debugPrint("THE ERROR ::::: $stackTrace");
+      Globals().endWait(treeRegisterScreenContext!);
+      Globals().showSnackBar(
+        title: "Error",
+        message: 'An unknown error occurred',
+        backgroundColor: Colors.red,
+      );
+    }
+  }
+
+  loadTreeSpeciesData() async {
+    try {
+      final treeSpecies = await TreeSpeciesRepository().getAllTreeSpecies();
+      for (var element in treeSpecies) {
+        treeSpeciesValues.add(element.name);
+      }
+    } catch (e) {
+      debugPrint('Error loading tree species: $e');
     }
   }
 }

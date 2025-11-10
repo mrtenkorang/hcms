@@ -12,12 +12,59 @@ class TreeRegHistory extends StatefulWidget {
   State<TreeRegHistory> createState() => _TreeRegHistoryState();
 }
 
-class _TreeRegHistoryState extends State<TreeRegHistory> {
+class _TreeRegHistoryState extends State<TreeRegHistory>
+    with SingleTickerProviderStateMixin {
+  final controller = Get.put(TreeRegHistoryController());
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: controller.selectedTabIndex,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.treeRegHistoryScreenContext = context;
+      controller.loadTreeData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    Get.delete<TreeRegHistoryController>();
+    super.dispose();
+  }
+
+  Future<void> _showSyncConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Registrations'),
+        content: const Text('Are you sure you want to sync all pending tree registrations to the server?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await controller.syncAllPendingTrees(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(TreeRegHistoryController());
-    controller.treeRegHistoryScreenContext = context;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -28,266 +75,217 @@ class _TreeRegHistoryState extends State<TreeRegHistory> {
         elevation: 0,
         backgroundColor: fPrimaryColour,
         foregroundColor: Colors.black,
+        actions: [
+          Obx(() => controller.isSyncing
+              ? const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.sync),
+                  onPressed: _showSyncConfirmation,
+                  tooltip: 'Sync Pending Registrations',
+                ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // Tab Bar
-          _buildTabBar(controller),
-          // Tab Content
-          Expanded(child: _buildTabContent(controller)),
+          _buildTabBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTabContent(isPending: false),
+                _buildTabContent(isPending: true),
+
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTabBar(TreeRegHistoryController controller) {
+  Widget _buildTabBar() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      color: Colors.white,
       child: TabBar(
-        controller: TabController(
-          length: 2,
-          initialIndex: controller.selectedTabIndex,
-          vsync: Navigator.of(controller.treeRegHistoryScreenContext!),
-        ),
-        onTap: controller.changeTab,
+        controller: _tabController,
+        onTap: (index) => controller.changeTab(index),
         labelColor: Colors.green,
         unselectedLabelColor: Colors.grey,
         indicatorColor: Colors.green,
         tabs: [
+
           Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cloud_done, size: 18),
-                const SizedBox(width: 6),
-                Text('Submitted (${controller.syncedData.length})'),
-              ],
-            ),
+            icon: Icon(Icons.cloud_done, size: 18),
+            text: 'Submitted',
           ),
           Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.cloud_upload, size: 18),
-                const SizedBox(width: 6),
-                Text('Pending (${controller.unsyncedData.length})'),
-              ],
-            ),
+            icon: Icon(Icons.cloud_upload, size: 18),
+            text: 'Pending',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabContent(TreeRegHistoryController controller) {
+  Widget _buildTabContent({required bool isPending}) {
     return Obx(() {
       if (controller.isLoading) {
         return const Center(child: CircularProgressIndicator());
       }
 
-      final currentData = controller.selectedTabIndex == 0
-          ? controller.syncedData
-          : controller.unsyncedData;
+      final data = isPending ? controller.unsyncedData : controller.syncedData;
 
-      if (currentData.isEmpty) {
-        return _buildEmptyState(controller);
+      if (data.isEmpty) {
+        return _buildEmptyState(isPending: isPending);
       }
 
       return RefreshIndicator(
-        onRefresh: controller.loadTreeData,
+        onRefresh: () => controller.loadTreeData(),
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: currentData.length,
-          itemBuilder: (context, index) {
-            return _buildTreeCard(currentData[index], controller);
-          },
+          itemCount: data.length,
+          itemBuilder: (context, index) => _buildTreeCard(data[index]),
         ),
       );
     });
   }
 
-  Widget _buildEmptyState(TreeRegHistoryController controller) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildEmptyState({required bool isPending}) {
+    return RefreshIndicator(
+      onRefresh: () async => controller.loadTreeData(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          Icon(
-            controller.selectedTabIndex == 0
-                ? Icons.cloud_done
-                : Icons.cloud_upload,
-            size: 64,
-            color: Colors.grey[300],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            controller.selectedTabIndex == 0
-                ? 'No Synced Registrations'
-                : 'No Pending Registrations',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isPending ? Icons.cloud_upload : Icons.cloud_done,
+                    size: 72,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isPending
+                        ? 'No Pending Registrations'
+                        : 'No Submitted Registrations',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isPending
+                        ? 'Tree registrations waiting to be synced will appear here.'
+                        : 'All your submitted tree registrations will appear here.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => controller.loadTreeData(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: fPrimaryColour,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            controller.selectedTabIndex == 0
-                ? 'All your synced tree registrations will appear here'
-                : 'Tree registrations waiting to be synced will appear here',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-          ),
-          const SizedBox(height: 20),
-          if (controller.selectedTabIndex == 1)
-            ElevatedButton.icon(
-              onPressed: controller.loadTreeData,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildTreeCard(
-    TreeRegistrationModel registration,
-    TreeRegHistoryController controller,
-  ) {
+  Widget _buildTreeCard(TreeRegistrationModel registration) {
     return InkWell(
-      onTap: () async {
-        Get.to(
-          () => TreeRegistrationEditScreen(
-            isIndividual:
-                registration.farmerId != null ||
-                registration.farmerId.toString() != '',
-            registrationModel: registration,
-            registrationId: registration.id!,
-          ),
-        );
-      },
+      onTap: () => Get.to(
+            () => TreeRegistrationEditScreen(
+          isIndividual:
+          registration.farmerId != null && registration.farmerId! > 0,
+          registrationId: registration.id!,
+          registrationModel: registration,
+        ),
+      ),
       child: Card(
+        elevation: 3,
         margin: const EdgeInsets.only(bottom: 12),
-        elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Registration #${registration.id ?? 'N/A'}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: controller
-                          .getStatusColor(registration)
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: controller
-                            .getStatusColor(registration)
-                            .withOpacity(0.3),
-                      ),
-                    ),
-                    child: Text(
-                      controller.getStatusText(registration),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: controller.getStatusColor(registration),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _buildCardHeader(registration),
+              const SizedBox(height: 10),
+              _buildCardInfo(registration),
               const SizedBox(height: 12),
-
-              // Farmer Info
-              _buildInfoRow('Farmer ID', '${registration.farmerId}'),
-              _buildInfoRow(
-                'Establishment',
-                registration.establishmentType ?? 'N/A',
-              ),
-              _buildInfoRow('Trees', controller.getTreeCountText(registration)),
-
-              // Dates
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoRow(
-                      'Created',
-                      controller.formatDate(registration.createdAt),
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildInfoRow(
-                      'Updated',
-                      controller.formatDate(registration.updatedAt),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Action Buttons
-              if (controller.selectedTabIndex ==
-                  1) // Only show actions for pending sync
-                Row(
-                  children: [
-                    // Expanded(
-                    //   child: OutlinedButton.icon(
-                    //     onPressed: () => controller.retrySync(registration),
-                    //     icon: const Icon(Icons.sync, size: 16),
-                    //     label: const Text('Retry Sync'),
-                    //     style: OutlinedButton.styleFrom(
-                    //       foregroundColor: Colors.orange,
-                    //       side: BorderSide(color: Colors.orange.shade300),
-                    //     ),
-                    //   ),
-                    // ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            _showDeleteDialog(registration, controller),
-                        icon: const Icon(Icons.delete, size: 16),
-                        label: const Text('Delete'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: BorderSide(color: Colors.red.shade300),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              _buildActionButtons(registration),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCardHeader(TreeRegistrationModel reg) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Registration #${reg.id ?? 'N/A'}',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardInfo(TreeRegistrationModel reg) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (reg.farmerId != null && reg.farmerId! > 0)
+          _buildInfoRow('Farmer ID', '${reg.farmerId}'),
+        if (reg.groupName?.isNotEmpty ?? false)
+          _buildInfoRow('Group', reg.groupName!),
+        _buildInfoRow('Establishment', reg.establishmentType ?? 'N/A'),
+        _buildInfoRow('Trees', controller.getTreeCountText(reg)),
+        Row(
+          children: [
+            Expanded(
+              child: _buildInfoRow(
+                'Created',
+                controller.formatDate(reg.createdAt),
+              ),
+            ),
+            Expanded(
+              child: _buildInfoRow(
+                'Updated',
+                controller.formatDate(reg.updatedAt),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -298,41 +296,60 @@ class _TreeRegHistoryState extends State<TreeRegHistory> {
         children: [
           Text(
             '$label: ',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showDeleteDialog(
-    TreeRegistrationModel registration,
-    TreeRegHistoryController controller,
-  ) {
+  Widget _buildActionButtons(TreeRegistrationModel reg) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _showDeleteDialog(reg),
+            icon: const Icon(Icons.delete, size: 16),
+            label: const Text('Delete'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: BorderSide(color: Colors.red.shade300),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showDeleteDialog(TreeRegistrationModel reg) {
     showDialog(
-      context: controller.treeRegHistoryScreenContext!,
-      builder: (context) => AlertDialog(
+      context: context,
+      builder: (_) => AlertDialog(
         title: const Text('Delete Registration'),
         content: const Text(
           'Are you sure you want to delete this tree registration? This action cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: Get.back,
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              controller.deleteRegistration(registration);
+            onPressed: () async {
+              Get.back();
+              await controller.deleteRegistration(reg);
+              setState(() {});
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
