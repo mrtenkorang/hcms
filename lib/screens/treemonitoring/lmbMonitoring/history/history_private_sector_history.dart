@@ -34,6 +34,36 @@ class _HistoryPrivateSectorHistoryState extends State<HistoryPrivateSectorHistor
     super.dispose();
   }
 
+  Future<void> _showSyncConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Records'),
+        content: const Text(
+          'Are you sure you want to sync all pending records to the server?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await controller.syncAllPendingRecords(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,8 +80,29 @@ class _HistoryPrivateSectorHistoryState extends State<HistoryPrivateSectorHistor
           indicatorColor: Colors.white,
         ),
         actions: [
+          // Sync Button (only show when there are pending records)
+          Obx(() => controller.pendingRecords.isNotEmpty
+              ? IconButton(
+                  icon: controller.isSyncing.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.sync, color: Colors.white),
+                  onPressed: controller.isSyncing.value
+                      ? null
+                      : () => _showSyncConfirmation(context),
+                  tooltip: 'Sync Pending Records',
+                )
+              : const SizedBox.shrink()),
+          
+          // Refresh Button
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => controller.refreshData(context),
             tooltip: 'Refresh',
           ),
