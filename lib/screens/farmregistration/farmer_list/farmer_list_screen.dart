@@ -15,7 +15,7 @@ class FarmerListScreen extends GetView<FarmerListController> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Farmers Directory',
+          'Farmers List',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 20,
@@ -36,7 +36,6 @@ class FarmerListScreen extends GetView<FarmerListController> {
       body: Column(
         children: [
           _buildSearchBar(),
-          _buildStatsBar(),
           const SizedBox(height: 8),
           Expanded(
             child: Obx(() {
@@ -100,40 +99,6 @@ class FarmerListScreen extends GetView<FarmerListController> {
         ),
       ),
     );
-  }
-
-  Widget _buildStatsBar() {
-    return Obx(() {
-      final totalFarmers = controller.filteredFarmers.length;
-      final filteredCount = controller.filteredFarmers.length;
-      final isFiltered = controller.searchQuery.isNotEmpty;
-
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              isFiltered ? 'Showing $filteredCount farmers' : 'Total: $totalFarmers farmers',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (isFiltered)
-              Text(
-                '${((filteredCount / totalFarmers) * 100).toStringAsFixed(1)}% of total',
-                style: TextStyle(
-                  color: fPrimaryColour,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-          ],
-        ),
-      );
-    });
   }
 
   Widget _buildLoadingState() {
@@ -372,8 +337,8 @@ class FarmerListScreen extends GetView<FarmerListController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildDetailSection(farmer),
-                      const SizedBox(height: 24),
-                      _buildActionButtons(farmer),
+                      // const SizedBox(height: 24),
+                      // _buildActionButtons(farmer),
                     ],
                   ),
                 ),

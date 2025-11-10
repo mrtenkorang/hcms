@@ -17,9 +17,9 @@ class FarmerFromServerRepository {
   }
 
   // Add this to FarmerFromServerRepository class
-  Future<List<FarmerFromServerModel>> getFarmersByCommunity(int communityId) async {
-    final allFarmers = await _databaseHelper.getAllFarmers();
-    return allFarmers.where((farmer) => farmer.communityId == communityId).toList();
+  Future<List<FarmerFromServerModel>> getFarmersByCommunity(String communityId) async {
+    final farmers = await _databaseHelper.getFarmersByCommunity(communityId);
+    return farmers;
   }
 
   Future<void> bulkInsertFarmers(List<FarmerFromServerModel> farmers) async {

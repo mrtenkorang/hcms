@@ -439,8 +439,8 @@ class _TreeFarmerSearchandTypeState extends State<TreeFarmerSearchandType> {
                     _buildFarmerDetailsPreview(),
 
                   // Info message for Group type
-                  if (selectedFarmerType == "Group")
-                    _buildGroupInfoMessage(),
+                  // if (selectedFarmerType == "Group")
+                  //   _buildGroupInfoMessage(),
 
                   const SizedBox(height: 20),
                 ],
