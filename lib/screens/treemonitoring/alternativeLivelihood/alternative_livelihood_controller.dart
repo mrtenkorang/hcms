@@ -384,7 +384,7 @@ class AlternativeLivelihoodController extends GetxController {
           snackPosition: SnackPosition.TOP,
           colorText: Colors.white,
         );
-        Globals().endWait(alternativeLivelihoodContext);
+        // Globals().endWait(alternativeLivelihoodContext);
         throw Exception('Server returned status code: ${response.statusCode}');
       }
     } on SocketException {
@@ -395,7 +395,7 @@ class AlternativeLivelihoodController extends GetxController {
         snackPosition: SnackPosition.TOP,
         colorText: Colors.white,
       );
-      Globals().endWait(alternativeLivelihoodContext);
+      // Globals().endWait(alternativeLivelihoodContext);
       // This will be caught by the calling method and fall back to offline
       rethrow;
     } catch (e) {

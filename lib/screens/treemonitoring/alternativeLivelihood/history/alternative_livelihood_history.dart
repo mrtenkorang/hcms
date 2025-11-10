@@ -8,6 +8,37 @@ import 'package:hcms_revived2/screens/treemonitoring/alternativeLivelihood/histo
 class AlternativeLivelihoodHistory extends StatelessWidget {
   const AlternativeLivelihoodHistory({super.key});
 
+  Future<void> _showSyncConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Records'),
+        content: const Text(
+          'Are you sure you want to sync all pending records to the server?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final provider = Get.find<AlternativeLivelihoodProvider>();
+      await provider.syncAllPendingRecords(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Get.find<AlternativeLivelihoodProvider>();
@@ -20,6 +51,15 @@ class AlternativeLivelihoodHistory extends StatelessWidget {
           backgroundColor: fPrimaryColour,
           foregroundColor: fPrimaryWhite,
           actions: [
+            // Sync Button (only show when there are pending records)
+            Obx(() => provider.alLists.any((record) => record.alConStat.toLowerCase() != 'connected')
+                ? IconButton(
+                    icon: const Icon(Icons.sync),
+                    onPressed: () => _showSyncConfirmation(context),
+                    tooltip: 'Sync Pending Records',
+                  )
+                : const SizedBox.shrink()),
+            // Refresh Button
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () => provider.fetchAndSetAlternativeLivelihood(),
@@ -71,6 +111,8 @@ class AlternativeLivelihoodHistory extends StatelessWidget {
       final submittedRecords = provider.alLists
           .where((record) => record.alConStat.toLowerCase() == 'connected')
           .toList();
+
+      debugPrint("SUBMITTED :::::::::::::: $submittedRecords");
 
       if (submittedRecords.isEmpty) {
         return const _EmptyState(
