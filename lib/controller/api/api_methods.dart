@@ -11,6 +11,7 @@ import 'package:hcms_revived2/controller/models/training_log_model.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
 import 'package:hcms_revived2/controller/models/user_model.dart';
 import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
+import 'package:hcms_revived2/models/localdbmodel/localdbmodel.dart';
 import 'package:http/http.dart' as http;
 
 class APIMethods {
@@ -77,6 +78,7 @@ class APIMethods {
           'message': 'Training log submitted successfully',
         };
       } else {
+        debugPrint("THE RESPONSE ERRORRRR ::::::::::::::::: ${response.body}");
         return {
           'success': false,
           'error': 'Server error: ${response.statusCode}',
@@ -153,7 +155,6 @@ class APIMethods {
           'message': 'Farmer submitted successfully',
         };
       } else {
-        debugPrint("FALED ERRORROR :::::::::: ${response.body}");
         return {
           'success': false,
           'error': 'Failed to submit farmer: ${response.statusCode}',
@@ -237,8 +238,10 @@ class APIMethods {
     if (value is Set) {
       return value.map((e) => _convertToJsonSerializable(e)).toList();
     } else if (value is Map) {
-      return value.map((key, value) => MapEntry(
-          key.toString(), _convertToJsonSerializable(value)));
+      return value.map(
+        (key, value) =>
+            MapEntry(key.toString(), _convertToJsonSerializable(value)),
+      );
     } else if (value is Iterable) {
       return value.map((e) => _convertToJsonSerializable(e)).toList();
     }
@@ -264,7 +267,6 @@ class APIMethods {
 
       debugPrint("THE RESPONSE :::::::::::: ${response.body}");
 
-
       // Handle response
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
@@ -273,11 +275,9 @@ class APIMethods {
           'data': responseData,
           'message': 'Tree registration submitted successfully',
         };
-      }
-      else if (response.statusCode == 409) {
+      } else if (response.statusCode == 409) {
         return {'success': false, 'error': 'A Record with same farmer exists'};
-      }
-      else {
+      } else {
         return {
           'success': false,
           'error': 'Failed to submit: ${response.statusCode}',
@@ -287,6 +287,81 @@ class APIMethods {
     } catch (e) {
       debugPrint("THE ERRORRRRRRRRRRRRRRRRRRRRRRR :::::::::::: $e");
       return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> submitLMBMonitoring(
+    Map<String, dynamic> monitoring ,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(URLS.baseUrl + URLS.privateSectorEngagementURL),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(monitoring),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        return {
+          'success': true,
+          'data': responseData,
+          'message': 'Farmer submitted successfully',
+        };
+      } else {
+        debugPrint("FALED ERRORROR :::::::::: ${response.body}");
+        return {
+          'success': false,
+          'error': 'Failed to submit farmer: ${response.statusCode}',
+          'details': response.body,
+        };
+      }
+    } catch (e, stackTrace) {
+      debugPrint("THE ERRRROOORRRR ::::::::;;;;;; $e");
+      debugPrint("THE ERRRROOORRRR ::::::::;;;;;; $stackTrace");
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+
+
+
+  static Future<Map<String, dynamic>> submitAlternativeLivelihood(Map<String, dynamic> data) async {
+    try {
+      final url = '${URLS.baseUrl}${URLS.alternativeLivelihoodLogURL}';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(data),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        return {
+          'success': true,
+          'data': responseData,
+          'message': 'Alternative livelihood data submitted successfully',
+        };
+      } else {
+        debugPrint("Error response: ${response.body}");
+        return {
+          'success': false,
+          'error': 'Server error: ${response.statusCode}',
+        };
+      }
+    } on SocketException {
+      return {
+        'success': false,
+        'error': 'No internet connection',
+      };
+    } catch (e) {
+      debugPrint("Error submitting alternative livelihood: $e");
+      return {
+        'success': false,
+        'error': 'Failed to submit alternative livelihood: $e',
+      };
     }
   }
 }

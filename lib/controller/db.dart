@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hcms_revived2/controller/models/category_model.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/controller/models/deforestation_model.dart';
 import 'package:hcms_revived2/controller/models/district_region_model.dart';
@@ -11,6 +12,7 @@ import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/controller/models/ta_stool_skin_family%20model.dart';
 import 'package:hcms_revived2/controller/models/training_log_model.dart';
 import 'package:hcms_revived2/controller/models/tree_registration_model.dart';
+import 'package:hcms_revived2/controller/models/tree_species_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart' as sql;
@@ -49,6 +51,7 @@ class AppDatabaseHelper {
   static const String localFarmerTable = 'local_farmer_table';
   static const String trainingLogTable = 'training_logs_tbl';
   static const String deforestationReportsTAble = 'deforestation_reports_tbl';
+  static const String treeSpeciesTBL = 'tree_species_tbl';
 
   Future<void> _createDatabase(Database db, int version) async {
     await db.execute('''
@@ -84,6 +87,28 @@ class AppDatabaseHelper {
         region_code TEXT NOT NULL,
         region_pilot INTEGER NOT NULL
       )
+    ''');
+
+        await db.execute('''
+    CREATE TABLE IF NOT EXISTS categories(
+    id INTEGER PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    code TEXT NOT NULL,
+    description TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_date TEXT NOT NULL,
+    updated_date TEXT NOT NULL
+    )
+    ''');
+
+        await db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_categories_display_name ON categories(display_name)
+    ''');
+        await db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_categories_code ON categories(code)
+    ''');
+        await db.execute('''
+    CREATE INDEX IF NOT EXISTS idx_categories_is_active ON categories(is_active)
     ''');
 
     // Trees Table
@@ -247,6 +272,15 @@ class AppDatabaseHelper {
             updated_at TEXT
           )
         ''');
+
+    await db.execute('''
+      CREATE TABLE $treeSpeciesTBL(
+        id INTEGER PRIMARY KEY,
+        code TEXT,
+        name TEXT,
+        botanical TEXT
+      )
+    ''');
 
     await db.execute('''
     CREATE TABLE $mmdasTable(
@@ -560,6 +594,18 @@ class AppDatabaseHelper {
         .toList();
   }
 
+  // Get community by Id
+  Future<CommunityModel?> getCommunityById(int? id) async {
+    if (id == null) return null;
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      communityTable,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    return maps.isNotEmpty ? CommunityModel.fromJson(maps.first) : null;
+  }
+
   // Delete all communities
   Future<void> deleteAllCommunities() async {
     final db = await database;
@@ -647,6 +693,18 @@ class AppDatabaseHelper {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       farmersFromServerTable,
+      orderBy: 'farmer_name ASC',
+    );
+    return List.generate(maps.length, (i) => _mapToFarmer(maps[i]));
+  }
+
+  // get farmer by community id
+  Future<List<FarmerFromServerModel>> getFarmersByCommunityId(int communityId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      farmersFromServerTable,
+      where: 'community_id = ?',
+      whereArgs: [communityId],
       orderBy: 'farmer_name ASC',
     );
     return List.generate(maps.length, (i) => _mapToFarmer(maps[i]));
@@ -831,7 +889,6 @@ class AppDatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-
   }
 
   // Helper method to convert FarmerFromServerModel to Map
@@ -1785,7 +1842,11 @@ class AppDatabaseHelper {
 
   deleteLFD(String seedlingMonitoringTable, String contact) async {
     final db = await database;
-    db.delete(seedlingMonitoringTable, where: 'foContact = ?', whereArgs: [contact]);
+    db.delete(
+      seedlingMonitoringTable,
+      where: 'foContact = ?',
+      whereArgs: [contact],
+    );
   }
 
   //  Future<void> update(String ft, String dn, String ev, String st) async {
@@ -1838,10 +1899,10 @@ class AppDatabaseHelper {
     String id,
   ) async {
     final db = await database;
-    await db.rawUpdate('UPDATE $seedlingMonitoringTable SET $conName = ? WHERE id = ?', [
-      newCon,
-      id,
-    ]);
+    await db.rawUpdate(
+      'UPDATE $seedlingMonitoringTable SET $conName = ? WHERE id = ?',
+      [newCon, id],
+    );
   }
 
   Future<void> updateGroupBeforeSend(
@@ -2031,7 +2092,7 @@ class AppDatabaseHelper {
   //   }
   // }
 
-// CREATE - Insert a new seedling monitoring record
+  // CREATE - Insert a new seedling monitoring record
   Future<int> insertSeedlingMonitoring(SeedlingMonitoringModel model) async {
     final db = await database;
 
@@ -2069,7 +2130,9 @@ class AppDatabaseHelper {
   }
 
   // READ - Get seedling monitoring by submission status
-  Future<List<SeedlingMonitoringModel>> getSeedlingMonitoringByStatus(String status) async {
+  Future<List<SeedlingMonitoringModel>> getSeedlingMonitoringByStatus(
+    String status,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       seedlingMonitoringTable,
@@ -2095,7 +2158,9 @@ class AppDatabaseHelper {
   }
 
   // READ - Search seedling monitoring records
-  Future<List<SeedlingMonitoringModel>> searchSeedlingMonitoring(String query) async {
+  Future<List<SeedlingMonitoringModel>> searchSeedlingMonitoring(
+    String query,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       seedlingMonitoringTable,
@@ -2189,7 +2254,9 @@ class AppDatabaseHelper {
   // COUNT - Get total number of records
   Future<int> getSeedlingMonitoringCount() async {
     final db = await database;
-    final result = await db.rawQuery('SELECT COUNT(*) as count FROM $seedlingMonitoringTable');
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM $seedlingMonitoringTable',
+    );
     return result.first['count'] as int;
   }
 
@@ -2204,7 +2271,9 @@ class AppDatabaseHelper {
   }
 
   // BULK INSERT - Insert multiple records
-  Future<void> bulkInsertSeedlingMonitoring(List<SeedlingMonitoringModel> models) async {
+  Future<void> bulkInsertSeedlingMonitoring(
+    List<SeedlingMonitoringModel> models,
+  ) async {
     if (models.isEmpty) return;
 
     final db = await database;
@@ -2241,7 +2310,11 @@ class AppDatabaseHelper {
 
       // Species Planting Details
       'species_planting_details': model.speciesPlantingDetails.isNotEmpty
-          ? json.encode(model.speciesPlantingDetails.map((detail) => detail.toJson()).toList())
+          ? json.encode(
+              model.speciesPlantingDetails
+                  .map((detail) => detail.toJson())
+                  .toList(),
+            )
           : null,
 
       // Mapped Area
@@ -2311,8 +2384,8 @@ class AppDatabaseHelper {
       // Species Planting Details
       speciesPlantingDetails: map['species_planting_details'] != null
           ? (json.decode(map['species_planting_details']) as List<dynamic>)
-          .map((detail) => SpeciesPlantingDetail.fromJson(detail))
-          .toList()
+                .map((detail) => SpeciesPlantingDetail.fromJson(detail))
+                .toList()
           : [],
 
       // Mapped Area
@@ -2354,10 +2427,215 @@ class AppDatabaseHelper {
       // Metadata
       farmerContact: map['farmer_contact'],
       enumeratorValue: map['enumerator_value'],
-      createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : null,
       submissionStatus: map['submission_status'],
       connectionStatus: map['connection_status'],
     )..id = map['id'];
   }
 
+  Future<void> bulkInsertTreeSpecies(List<TreeSpeciesModel> treeSpecies) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final species in treeSpecies) {
+      batch.insert(
+        treeSpeciesTBL,
+        species.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit();
+  }
+
+  // Create - Insert single tree species
+  Future<int> insertTreeSpecies(TreeSpeciesModel treeSpecies) async {
+    final db = await database;
+    return await db.insert(
+      treeSpeciesTBL,
+      treeSpecies.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // Bulk Insert
+  Future<void> insertTreeSpeciesBulk(
+    List<TreeSpeciesModel> treeSpeciesList,
+  ) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final treeSpecies in treeSpeciesList) {
+      batch.insert(
+        treeSpeciesTBL,
+        treeSpecies.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit();
+  }
+
+  // Read - Get all tree species
+  Future<List<TreeSpeciesModel>> getAllTreeSpecies() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(treeSpeciesTBL);
+    return List.generate(maps.length, (i) {
+      return TreeSpeciesModel.fromMap(maps[i]);
+    });
+  }
+
+  // Read - Get tree species by ID
+  Future<TreeSpeciesModel?> getTreeSpeciesById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      treeSpeciesTBL,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return TreeSpeciesModel.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  // Read - Search tree species by name
+  Future<List<TreeSpeciesModel>> searchTreeSpecies(String query) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      treeSpeciesTBL,
+      where: 'name LIKE ? OR botanical LIKE ? OR code LIKE ?',
+      whereArgs: ['%$query%', '%$query%', '%$query%'],
+    );
+    return List.generate(maps.length, (i) {
+      return TreeSpeciesModel.fromMap(maps[i]);
+    });
+  }
+
+  // Update
+  Future<int> updateTreeSpecies(TreeSpeciesModel treeSpecies) async {
+    final db = await database;
+    return await db.update(
+      treeSpeciesTBL,
+      treeSpecies.toMap(),
+      where: 'id = ?',
+      whereArgs: [treeSpecies.id],
+    );
+  }
+
+  // Delete
+  Future<int> deleteTreeSpecies(int id) async {
+    final db = await database;
+    return await db.delete(treeSpeciesTBL, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Delete all tree species
+  Future<int> deleteAllTreeSpecies() async {
+    final db = await database;
+    return await db.delete(treeSpeciesTBL);
+  }
+
+  // Check if table has data
+  Future<bool> hasData() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM tree_species',
+    );
+    return result.first['count'] > 0;
+  }
+
+  // Get count of tree species
+  Future<int> getCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM tree_species',
+    );
+    return result.first['count'];
+  }
+
+
+  // Add these methods to your AppDatabaseHelper class
+
+  Future<void> bulkInsertCategories(List<CategoryModel> categories) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final category in categories) {
+      batch.insert(
+        'categories',
+        category.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit();
+  }
+
+  Future<List<CategoryModel>> getAllCategories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('categories');
+    return List.generate(maps.length, (i) {
+      return CategoryModel.fromMap(maps[i]);
+    });
+  }
+
+  Future<List<CategoryModel>> getActiveCategories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'categories',
+      where: 'is_active = ?',
+      whereArgs: [1],
+    );
+    return List.generate(maps.length, (i) {
+      return CategoryModel.fromMap(maps[i]);
+    });
+  }
+
+  Future<CategoryModel?> getCategoryById(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'categories',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return CategoryModel.fromMap(maps.first);
+    }
+    return null;
+  }
+
+  Future<List<CategoryModel>> searchCategories(String query) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'categories',
+      where: 'display_name LIKE ? OR code LIKE ?',
+      whereArgs: ['%$query%', '%$query%'],
+    );
+    return List.generate(maps.length, (i) {
+      return CategoryModel.fromMap(maps[i]);
+    });
+  }
+
+  Future<void> deleteAllCategories() async {
+    final db = await database;
+    await db.delete('categories');
+  }
+
+  Future<bool> hasCategoriesData() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM categories'
+    );
+    return result.first['count'] > 0;
+  }
+
+  Future<int> getCategoriesCount() async {
+    final db = await database;
+    final List<Map<String, dynamic>> result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM categories'
+    );
+    return result.first['count'];
+  }
 }

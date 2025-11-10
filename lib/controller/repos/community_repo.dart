@@ -12,6 +12,10 @@ class CommunityRepository {
     return await _databaseHelper.getAllCommunities();
   }
 
+  Future<CommunityModel?> getCommunitiesByID(int id) async {
+    return await _databaseHelper.getCommunityById(id);
+  }
+
   Future<void> deleteAllCommunities() async {
     await _databaseHelper.deleteAllCommunities();
   }
