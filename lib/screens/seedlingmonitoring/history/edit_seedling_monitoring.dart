@@ -40,6 +40,7 @@ class _EditSeedlingMonitoringScreenState
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+
       UserCurrentLocation? userCurrentLocation = UserCurrentLocation(
         context: context,
       );
@@ -1783,97 +1784,63 @@ class _EditSeedlingMonitoringScreenState
   }
 
   Widget _buildSubmitButton() {
-    return Column(
+    return Row(
       children: [
-        CustomButton(
-          horizontalPadding: 10,
-          isFullWidth: true,
-          backgroundColor: fPrimaryColour,
-          verticalPadding: 16.0,
-          onTap: () {
-            _showSubmissionDialog();
-          },
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
-              // SizedBox(width: 8),
-              Text(
-                'Finish',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+        Expanded(
+          child: CustomButton(
+            horizontalPadding: 10,
+            isFullWidth: true,
+            borderColor: fPrimaryColour,
+            backgroundColor: AppColor.white,
+            verticalPadding: 16.0,
+            onTap: () {
+              controller.saveDataOffline();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
+                // SizedBox(width: 8),
+                Text(
+                  'Save',
+                  style: TextStyle(
+                    color:fPrimaryColour,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Review all data before submission',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontStyle: FontStyle.italic,
+        const SizedBox(width: 8),
+        Expanded(
+          child: CustomButton(
+            horizontalPadding: 10,
+            isFullWidth: true,
+            backgroundColor: fPrimaryColour,
+            verticalPadding: 16.0,
+            onTap: () {
+              controller.submitDataOnline();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
+                // SizedBox(width: 8),
+                Text(
+                  'Submit',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
-          textAlign: TextAlign.center,
         ),
       ],
-    );
-  }
-
-  void _showSubmissionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text('Finish'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.wifi, size: 48, color: Colors.blue),
-              SizedBox(height: 16),
-              Text(
-                'Do you have internet connection?',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-              ),
-
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: fPrimaryColour,
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await controller.submitDataOnline();
-                },
-                child: const Text('Submit'),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: fSecondaryColour,
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await controller.saveDataOffline();
-                },
-                child: Text('Save', style: TextStyle(color: Colors.black)),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCEL'),
-            ),
-          ],
-        );
-      },
     );
   }
 

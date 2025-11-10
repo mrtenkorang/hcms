@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
+import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
+import 'package:hcms_revived2/controller/models/user_model.dart';
 import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/farmer_from_server_repo.dart';
 import 'package:hcms_revived2/helpers/dbhelper.dart';
@@ -87,18 +89,20 @@ class EditAlternativeLivelihoodController extends GetxController {
   void onInit() {
     super.onInit();
     loadFarmers();
+    loadUserInfo();
     loadCommunities();
     // Initialize with first value
     amountType.value = amountTypeValues.isNotEmpty ? amountTypeValues[0] : null;
   }
 
-  @override
-  void onClose() {
-    trainerOrganisation.dispose();
-    initAmount.dispose();
-    amount.dispose();
-    amountToLmb.dispose();
-    super.onClose();
+  UserModel? user;
+
+  loadUserInfo() async {
+    final cache = await CacheService.getInstance();
+    cache.getUserInfo().then((value) {
+      user = value;
+      enumeratorValue.value = user!.id;
+    });
   }
 
   // Load farmers for selection
@@ -471,7 +475,6 @@ class EditAlternativeLivelihoodController extends GetxController {
         debugPrint("SUBMITTED;;;;;;;;;;;;;;;;;;;;;;;");
 
         if (result["status"] == true) {
-          Globals().endWait(alternativeLivelihoodContext);
           _saveToLocalDB("connected");
           _clearAndNavigate();
           Get.back();
@@ -485,7 +488,6 @@ class EditAlternativeLivelihoodController extends GetxController {
           );
 
         } else if (result["status"] == "exist") {
-          Globals().endWait(alternativeLivelihoodContext);
           Get.snackbar(
             'Info',
             'Data already exists online',
@@ -503,7 +505,7 @@ class EditAlternativeLivelihoodController extends GetxController {
             snackPosition: SnackPosition.TOP,
             colorText: Colors.white,
           );
-          Globals().endWait(alternativeLivelihoodContext);
+          // Globals().endWait(alternativeLivelihoodContext);
 
           throw Exception(result["error"] ?? 'Unknown error from server');
         }
@@ -515,7 +517,7 @@ class EditAlternativeLivelihoodController extends GetxController {
           snackPosition: SnackPosition.TOP,
           colorText: Colors.white,
         );
-        Globals().endWait(alternativeLivelihoodContext);
+        // Globals().endWait(alternativeLivelihoodContext);
         throw Exception('Server returned status code: ${response.statusCode}');
       }
     } on SocketException {
@@ -526,11 +528,10 @@ class EditAlternativeLivelihoodController extends GetxController {
         snackPosition: SnackPosition.TOP,
         colorText: Colors.white,
       );
-      Globals().endWait(alternativeLivelihoodContext);
       // This will be caught by the calling method and fall back to offline
       rethrow;
     } catch (e) {
-      Globals().endWait(alternativeLivelihoodContext);
+      // Globals().endWait(alternativeLivelihoodContext);
       debugPrint('Online submission error: $e');
       rethrow;
     }

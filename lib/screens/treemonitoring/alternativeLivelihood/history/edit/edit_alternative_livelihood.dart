@@ -79,7 +79,7 @@ class _AlternativeLivelihoodViewState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
+            _buildCommunityDropDown(),
             // Visit Information Card
             _buildModernCard(
               icon: Icons.calendar_today,
@@ -688,88 +688,30 @@ class _AlternativeLivelihoodViewState
   }
 
   Widget _buildSubmissionButtons(BuildContext context) {
-    return Obx(
-      () => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            if (widget.controller.isLoading.value)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Updating Record...',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    text: "Update Record",
-                    onPressed: widget.controller.isLoading.value
-                        ? null
-                        : () => _showUpdateOptions(context),
-                    icon: Icons.update,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required String text,
-    required VoidCallback? onPressed,
-    bool isSecondary = false,
-    IconData? icon,
-  }) {
-    return SizedBox(
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSecondary ? Colors.grey[600] : fPrimaryColour,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDialogButton(
+            text: "Save",
+            icon: Icons.save,
+            onPressed: () {
+              widget.controller.saveOffline();
+            },
+            color: Colors.orange,
           ),
-          elevation: isSecondary ? 0 : 2,
-          shadowColor: isSecondary ? null : fPrimaryColour.withOpacity(0.4),
         ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildDialogButton(
+            text: "Submit",
+            icon: Icons.cloud_upload,
+            onPressed: () {
+              widget.controller.submitOnline();
+            },
+            color: Colors.green,
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -1072,112 +1014,12 @@ class _AlternativeLivelihoodViewState
     );
   }
 
-  void _showUpdateOptions(BuildContext context) {
-    if (!widget.controller.validateAllFields()) return;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        fPrimaryColour.withOpacity(0.2),
-                        fPrimaryColour.withOpacity(0.1),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.edit, size: 48, color: fPrimaryColour),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Update Record",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "Choose how you want to update this record",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue[700],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          "Online update requires internet connection",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildDialogButton(
-                        text: "Save",
-                        onPressed: () {
-                          Navigator.pop(context);
-                          widget.controller.saveOffline();
-                        },
-                        color: Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDialogButton(
-                        text: "Submit",
-                        onPressed: () {
-                          Navigator.pop(context);
-                          widget.controller.submitOnline();
-                        },
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildDialogButton({
     required String text,
     required VoidCallback onPressed,
     bool isSecondary = false,
     Color? color,
+    IconData? icon,
   }) {
     return SizedBox(
       height: 50,
@@ -1193,10 +1035,18 @@ class _AlternativeLivelihoodViewState
           elevation: isSecondary ? 0 : 2,
         ),
         onPressed: onPressed,
-        child: Text(
-          text,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          textAlign: TextAlign.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // if (icon != null) ...[
+            //   Icon(icon, size: 18),
+            //   const SizedBox(width: 8),
+            // ],
+            Text(
+              text,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+          ],
         ),
       ),
     );

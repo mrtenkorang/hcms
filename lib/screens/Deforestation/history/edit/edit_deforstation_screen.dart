@@ -554,48 +554,63 @@ class DeforestationEditForm extends StatelessWidget {
           //   ),
           // ),
 
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 20,
+              bottom: 20,
+              right: 20,
             ),
-            child: SizedBox(
-              width: double.infinity,
-              child: Obx(() => ElevatedButton(
-                onPressed: () => _showSubmissionOptions(context),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: fPrimaryColour,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: controller.isLoading.value
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-                    : const Text(
-                  "Finish",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await controller.saveChanges();
+                        cameraService.clearPhoto();
+                        controller.updatePhotoBase64('');
+                      },
+                      icon: const Icon(Icons.save, size: 20),
+                      label: const Text("Save"),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              )),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await controller.submitUpdatedReport();
+                        cameraService.clearPhoto();
+                        controller.updatePhotoBase64('');
+                      },
+                      icon: const Icon(Icons.wifi, size: 20),
+                      label: const Text("Submit"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: fPrimaryColour,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ],
