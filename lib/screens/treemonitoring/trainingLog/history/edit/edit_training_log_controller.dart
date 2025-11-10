@@ -111,7 +111,7 @@ class EditTrainingLogController extends GetxController {
         communityName.text = community.community ?? '';
 
         // Load farmers for this community
-        await loadFarmersByCommunity(community.id!);
+        await loadFarmersByCommunity(community.community!);
 
         // Parse and set participants
         await _parseAndSetParticipants(trainingLog.participants);
@@ -199,7 +199,7 @@ class EditTrainingLogController extends GetxController {
   }
 
   // Load farmers by community ID
-  Future<void> loadFarmersByCommunity(int communityId) async {
+  Future<void> loadFarmersByCommunity(String communityId) async {
     try {
       isLoadingFarmers.value = true;
       final result = await FarmerFromServerRepository().getFarmersByCommunity(
@@ -221,13 +221,23 @@ class EditTrainingLogController extends GetxController {
     farmers.clear();
     if (community.id != null) {
       communityName.text = community.community ?? '';
-      loadFarmersByCommunity(community.id!);
+      loadFarmersByCommunity(community.community!);
     }
   }
 
   // Select farmer
   void selectFarmer(FarmerFromServerModel farmer) {
     selectedFarmer.value = farmer;
+    for (var e in selectedParticipant) {
+      if (e.id == farmer.id) {
+        Globals().showSnackBar(
+          title: "Farmer selected",
+          message: "You cannot select the same farmer twice",
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
+    }
     selectedParticipant.add(farmer);
     update();
   }

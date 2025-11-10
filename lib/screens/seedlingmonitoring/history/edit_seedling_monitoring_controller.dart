@@ -163,6 +163,7 @@ class EditSeedlingMonitoringController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    currentPage.value = 0;
     _initializeForm();
   }
 
@@ -716,6 +717,9 @@ class EditSeedlingMonitoringController extends GetxController {
       );
       Globals().endWait(seedlingMonitoringScreenContext);
 
+      debugPrint("THE RESPONSE FROM THE SERVER ::::::::: $res");
+
+
       if (res["success"] == true) {
         await SeedlingMonitoringRepository().markAsSynced(monitoringID);
 
@@ -729,7 +733,7 @@ class EditSeedlingMonitoringController extends GetxController {
       } else {
         Get.snackbar(
           'Error',
-          'Failed to submit data',
+          res["error"],
           colorText: Colors.white,
           backgroundColor: Colors.red,
         );
