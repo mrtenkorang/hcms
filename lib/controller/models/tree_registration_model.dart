@@ -29,7 +29,7 @@ class TreeRegistrationModel {
   final String? groupRegNumb;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final int? isSynced;
+  int? isSynced;
 
   TreeRegistrationModel({
     this.isSynced,
@@ -129,6 +129,7 @@ class TreeRegistrationModel {
       'farmer_id': farmerId,
       'farm_size': farmSize,
       'region_id': regionId,
+      'is_synced': isSynced,
       'district_id': districtId,
       'mmda_id': mmdaId,
       'community_id': communityId,
@@ -149,7 +150,7 @@ class TreeRegistrationModel {
       'group_email': groupEmail,
       'group_postal_address': groupPostalAddress,
       'group_reg_numb': groupRegNumb,
-      'is_synced': isSynced,
+
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

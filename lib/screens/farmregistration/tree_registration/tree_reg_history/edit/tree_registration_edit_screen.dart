@@ -53,6 +53,10 @@ class _TreeRegistrationEditScreenState
 
   @override
   Widget build(BuildContext context) {
+    controller.initializeWithData(
+      widget.registrationModel,
+      widget.registrationId,
+    );
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -102,6 +106,7 @@ class _TreeRegistrationEditScreenState
               }),
 
               const SizedBox(height: 20),
+              if(widget.registrationModel.isSynced == 0)
               _buildActionButtons(),
             ],
           ),
@@ -505,22 +510,22 @@ class _TreeRegistrationEditScreenState
                 : null,
           ),
         ),
-        const SizedBox(height: 16),
-        Obx(
-          () => _buildSearchableDropdownField(
-            title: "MMDA",
-            selectedItem: controller.selectedMMDA.value,
-            displayText: controller.selectedMMDA.value?.mmda ?? "Select MMDA",
-            onTap: controller.selectedDistrict.value != null
-                ? () => _showMMDASelectionBottomSheet()
-                : null,
-            isLoading: controller.isLoadingMMDAs.value,
-            enabled: controller.selectedDistrict.value != null,
-            disabledMessage: controller.selectedDistrict.value == null
-                ? 'Please select a district first'
-                : null,
-          ),
-        ),
+        // const SizedBox(height: 16),
+        // Obx(
+        //   () => _buildSearchableDropdownField(
+        //     title: "MMDA",
+        //     selectedItem: controller.selectedMMDA.value,
+        //     displayText: controller.selectedMMDA.value?.mmda ?? "Select MMDA",
+        //     onTap: controller.selectedDistrict.value != null
+        //         ? () => _showMMDASelectionBottomSheet()
+        //         : null,
+        //     isLoading: controller.isLoadingMMDAs.value,
+        //     enabled: controller.selectedDistrict.value != null,
+        //     disabledMessage: controller.selectedDistrict.value == null
+        //         ? 'Please select a district first'
+        //         : null,
+        //   ),
+        // ),
         const SizedBox(height: 16),
         Obx(
           () => _buildSearchableDropdownField(
@@ -531,10 +536,10 @@ class _TreeRegistrationEditScreenState
                 "Select Community",
             onTap: () => _showCommunitySelectionBottomSheet(),
             isLoading: controller.isLoadingCommunities.value,
-            enabled: controller.selectedMMDA.value != null,
-            disabledMessage: controller.selectedMMDA.value == null
-                ? 'Please select an MMDA first'
-                : null,
+            // enabled: controller.selectedMMDA.value != null,
+            // disabledMessage: controller.selectedMMDA.value == null
+            //     ? 'Please select an MMDA first'
+            //     : null,
           ),
         ),
       ],
@@ -876,16 +881,30 @@ class _TreeRegistrationEditScreenState
         Expanded(
           child: OutlinedButton(
             onPressed: () async {
-              if (controller.validateForm()) {
-                await controller.saveTreeDataOffline();
+              if (widget.isIndividual) {
+                // if (controller.validateForm()) {
+                  await controller.saveTreeDataOffline();
+                // } else {
+                //   Get.snackbar(
+                //     'Validation Error',
+                //     "Please fill all required fields",
+                //     snackPosition: SnackPosition.TOP,
+                //     backgroundColor: Colors.red,
+                //     colorText: Colors.white,
+                //   );
+                // }
               } else {
-                Get.snackbar(
-                  'Validation Error',
-                  "Please fill all required fields",
-                  snackPosition: SnackPosition.TOP,
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
+                // if (controller.validateGroupDetails()) {
+                  await controller.saveTreeDataOfflineGroup();
+                // } else {
+                //   Get.snackbar(
+                //     'Validation Error',
+                //     "Please fill all required fields",
+                //     snackPosition: SnackPosition.TOP,
+                //     backgroundColor: Colors.red,
+                //     colorText: Colors.white,
+                //   );
+                // }
               }
             },
             style: OutlinedButton.styleFrom(
@@ -896,7 +915,7 @@ class _TreeRegistrationEditScreenState
               ),
             ),
             child: Text(
-              'Update',
+              'Save Draft',
               style: TextStyle(
                 color: fPrimaryColour,
                 fontWeight: FontWeight.w500,
@@ -908,16 +927,30 @@ class _TreeRegistrationEditScreenState
         Expanded(
           child: ElevatedButton(
             onPressed: () async {
-              if (controller.validateForm()) {
-                await controller.submitTreeData();
+              if (widget.isIndividual) {
+                // if (controller.validateForm()) {
+                  await controller.submitTreeDataIndividual();
+                // } else {
+                //   Get.snackbar(
+                //     'Validation Error',
+                //     "Please fill all required fields",
+                //     snackPosition: SnackPosition.TOP,
+                //     backgroundColor: Colors.red,
+                //     colorText: Colors.white,
+                //   );
+                // }
               } else {
-                Get.snackbar(
-                  'Validation Error',
-                  "Please fill all required fields",
-                  snackPosition: SnackPosition.TOP,
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
+                // if (controller.validateGroupDetails()) {
+                  await controller.submitTreeGroupData();
+                // } else {
+                //   Get.snackbar(
+                //     'Validation Error',
+                //     "Please fill all required fields",
+                //     snackPosition: SnackPosition.TOP,
+                //     backgroundColor: Colors.red,
+                //     colorText: Colors.white,
+                //   );
+                // }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1358,6 +1391,7 @@ class _TreeRegistrationEditScreenState
   }
 
   void _showDistrictSelectionBottomSheet() {
+    controller.loadRegionsData();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

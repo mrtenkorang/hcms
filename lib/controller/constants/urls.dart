@@ -1,7 +1,8 @@
 
 
 class URLS {
-  static final String baseUrl = "http://172.104.147.113/api/v1/";
+  static final String baseUrl = "https://raghhcms.com/api/v1/";
+  // static final String baseUrl = "http://172.104.147.113/api/v1/";
 
   static const String checkAppVersionURL = "version/check/";
   static const String deforestationReportURL = "deforestation/";
