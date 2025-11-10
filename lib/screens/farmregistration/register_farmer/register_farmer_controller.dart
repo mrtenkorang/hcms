@@ -3,10 +3,13 @@ import 'package:get/get.dart';
 import 'package:hcms_revived2/controller/api/api_methods.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_local_model.dart';
+import 'package:hcms_revived2/controller/repos/category_repo.dart';
 import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/farmer_local_repo.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 
 class FarmerBiodataController extends GetxController {
+  BuildContext? registerFarmerContext;
   final FarmerBiodataRepository _repository = FarmerBiodataRepository();
 
   final Rx<FarmerBiodataModel> farmer = FarmerBiodataModel().obs;
@@ -31,14 +34,70 @@ class FarmerBiodataController extends GetxController {
     'Passport',
     'National ID',
     'Voters Card',
-    'Driver License'
+    'Driver License',
   ];
 
   final List<String> genders = ['Male', 'Female'];
 
-  final List<String> smallHolderCategories = [
-    'Owner_Cocoaf',
-  ];
+  final List<String> smallHolderCategories = [];
+
+  final List<String> smallHolderCategoriesIDS = [];
+
+  loadSmallHolderCategories() async {
+    try {
+      isLoading.value = true;
+
+      // Clear existing data first
+      smallHolderCategories.clear();
+      smallHolderCategoriesIDS.clear();
+
+      // Add a default "select category" option
+      smallHolderCategories.add('select category');
+      smallHolderCategoriesIDS.add('');
+
+      final categories = await CategoryRepository().getAllCategories();
+      debugPrint('Categories: $categories');
+
+      for (var category in categories) {
+        // Check for duplicates before adding
+        if (!smallHolderCategories.contains(category.displayName)) {
+          smallHolderCategories.add(category.displayName);
+          smallHolderCategoriesIDS.add(category.id.toString());
+        }
+      }
+
+      // Set initial value
+      smallHolderCategory.value = 'select category';
+    } catch (e) {
+      errorMessage.value =
+          'Failed to load small holder categories: ${e.toString()}';
+      Get.snackbar('Error', errorMessage.value);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void updateSmallHolderCategory(String? value) {
+    if (value != null && value != 'select category') {
+      smallHolderCategory.value = value;
+      final int index = smallHolderCategories.indexOf(value);
+
+      if (index >= 0 && index < smallHolderCategoriesIDS.length) {
+        final smallVal = smallHolderCategoriesIDS[index];
+
+        farmer.update((val) {
+          val!.smallHolderCategory = smallVal;
+        });
+      }
+    } else {
+      // Handle the "select category" case
+      smallHolderCategory.value = 'select category';
+      farmer.update((val) {
+        val!.smallHolderCategory = null;
+      });
+    }
+    update();
+  }
 
   // List to store all farmers
   final RxList<FarmerBiodataModel> allFarmers = <FarmerBiodataModel>[].obs;
@@ -50,6 +109,7 @@ class FarmerBiodataController extends GetxController {
     super.onInit();
     _initializeControllers();
     loadCommunitiesData();
+    loadSmallHolderCategories();
   }
 
   @override
@@ -89,11 +149,11 @@ class FarmerBiodataController extends GetxController {
     if (farmerData.community != null) {
       final communityId = farmerData.community is String
           ? int.tryParse(farmerData.community as String)
-          : farmerData.community as int?;
+          : farmerData.community;
 
       if (communityId != null) {
         final existingCommunity = communitiesData.firstWhereOrNull(
-                (c) => c.id == communityId
+          (c) => c.id == communityId,
         );
         if (existingCommunity != null) {
           selectedCommunity.value = existingCommunity;
@@ -205,11 +265,11 @@ class FarmerBiodataController extends GetxController {
       if (farmer.value.community != null && farmer.value.id != null) {
         final communityId = farmer.value.community is String
             ? int.tryParse(farmer.value.community as String)
-            : farmer.value.community as int?;
+            : farmer.value.community;
 
         if (communityId != null) {
           final existingCommunity = communitiesData.firstWhereOrNull(
-                  (c) => c.id == communityId
+            (c) => c.id == communityId,
           );
           if (existingCommunity != null) {
             selectedCommunity.value = existingCommunity;
@@ -272,7 +332,7 @@ class FarmerBiodataController extends GetxController {
 
   void updateMembershipRa(bool value) {
     farmer.update((val) {
-      val!.membershipRa = value;
+      val!.membershipRa = value ;
     });
   }
 
@@ -308,11 +368,7 @@ class FarmerBiodataController extends GetxController {
     });
   }
 
-  void updateSmallHolderCategory(String? value) {
-    farmer.update((val) {
-      val!.smallHolderCategory = value;
-    });
-  }
+  var smallHolderCategory = 'select category'.obs;
 
   void clearAllFields() {
     farmer.value = FarmerBiodataModel(
@@ -453,9 +509,11 @@ class FarmerBiodataController extends GetxController {
       debugPrint("FARMER SUBMIT :::::::::::: ${farmer.value.toMap()}");
       debugPrint("FARMER DOB :::::::::::: ${farmer.value.dob}");
 
+      Globals().startWait(registerFarmerContext!);
       final Map<String, dynamic> res = await APIMethods.submitFarmer(
         farmer.value,
       );
+      Globals().endWait(registerFarmerContext);
 
       if (res["success"]) {
         await _repository.insertFarmerBiodata(farmer.value);
@@ -491,7 +549,11 @@ class FarmerBiodataController extends GetxController {
         val!.status = 'pending';
       });
 
+      Globals().startWait(registerFarmerContext!);
+
       await _repository.insertFarmerBiodata(farmer.value);
+
+      Globals().endWait(registerFarmerContext!);
       Get.back();
       clearFormFields();
       return true;

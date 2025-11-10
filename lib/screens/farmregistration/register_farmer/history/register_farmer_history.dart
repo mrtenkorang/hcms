@@ -16,13 +16,61 @@ class FarmerBiodataHistoryScreen extends StatefulWidget {
 class _FarmerBiodataHistoryScreenState extends State<FarmerBiodataHistoryScreen> {
   final RegisterFarmerHistoryController controller = Get.put(RegisterFarmerHistoryController());
 
+  Future<void> _showSyncConfirmation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Farmers'),
+        content: const Text('Are you sure you want to sync all pending farmers to the server?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await controller.syncAllPendingFarmers(context);
+      // Refresh both lists
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Farmer Biodata'),
+          title: const Text('Farmers History'),
+          actions: [
+            Obx(() => controller.isLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.sync),
+                    onPressed: _showSyncConfirmation,
+                    tooltip: 'Sync Pending Farmers',
+                  ),
+            ),
+          ],
           bottom: const TabBar(
             unselectedLabelColor: Colors.grey,
             labelColor: Colors.white,
@@ -32,7 +80,6 @@ class _FarmerBiodataHistoryScreenState extends State<FarmerBiodataHistoryScreen>
               Tab(text: 'Submitted'),
             ],
           ),
-
         ),
         body: TabBarView(
           children: [
