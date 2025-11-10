@@ -86,7 +86,6 @@ class TrainingLogController extends GetxController {
     selectedParticipant.add(participant!);
   }
 
-
   // Load communities from API
   Future<void> loadCommunities() async {
     try {
@@ -103,16 +102,18 @@ class TrainingLogController extends GetxController {
   }
 
   // Load farmers by community ID
-  Future<void> loadFarmersByCommunity(int communityId) async {
+  Future<void> loadFarmersByCommunity(String communityId) async {
     try {
       isLoadingFarmers.value = true;
       final result = await FarmerFromServerRepository().getFarmersByCommunity(
         communityId,
       );
+
       farmers.assignAll(result);
+      debugPrint("THE FARMER ::::::::::: ${farmers.first.toMap()}");
       debugPrint("THE FARMERS ::::::::::: ${farmers.length}");
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load farmers: $e');
+      debugPrint("FAILED TO LOAD FARMER: $e");
     } finally {
       isLoadingFarmers.value = false;
     }
@@ -125,13 +126,23 @@ class TrainingLogController extends GetxController {
     farmers.clear();
     if (community.id != null) {
       communityName.text = community.community ?? '';
-      loadFarmersByCommunity(community.id!);
+      loadFarmersByCommunity(community.community!);
     }
   }
 
   // Select farmer
   void selectFarmer(FarmerFromServerModel farmer) {
     selectedFarmer.value = farmer;
+    for (var e in selectedParticipant) {
+      if (e.id == farmer.id) {
+        Globals().showSnackBar(
+          title: "Farmer selected",
+          message: "You cannot select the same farmer twice",
+          backgroundColor: Colors.red,
+        );
+        return;
+      }
+    }
     selectedParticipant.add(farmer);
     update();
   }
@@ -348,7 +359,6 @@ class TrainingLogController extends GetxController {
           isSynced: true,
           participants: participantDetails,
         );
-
 
         Get.back();
         clearForm();

@@ -7,7 +7,7 @@ import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
 import 'training_log_controller.dart';
 
 class TrainingLogScreen extends StatelessWidget {
-  const TrainingLogScreen({Key? key}) : super(key: key);
+  const TrainingLogScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +21,13 @@ class TrainingLogScreen extends StatelessWidget {
 class _TrainingLogView extends StatelessWidget {
   final TrainingLogController controller;
 
-  const _TrainingLogView({Key? key, required this.controller}) : super(key: key);
+  const _TrainingLogView({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     controller.trainingLogScreenContext = context;
     controller.loadCommunities();
+
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -217,7 +218,7 @@ class _TrainingLogView extends StatelessWidget {
                 onChanged: (query) {
                   controller.farmers.clear();
                   controller.isLoadingFarmers.value = true;
-                  controller.loadFarmersByCommunity(controller.selectedCommunity.value!.id!);
+                  controller.loadFarmersByCommunity(controller.selectedCommunity.value!.community!);
                 },
               ),
               const SizedBox(height: 16),
@@ -380,18 +381,6 @@ class _TrainingLogView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Community Selection
-          Obx(
-                () => _buildSearchableDropdownField(
-              title: "Community",
-              selectedItem: controller.selectedCommunity.value,
-              displayText: controller.selectedCommunity.value?.community ??
-                  "Select Community",
-              onTap: _showCommunitySelectionBottomSheet,
-              isLoading: controller.isLoadingCommunities.value,
-            ),
-          ),
-          const SizedBox(height: 16),
 
           // Topic
           _buildFormField(
@@ -482,6 +471,18 @@ class _TrainingLogView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Community Selection
+          Obx(
+                () => _buildSearchableDropdownField(
+              title: "Community",
+              selectedItem: controller.selectedCommunity.value,
+              displayText: controller.selectedCommunity.value?.community ??
+                  "Select Community",
+              onTap: _showCommunitySelectionBottomSheet,
+              isLoading: controller.isLoadingCommunities.value,
+            ),
+          ),
+          const SizedBox(height: 16),
           _buildSectionHeader("Participants", Icons.group),
           const SizedBox(height: 20),
 

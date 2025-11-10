@@ -16,6 +16,33 @@ class TrainingLogHistoryScreen extends StatefulWidget {
 class _TrainingLogHistoryScreenState extends State<TrainingLogHistoryScreen> {
   final controller = Get.put(TrainingLogHistoryScreenController());
 
+  Future<void> _syncAllData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync All Data'),
+        content: const Text('Are you sure you want to sync all pending data to the server?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // Call the sync all method from controller
+      await controller.syncAllPendingData();
+      // Refresh the list after sync
+      await controller.loadTrainingLogs();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,6 +55,13 @@ class _TrainingLogHistoryScreenState extends State<TrainingLogHistoryScreen> {
         elevation: 0,
         backgroundColor: fPrimaryColour,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync),
+            onPressed: _syncAllData,
+            tooltip: 'Sync all pending data',
+          ),
+        ],
       ),
       body: DefaultTabController(
         length: 2,
