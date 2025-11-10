@@ -48,12 +48,11 @@ class SeedlingMonitoringController extends GetxController {
   // General Information
   final TextEditingController surveyorNameController = TextEditingController();
   final RxString dateOfSurvey = ''.obs;
-  // final RxString community = ''.obs;
   final RxBool communityNotFound = false.obs;
   final RxString customCommunityName = ''.obs;
   final TextEditingController farmerNameController = TextEditingController();
   final TextEditingController farmerIDNumberController =
-      TextEditingController();
+  TextEditingController();
 
   // Plantation Details
   final RxString plantationType = ''.obs;
@@ -73,18 +72,18 @@ class SeedlingMonitoringController extends GetxController {
   // Environmental Conditions
   final RxList<String> sourceOfWater = <String>[].obs;
   final RxString waterFrequency = ''.obs;
-  final RxBool hasExtremeWeather = false.obs;
+  RxString? hasExtremeWeather = "".obs;
   final RxList<String> extremeWeathers = <String>[].obs;
   final RxString otherExtremeWeather = ''.obs;
 
-  // Final Observations
-  final RxBool pestsAround = false.obs;
+  // Final Observations - Changed from RxBool? to RxString?
+  RxString? pestsAround = "".obs;
   final RxString pestDescription = ''.obs;
-  final RxBool signsOfDisease = false.obs;
+  RxString? signsOfDisease = "".obs;
   final RxString diseaseDescription = ''.obs;
-  final RxBool fertiliserApplied = false.obs;
+  RxString? fertiliserApplied = "".obs;
   final RxString fertiliserType = ''.obs;
-  final RxBool pesticideApplied = false.obs;
+  RxString? pesticideApplied = "".obs;
   final RxString pesticideType = ''.obs;
   final RxString additionalObservations = ''.obs;
 
@@ -108,12 +107,6 @@ class SeedlingMonitoringController extends GetxController {
     "Riparian",
     "Others",
   ];
-
-  void setTotalSizeAcres(String value) {
-    farmSizeController.text = value;
-    totalSizeAcres.value = value;
-    update();
-  }
 
   final List<String> speciesList = [
     "Prekese",
@@ -153,9 +146,16 @@ class SeedlingMonitoringController extends GetxController {
 
   UserModel? _user;
 
+  void setTotalSizeAcres(String value) {
+    farmSizeController.text = value;
+    totalSizeAcres.value = value;
+    update();
+  }
+
   loadUser() async {
     final cache = await CacheService.getInstance();
     _user = await cache.getUserInfo();
+    surveyorNameController.text = "${_user!.fname} ${_user!.sname}";
     update();
   }
 
@@ -189,7 +189,6 @@ class SeedlingMonitoringController extends GetxController {
 
   void selectCommunity(CommunityModel community) {
     selectedCommunity.value = community;
-    // selectedFarmer.value = null;
     if (community.id != null) {
       customCommunityName.value = community.community ?? '';
     }
@@ -307,9 +306,9 @@ class SeedlingMonitoringController extends GetxController {
     markFormAsDirty();
   }
 
-  void setHasExtremeWeather(bool value) {
-    hasExtremeWeather.value = value;
-    if (!value) {
+  void setHasExtremeWeather(String value) {
+    hasExtremeWeather!.value = value;
+    if (value == "No") {
       extremeWeathers.clear();
       otherExtremeWeather.value = '';
     }
@@ -326,34 +325,34 @@ class SeedlingMonitoringController extends GetxController {
     markFormAsDirty();
   }
 
-  // Final Observations Methods
-  void setPestsAround(bool value) {
-    pestsAround.value = value;
-    if (!value) {
+  // Final Observations Methods - Updated to accept String
+  void setPestsAround(String value) {
+    pestsAround!.value = value;
+    if (value == "No") {
       pestDescription.value = '';
     }
     markFormAsDirty();
   }
 
-  void setSignsOfDisease(bool value) {
-    signsOfDisease.value = value;
-    if (!value) {
+  void setSignsOfDisease(String value) {
+    signsOfDisease!.value = value;
+    if (value == "No") {
       diseaseDescription.value = '';
     }
     markFormAsDirty();
   }
 
-  void setFertiliserApplied(bool value) {
-    fertiliserApplied.value = value;
-    if (!value) {
+  void setFertiliserApplied(String value) {
+    fertiliserApplied!.value = value;
+    if (value == "No") {
       fertiliserType.value = '';
     }
     markFormAsDirty();
   }
 
-  void setPesticideApplied(bool value) {
-    pesticideApplied.value = value;
-    if (!value) {
+  void setPesticideApplied(String value) {
+    pesticideApplied!.value = value;
+    if (value == "No") {
       pesticideType.value = '';
     }
     markFormAsDirty();
@@ -400,7 +399,7 @@ class SeedlingMonitoringController extends GetxController {
     if (polygon != null) polys.add(polygon!);
 
     Get.to(
-      () => PolygonDrawingTool(
+          () => PolygonDrawingTool(
         layers: polys,
         initialPolygon: polygon,
         viewInitialPolygon: polygon != null,
@@ -461,10 +460,10 @@ class SeedlingMonitoringController extends GetxController {
         'points': polygon!.points
             .map(
               (point) => {
-                'latitude': point.latitude,
-                'longitude': point.longitude,
-              },
-            )
+            'latitude': point.latitude,
+            'longitude': point.longitude,
+          },
+        )
             .toList(),
         'strokeColor': polygon!.strokeColor.value,
         'fillColor': polygon!.fillColor.value,
@@ -524,7 +523,7 @@ class SeedlingMonitoringController extends GetxController {
         }
       }
 
-      // Create the monitoring model
+      // Create the monitoring model - Updated boolean conversions
       final monitoringModel = SeedlingMonitoringModel(
         surveyorName: surveyorNameController.text.trim(),
         enumeratorValue: _user!.id!.toString(),
@@ -544,20 +543,21 @@ class SeedlingMonitoringController extends GetxController {
         reasonForDeath: reasonForDeath.toList(),
         sourceOfWater: sourceOfWater.toList(),
         wateringFrequency: waterFrequency.value,
-        hasExtremeWeather: hasExtremeWeather.value,
+        hasExtremeWeather: hasExtremeWeather!.value == "Yes",
         extremeWeathers: extremeWeathers.toList(),
         otherExtremeWeather: otherExtremeWeather.value,
         speciesPlantingDetails: speciesPlantingDetails,
-        pestsAround: pestsAround.value,
+        // Updated boolean conversions from String
+        pestsAround: pestsAround!.value == "Yes",
         mappedSurvivingSeedlings: treeData.isNotEmpty
             ? json.encode(treeData)
             : null,
         pestDescription: pestDescription.value,
-        signsOfDisease: signsOfDisease.value,
+        signsOfDisease: signsOfDisease!.value == "Yes",
         diseaseDescription: diseaseDescription.value,
-        fertiliserApplied: fertiliserApplied.value,
+        fertiliserApplied: fertiliserApplied!.value == "Yes",
         fertiliserType: fertiliserType.value,
-        pesticideApplied: pesticideApplied.value,
+        pesticideApplied: pesticideApplied!.value == "Yes",
         pesticideType: pesticideType.value,
         additionalObservations: additionalObservations.value,
       );
@@ -583,7 +583,7 @@ class SeedlingMonitoringController extends GetxController {
       } else {
         Get.snackbar(
           'Error',
-          'Failed to submit data',
+          res["error"],
           colorText: Colors.white,
           backgroundColor: Colors.red,
         );
@@ -624,7 +624,7 @@ class SeedlingMonitoringController extends GetxController {
         }
       }
 
-      // Create the monitoring model
+      // Create the monitoring model - Updated boolean conversions
       final monitoringModel = SeedlingMonitoringModel(
         surveyorName: surveyorNameController.text.trim(),
         enumeratorValue: _user!.id!.toString(),
@@ -644,20 +644,21 @@ class SeedlingMonitoringController extends GetxController {
         reasonForDeath: reasonForDeath.toList(),
         sourceOfWater: sourceOfWater.toList(),
         wateringFrequency: waterFrequency.value,
-        hasExtremeWeather: hasExtremeWeather.value,
+        hasExtremeWeather: hasExtremeWeather!.value == "Yes",
         extremeWeathers: extremeWeathers.toList(),
         otherExtremeWeather: otherExtremeWeather.value,
         speciesPlantingDetails: speciesPlantingDetails,
-        pestsAround: pestsAround.value,
+        // Updated boolean conversions from String
+        pestsAround: pestsAround!.value == "Yes",
         mappedSurvivingSeedlings: treeData.isNotEmpty
             ? json.encode(treeData)
             : null,
         pestDescription: pestDescription.value,
-        signsOfDisease: signsOfDisease.value,
+        signsOfDisease: signsOfDisease!.value == "Yes",
         diseaseDescription: diseaseDescription.value,
-        fertiliserApplied: fertiliserApplied.value,
+        fertiliserApplied: fertiliserApplied!.value == "Yes",
         fertiliserType: fertiliserType.value,
-        pesticideApplied: pesticideApplied.value,
+        pesticideApplied: pesticideApplied!.value == "Yes",
         pesticideType: pesticideType.value,
         additionalObservations: additionalObservations.value,
       );
@@ -702,7 +703,7 @@ class SeedlingMonitoringController extends GetxController {
         seedlingMonitoringScreenContext!.mounted) {
       Navigator.of(seedlingMonitoringScreenContext!).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const IndexPage()),
-        (Route<dynamic> route) => false,
+            (Route<dynamic> route) => false,
       );
     }
   }
@@ -736,18 +737,18 @@ class SeedlingMonitoringController extends GetxController {
 
     sourceOfWater.clear();
     waterFrequency.value = '';
-    hasExtremeWeather.value = false;
+    hasExtremeWeather!.value = "";
     extremeWeathers.clear();
     otherExtremeWeather.value = '';
 
-    // Final observations
-    pestsAround.value = false;
+    // Final observations - Reset to empty strings
+    pestsAround!.value = "";
     pestDescription.value = '';
-    signsOfDisease.value = false;
+    signsOfDisease!.value = "";
     diseaseDescription.value = '';
-    fertiliserApplied.value = false;
+    fertiliserApplied!.value = "";
     fertiliserType.value = '';
-    pesticideApplied.value = false;
+    pesticideApplied!.value = "";
     pesticideType.value = '';
     additionalObservations.value = '';
 
@@ -782,7 +783,6 @@ class SeedlingMonitoringController extends GetxController {
         return _validateSpeciesDetails();
       case 4:
         return polygon != null && totalSizeAcres.value.isNotEmpty;
-
       case 6:
         return _validateEnvironmentalConditions();
       case 7:

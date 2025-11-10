@@ -529,6 +529,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
           const SizedBox(height: 24),
           _buildReactiveTextField(
+            readOnly: true,
             controller: controller.surveyorNameController,
             label: 'Surveyor Name',
             hintText: 'Enter your full name',
@@ -598,6 +599,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           readOnly: readOnly,
           maxLength: maxLength,
           decoration: InputDecoration(
+            filled: readOnly,
+            fillColor: readOnly ? Colors.grey[200] : Colors.white,
             hintText: hintText,
             prefixIcon: Icon(prefixIcon),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1316,10 +1319,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           () => Row(
             children: [
               Expanded(
-                child: RadioListTile<bool>(
+                child: RadioListTile<String>(
                   title: const Text('Yes'),
-                  value: true,
-                  groupValue: controller.hasExtremeWeather.value,
+                  value: "Yes",
+                  groupValue: controller.hasExtremeWeather!.value,
                   onChanged: (value) {
                     controller.setHasExtremeWeather(value!);
                   },
@@ -1328,10 +1331,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 ),
               ),
               Expanded(
-                child: RadioListTile<bool>(
+                child: RadioListTile<String>(
                   title: const Text('No'),
-                  value: false,
-                  groupValue: controller.hasExtremeWeather.value,
+                  value: "No",
+                  groupValue: controller.hasExtremeWeather!.value,
                   onChanged: (value) {
                     controller.setHasExtremeWeather(value!);
                   },
@@ -1343,7 +1346,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         Obx(
-          () => controller.hasExtremeWeather.value == true
+          () => controller.hasExtremeWeather!.value == "Yes"
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1384,7 +1387,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     ),
                     Obx(
                       () =>
-                          controller.hasExtremeWeather.value == true &&
+                          controller.hasExtremeWeather!.value == "Yes" &&
                               controller.extremeWeathers.isEmpty
                           ? const Padding(
                               padding: EdgeInsets.only(top: 8.0),
@@ -1440,6 +1443,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     );
   }
 
+
   Widget _buildPestAndDiseaseSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1460,10 +1464,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('Yes'),
-                      value: true,
-                      groupValue: controller.pestsAround.value,
+                      value: "Yes",
+                      groupValue: controller.pestsAround!.value,
                       onChanged: (value) {
                         controller.setPestsAround(value!);
                       },
@@ -1472,10 +1476,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     ),
                   ),
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('No'),
-                      value: false,
-                      groupValue: controller.pestsAround.value,
+                      value: "No",
+                      groupValue: controller.pestsAround!.value,
                       onChanged: (value) {
                         controller.setPestsAround(value!);
                       },
@@ -1486,7 +1490,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 ],
               ),
 
-              if (controller.pestsAround.value)
+              if (controller.pestsAround!.value == "Yes")
                 _buildReactiveTextField(
                   label: "Specify pest description",
                   hintText: "Describe the pests observed...",
@@ -1505,10 +1509,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('Yes'),
-                      value: true,
-                      groupValue: controller.signsOfDisease.value,
+                      value: "Yes",
+                      groupValue: controller.signsOfDisease!.value,
                       onChanged: (value) {
                         controller.setSignsOfDisease(value!);
                       },
@@ -1517,10 +1521,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     ),
                   ),
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('No'),
-                      value: false,
-                      groupValue: controller.signsOfDisease.value,
+                      value: "No",
+                      groupValue: controller.signsOfDisease!.value,
                       onChanged: (value) {
                         controller.setSignsOfDisease(value!);
                       },
@@ -1531,7 +1535,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 ],
               ),
 
-              if (controller.signsOfDisease.value)
+              if (controller.signsOfDisease!.value == "Yes")
                 _buildReactiveTextField(
                   label: "Specify disease signs",
                   hintText: "Describe the disease symptoms observed...",
@@ -1566,10 +1570,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('Yes'),
-                      value: true,
-                      groupValue: controller.fertiliserApplied.value,
+                      value: "Yes",
+                      groupValue: controller.fertiliserApplied!.value,
                       onChanged: (value) {
                         controller.setFertiliserApplied(value!);
                       },
@@ -1578,10 +1582,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     ),
                   ),
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('No'),
-                      value: false,
-                      groupValue: controller.fertiliserApplied.value,
+                      value: "No",
+                      groupValue: controller.fertiliserApplied!.value,
                       onChanged: (value) {
                         controller.setFertiliserApplied(value!);
                       },
@@ -1592,7 +1596,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 ],
               ),
 
-              if (controller.fertiliserApplied.value)
+              if (controller.fertiliserApplied!.value == "Yes")
                 _buildReactiveTextField(
                   label: "Specify fertilizer type",
                   hintText: "Describe the fertilizer or soil amendment used...",
@@ -1611,10 +1615,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('Yes'),
-                      value: true,
-                      groupValue: controller.pesticideApplied.value,
+                      value: "Yes",
+                      groupValue: controller.pesticideApplied!.value,
                       onChanged: (value) {
                         controller.setPesticideApplied(value!);
                       },
@@ -1623,10 +1627,10 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                     ),
                   ),
                   Expanded(
-                    child: RadioListTile<bool>(
+                    child: RadioListTile<String>(
                       title: const Text('No'),
-                      value: false,
-                      groupValue: controller.pesticideApplied.value,
+                      value: "No",
+                      groupValue: controller.pesticideApplied!.value,
                       onChanged: (value) {
                         controller.setPesticideApplied(value!);
                       },
@@ -1637,7 +1641,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 ],
               ),
 
-              if (controller.pesticideApplied.value)
+              if (controller.pesticideApplied!.value == "Yes")
                 _buildReactiveTextField(
                   label: "Specify pesticide/herbicide type",
                   hintText: "Describe the pesticide or herbicide used...",
@@ -1729,97 +1733,63 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildSubmitButton() {
-    return Column(
+    return Row(
       children: [
-        CustomButton(
-          horizontalPadding: 10,
-          isFullWidth: true,
-          backgroundColor: fPrimaryColour,
-          verticalPadding: 16.0,
-          onTap: () {
-            _showSubmissionDialog();
-          },
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
-              // SizedBox(width: 8),
-              Text(
-                'Finish',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+        Expanded(
+          child: CustomButton(
+            horizontalPadding: 10,
+            isFullWidth: true,
+            borderColor: fPrimaryColour,
+            backgroundColor: AppColor.white,
+            verticalPadding: 16.0,
+            onTap: () {
+              controller.saveDataOffline();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
+                // SizedBox(width: 8),
+                Text(
+                  'Save',
+                  style: TextStyle(
+                    color:fPrimaryColour,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          'Review all data before submission',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontStyle: FontStyle.italic,
+        const SizedBox(width: 8),
+        Expanded(
+          child: CustomButton(
+            horizontalPadding: 10,
+            isFullWidth: true,
+            backgroundColor: fPrimaryColour,
+            verticalPadding: 16.0,
+            onTap: () {
+              controller.submitDataOnline();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon(Icons.cloud_upload, color: Colors.white, size: 20),
+                // SizedBox(width: 8),
+                Text(
+                  'Submit',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
-          textAlign: TextAlign.center,
         ),
       ],
-    );
-  }
-
-  void _showSubmissionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text('Finish'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.wifi, size: 48, color: Colors.blue),
-              SizedBox(height: 16),
-              Text(
-                'Do you have internet connection?',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-              ),
-
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: fPrimaryColour,
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await controller.submitDataOnline();
-                },
-                child: const Text('Submit'),
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: fSecondaryColour,
-                ),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await controller.saveDataOffline();
-                },
-                child: Text('Save', style: TextStyle(color: Colors.black)),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('CANCEL'),
-            ),
-          ],
-        );
-      },
     );
   }
 

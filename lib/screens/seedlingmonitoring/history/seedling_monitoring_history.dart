@@ -5,6 +5,7 @@ import 'package:hcms_revived2/controller/models/seedling_monitoring_model.dart';
 import 'package:hcms_revived2/controller/repos/seedling_monitoring_reepo.dart';
 import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/history/edit_seedling_monitoring.dart';
+import 'package:hcms_revived2/screens/seedlingmonitoring/history/seedling_monitoring_history_controller.dart';
 import 'package:get/get.dart';
 
 class SeedlingMonitoringViewInit extends StatefulWidget {
@@ -35,13 +36,44 @@ class _SeedlingMonitoringViewInitState
 
   // Refresh function
   Future<void> _refreshData() async {
-    setState(() {});
+    await controller.refreshMonitorings();
+  }
+
+  final SeedlingMonitoringHistoryController controller = Get.put(SeedlingMonitoringHistoryController());
+
+  Future<void> _showSyncConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Monitorings'),
+        content: const Text('Are you sure you want to sync all pending seedling monitorings to the server?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await controller.syncAllPendingMonitorings(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
+    return Obx(() => DefaultTabController(
       length: 2,
+      initialIndex: controller.currentTabIndex.value,
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
@@ -50,8 +82,9 @@ class _SeedlingMonitoringViewInitState
           ),
           backgroundColor: fPrimaryColour,
           elevation: 0,
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            onTap: controller.changeTab,
+            tabs: const [
               Tab(icon: Icon(Icons.cloud_done), text: 'Submitted'),
               Tab(icon: Icon(Icons.cloud_upload), text: 'Pending'),
             ],
@@ -60,9 +93,25 @@ class _SeedlingMonitoringViewInitState
             unselectedLabelColor: Colors.white70,
           ),
           actions: [
+            if (controller.currentTabIndex.value == 1 && controller.hasPendingMonitorings)
+              IconButton(
+                icon: controller.isSyncing.value
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.sync, color: Colors.white),
+                onPressed: controller.isSyncing.value ? null : () => _showSyncConfirmation(context),
+                tooltip: 'Sync Pending Monitorings',
+              ),
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () => _refreshData(),
+              onPressed: controller.refreshMonitorings,
+              tooltip: 'Refresh',
             ),
           ],
         ),
@@ -71,49 +120,38 @@ class _SeedlingMonitoringViewInitState
             // Submitted Tab
             _buildMonitoringList("connected"),
             // Pending Tab
-
             _buildMonitoringList("not connected"),
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildMonitoringList(String status) {
-    return FutureBuilder<List<SeedlingMonitoringModel>>(
-      future: SeedlingMonitoringRepository().getAll(),
-      builder: (context, snapshot) {
-        // Loading state
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingState();
-        }
+    return Obx(() {
+      if (controller.isLoading.value && controller.allMonitorings.isEmpty) {
+        return _buildLoadingState();
+      }
 
-        // Error state
-        if (snapshot.hasError) {
-          return _buildErrorState(snapshot.error.toString());
-        }
+      if (controller.errorMessage.isNotEmpty) {
+        return _buildErrorState(controller.errorMessage.value);
+      }
 
-        // Data loaded successfully
-        if (snapshot.hasData) {
-          // Filter data based on sync status
-          final monitorings = snapshot.data!
-              .where((m) => m.connectionStatus == status)
-              .toList();
+      final monitorings = status == "connected" 
+          ? controller.submittedMonitorings 
+          : controller.pendingMonitorings;
 
-          // Empty state
-          if (monitorings.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          // Data state with pull-to-refresh
-          return RefreshIndicator(
-            onRefresh: _refreshData,
-            child: _buildDataState(monitorings),
-          );
-        }
+      // Empty state
+      if (monitorings.isEmpty) {
         return _buildEmptyState();
-      },
-    );
+      }
+
+      // Data state with pull-to-refresh
+      return RefreshIndicator(
+        onRefresh: controller.refreshMonitorings,
+        child: _buildDataState(monitorings),
+      );
+    });
   }
 
   Widget _buildLoadingState() {
@@ -222,9 +260,7 @@ class _SeedlingMonitoringViewInitState
   Widget _buildMonitoringCard(SeedlingMonitoringModel monitoring, int index) {
     debugPrint("THE MONITORING: ${monitoring.toJson()}");
 
-    debugPrint(
-      "THE SPECIES :::::::::: ${monitoring.speciesPlantingDetails.first.toJson()}",
-    );
+
     debugPrint("THE SPECIES :::::::::: ${monitoring.treeData}");
     // Extract data from monitoring object
     final farmerName = monitoring.farmerName ?? 'Unknown Farmer';
