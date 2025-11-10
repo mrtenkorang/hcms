@@ -14,9 +14,6 @@ import 'package:hcms_revived2/screens/farmregistration/register_farmer/register_
 import 'package:hcms_revived2/screens/farmregistration/tree_registration/tree_reg_history/tree_reg_history.dart';
 import 'package:hcms_revived2/screens/treemonitoring/farmerbiodata.dart';
 import 'package:hcms_revived2/screens/treemonitoring/initialpage.dart';
-import 'package:hcms_revived2/screens/viewsubmissions/viewpage.dart';
-import 'package:hcms_revived2/utils/widgets/textFormats/text_formats.dart';
-import 'package:websafe_svg/websafe_svg.dart';
 
 class Options extends StatelessWidget {
   const Options({super.key});

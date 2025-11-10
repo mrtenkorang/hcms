@@ -433,21 +433,21 @@ class _IndexPageState extends State<IndexPage>
                   //     Navigator.pop(context);
                   //   },
                   // ),
-                  _buildDrawerItem(
-                    icon: Icons.forest,
-                    title: 'View Trees',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) {
-                            return SpeciesGallery();
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                  // _buildDrawerItem(
+                  //   icon: Icons.forest,
+                  //   title: 'View Trees',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) {
+                  //           return SpeciesGallery();
+                  //         },
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                   // _buildDrawerItem(
                   //   icon: Icons.campaign,
                   //   title: 'Notice Board',
@@ -464,7 +464,7 @@ class _IndexPageState extends State<IndexPage>
                   //     // _showNoticeBoard();
                   //   },
                   // ),
-                  const Divider(height: 32, indent: 16, endIndent: 16),
+                  // const Divider(height: 32, indent: 16, endIndent: 16),
                   // _buildDrawerItem(
                   //   icon: Icons.settings,
                   //   title: 'Settings',

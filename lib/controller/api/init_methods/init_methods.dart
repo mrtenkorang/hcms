@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart' show debugPrint;
 import 'package:hcms_revived2/controller/cache_service/cache_service.dart';
 import 'package:hcms_revived2/controller/constants/urls.dart';
+import 'package:hcms_revived2/controller/models/category_model.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'dart:convert';
 import 'package:hcms_revived2/controller/models/district_region_model.dart';
@@ -10,19 +11,58 @@ import 'package:hcms_revived2/controller/models/establishment_type_model.dart';
 import 'package:hcms_revived2/controller/models/farmer_from_server.dart';
 import 'package:hcms_revived2/controller/models/mmda_model.dart';
 import 'package:hcms_revived2/controller/models/ta_stool_skin_family%20model.dart';
+import 'package:hcms_revived2/controller/models/tree_species_model.dart';
 import 'package:hcms_revived2/controller/models/user_model.dart';
+import 'package:hcms_revived2/controller/repos/category_repo.dart';
 import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/dsitrict_region_repos.dart';
 import 'package:hcms_revived2/controller/repos/establishment_repo.dart';
 import 'package:hcms_revived2/controller/repos/farmer_from_server_repo.dart';
 import 'package:hcms_revived2/controller/repos/mmda_repo.dart';
 import 'package:hcms_revived2/controller/repos/ta_stool_skin_family_repo.dart';
+import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
 import 'package:http/http.dart' as http;
 import 'package:hcms_revived2/services/serverurls.dart';
 
 class InitMethods {
-  final DistrictRepository _regionDistrictRepo =
-  DistrictRepository();
+  Future<bool> fetchSmallHolderCategory() async {
+    try {
+      final response = await http.get(
+        Uri.parse(URLS.baseUrl + URLS.categoryURL),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
+        final List<CategoryModel> types = responseData
+            .map<CategoryModel>(
+              (item) => CategoryModel.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+
+        await CategoryRepository().deleteAllCategories();
+        await CategoryRepository().bulkInsertCategories(types);
+
+        debugPrint('Successfully stored ${types.length} categories');
+        return true;
+      } else {
+        debugPrint('Types API failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching types: $e');
+      debugPrint('Error fetching types: $stackTrace');
+      return false;
+    }
+  }
+
+  final DistrictRepository _regionDistrictRepo = DistrictRepository();
 
   UserModel? user;
 
@@ -30,10 +70,15 @@ class InitMethods {
   Future<bool> fetchDistrictAndRegion() async {
     try {
 
+      final cache = await CacheService.getInstance();
+      user = await cache.getUserInfo();
 
+      final userData = user!.toJson();
+      debugPrint("USER DATAAAAAAAAAA :::::::::::::: $userData");
 
-      debugPrint('Fetching districts and regions from API...');
-      final String url = URLS.baseUrl + URLS.regionDistrictURL;
+      String url =
+          '${URLS.baseUrl}${URLS.regionDistrictURL}?districts=${user!.assignedDistrictIds!}';
+
       debugPrint('URL DISTRICT REGION FETCH ::::::::::;: $url');
 
       final response = await http.get(
@@ -46,7 +91,9 @@ class InitMethods {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> responseData = data is List ? data : (data['data'] as List? ?? []);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
 
         debugPrint('Received ${responseData.length} regions with districts');
 
@@ -61,7 +108,8 @@ class InitMethods {
             final districtModel = DistrictModel(
               id: item['id'] ?? 0,
               regionName: (region['name'] as String?)?.trim() ?? '',
-              districtName: (district['name'] as String?)?.trim() ?? 'Unknown District',
+              districtName:
+                  (district['name'] as String?)?.trim() ?? 'Unknown District',
               districtId: (district['id'] as int?) ?? 0,
               regionId: (region['id'] as int?)?.toString() ?? '0',
             );
@@ -109,13 +157,55 @@ class InitMethods {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> responseData = data is List ? data : (data['data'] as List? ?? []);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
         final List<TAStoolSkinFamilyModel> types = responseData
-            .map<TAStoolSkinFamilyModel>((item) => TAStoolSkinFamilyModel.fromJson(item as Map<String, dynamic>))
+            .map<TAStoolSkinFamilyModel>(
+              (item) =>
+                  TAStoolSkinFamilyModel.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
 
         await _typeRepo.deleteAllTypes();
         await _typeRepo.bulkInsertTypes(types);
+
+        debugPrint('Successfully stored ${types.length} types');
+        return true;
+      } else {
+        debugPrint('Types API failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching types: $e');
+      debugPrint('Error fetching types: $stackTrace');
+      return false;
+    }
+  }
+
+  Future<bool> fetchTreeSpecies() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${URLS.baseUrl}${URLS.treeSpeciesURL}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
+        final List<TreeSpeciesModel> types = responseData
+            .map<TreeSpeciesModel>(
+              (item) => TreeSpeciesModel.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+
+        await TreeSpeciesRepository().deleteAllTreeSpecies();
+        await TreeSpeciesRepository().bulkInsertTreeSpecies(types);
 
         debugPrint('Successfully stored ${types.length} types');
         return true;
@@ -142,15 +232,19 @@ class InitMethods {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> responseData = data is List ? data : (data['data'] as List? ?? []);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
         final List<MMDAModel> types = responseData
-            .map<MMDAModel>((item) => MMDAModel.fromJson(item as Map<String, dynamic>))
+            .map<MMDAModel>(
+              (item) => MMDAModel.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
 
         debugPrint("THE MMDA DATA ::::::::::: $data");
 
         await MMDARepository().deleteAllMMDAs();
-        await  MMDARepository().bulkInsertMMDAs(types);
+        await MMDARepository().bulkInsertMMDAs(types);
 
         debugPrint('Successfully stored ${types.length} mmdas');
         return true;
@@ -169,8 +263,17 @@ class InitMethods {
 
   Future<bool> fetchCommunities() async {
     try {
+      final cache = await CacheService.getInstance();
+      user = await cache.getUserInfo();
+
+      final userData = user!.toJson();
+      debugPrint("USER DATAAAAAAAAAA :::::::::::::: $userData");
+
+      String url =
+          '${URLS.baseUrl}${URLS.communityUrl}?districts=${user!.assignedDistrictIds!}';
+
       final response = await http.get(
-        Uri.parse('${URLS.baseUrl}${URLS.communityUrl}'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -179,9 +282,13 @@ class InitMethods {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> responseData = data is List ? data : (data['data'] as List? ?? []);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
         final List<CommunityModel> communities = responseData
-            .map<CommunityModel>((item) => CommunityModel.fromJson(item as Map<String, dynamic>))
+            .map<CommunityModel>(
+              (item) => CommunityModel.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
 
         await _communityRepo.deleteAllCommunities();
@@ -204,14 +311,14 @@ class InitMethods {
 
   Future<void> fetAllFarmers() async {
     try {
-
       final cache = await CacheService.getInstance();
       user = await cache.getUserInfo();
 
       final userData = user!.toJson();
       debugPrint("USER DATAAAAAAAAAA :::::::::::::: $userData");
 
-      String? nextUrl = '${URLS.baseUrl}${URLS.farmersFromServerUrl}?districts=${user!.assignedDistrictIds!}';
+      String? nextUrl =
+          '${URLS.baseUrl}${URLS.farmersFromServerUrl}?districts=${user!.assignedDistrictIds!}';
       int totalFarmers = 0;
       int page = 1;
       final List<FarmerFromServerModel> allFarmers = [];
@@ -221,7 +328,7 @@ class InitMethods {
 
       while (nextUrl != null && nextUrl.isNotEmpty) {
         debugPrint('Fetching page $page: $nextUrl');
-        
+
         final response = await http.get(
           Uri.parse(nextUrl),
           headers: {
@@ -230,25 +337,27 @@ class InitMethods {
           },
         );
 
+        debugPrint("THE FARMERS FROM SERVER :::::::::::: ${response.body}");
+
         if (response.statusCode == 200) {
           final responseData = json.decode(response.body);
-          
+
           // Extract data based on response structure
           List<dynamic> data = [];
-          
+
           if (responseData is List) {
             data = responseData;
           } else if (responseData is Map) {
             // Handle pagination - get next URL if available
             nextUrl = responseData['next']?.toString();
-            
-            if (responseData.containsKey('results') && 
+
+            if (responseData.containsKey('results') &&
                 responseData['results'] is Map &&
                 responseData['results'].containsKey('data')) {
               // Handle nested structure: {results: {status: bool, msg: string, data: [...]}}
               data = responseData['results']['data'] as List<dynamic>? ?? [];
-            } else if (responseData.containsKey('results') && 
-                      responseData['results'] is List) {
+            } else if (responseData.containsKey('results') &&
+                responseData['results'] is List) {
               // Handle structure: {results: [...]}
               data = responseData['results'] as List<dynamic>;
             } else if (responseData.containsKey('data')) {
@@ -260,33 +369,38 @@ class InitMethods {
           if (data.isNotEmpty) {
             final List<FarmerFromServerModel> pageFarmers = data
                 .where((item) => item is Map<String, dynamic>)
-                .map<FarmerFromServerModel>((item) => FarmerFromServerModel.fromMap(item as Map<String, dynamic>))
+                .map<FarmerFromServerModel>(
+                  (item) => FarmerFromServerModel.fromMap(
+                    item as Map<String, dynamic>,
+                  ),
+                )
                 .toList();
 
             debugPrint("THE FARMER :: ${pageFarmers.first.toMap()}");
-            
+
             allFarmers.addAll(pageFarmers);
             totalFarmers += pageFarmers.length;
             debugPrint('Fetched ${pageFarmers.length} farmers from page $page');
-
 
             // await FarmerFromServerRepository().deleteAllFarmersFromServer();
             // Insert in batches to avoid memory issues
             await FarmerFromServerRepository().bulkInsertFarmers(pageFarmers);
           }
-          
+
           page++;
-          
         } else {
-          debugPrint('Failed to fetch page $page. Status code: ${response.statusCode}');
+          debugPrint(
+            'Failed to fetch page $page. Status code: ${response.statusCode}',
+          );
           debugPrint('Response body: ${response.body}');
           break;
         }
       }
 
-      debugPrint('Successfully fetched and stored $totalFarmers farmers in total');
+      debugPrint(
+        'Successfully fetched and stored $totalFarmers farmers in total',
+      );
       return;
-      
     } on SocketException {
       debugPrint("Network error: No internet connection");
       rethrow; // Re-throw to allow the caller to handle the error

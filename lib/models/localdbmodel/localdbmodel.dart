@@ -333,7 +333,7 @@ class LMBMonitoring {
   final String lmbFemaleBenefit;
   final String lmbMaleBenefit;
   final String lmbYouthBenefit;
-  final String lmbConStat;
+  String lmbConStat;
 
   LMBMonitoring({
     required this.lmbId,
@@ -444,6 +444,48 @@ class AlternativeLivelihood {
     this.alActivitySupported = '',
     this.alConStat = '',
   });
+
+  AlternativeLivelihood copyWith({
+    String? alId,
+    String? alTimeDisplay,
+    String? alCommunity,
+    String? alEnumeratorValue,
+    String? alVisitDate,
+    String? alFarmerId,
+    String? alFarmerName,
+    String? alBasline,
+    String? alFarmerContact,
+    String? alAdditionalActivity,
+    String? alTrainerOrg,
+    String? alOperationsStartDate,
+    String? alInitialAmount,
+    String? alAmountType,
+    String? alAmount,
+    String? alAmountToLMB,
+    String? alActivitySupported,
+    String? alConStat,
+  }) {
+    return AlternativeLivelihood(
+      alId: alId ?? this.alId,
+      alTimeDisplay: alTimeDisplay ?? this.alTimeDisplay,
+      alCommunity: alCommunity ?? this.alCommunity,
+      alEnumeratorValue: alEnumeratorValue ?? this.alEnumeratorValue,
+      alVisitDate: alVisitDate ?? this.alVisitDate,
+      alFarmerId: alFarmerId ?? this.alFarmerId,
+      alFarmerName: alFarmerName ?? this.alFarmerName,
+      alBasline: alBasline ?? this.alBasline,
+      alFarmerContact: alFarmerContact ?? this.alFarmerContact,
+      alAdditionalActivity: alAdditionalActivity ?? this.alAdditionalActivity,
+      alTrainerOrg: alTrainerOrg ?? this.alTrainerOrg,
+      alOperationsStartDate: alOperationsStartDate ?? this.alOperationsStartDate,
+      alInitialAmount: alInitialAmount ?? this.alInitialAmount,
+      alAmountType: alAmountType ?? this.alAmountType,
+      alAmount: alAmount ?? this.alAmount,
+      alAmountToLMB: alAmountToLMB ?? this.alAmountToLMB,
+      alActivitySupported: alActivitySupported ?? this.alActivitySupported,
+      alConStat: alConStat ?? this.alConStat,
+    );
+  }
 }
 
 class TrainingLog {
