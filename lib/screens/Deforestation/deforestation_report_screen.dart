@@ -40,7 +40,6 @@ class DeforestationScreen extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -77,8 +76,8 @@ class DeforestationScreen extends StatelessWidget {
         _showClearFormDialog();
         break;
       case 'history':
-      // Navigate to history screen
-      // Get.to(() => DeforestationHistoryScreen());
+        // Navigate to history screen
+        // Get.to(() => DeforestationHistoryScreen());
         break;
     }
   }
@@ -89,19 +88,13 @@ class DeforestationScreen extends StatelessWidget {
         title: const Text('Clear Form'),
         content: const Text('Are you sure you want to clear all form data?'),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               Get.back();
               await controller.resetFormState(); // UPDATED
             },
-            child: const Text(
-              'Clear',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Clear', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -123,7 +116,6 @@ class BuildSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -138,10 +130,7 @@ class BuildSectionCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: padding!,
-        child: child,
-      ),
+      child: Padding(padding: padding!, child: child),
     );
   }
 }
@@ -175,7 +164,11 @@ class DeforestationForm extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -184,7 +177,11 @@ class DeforestationForm extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Colors.red,
+                      ),
                       onPressed: () => controller.errorMessage.value = '',
                     ),
                   ],
@@ -198,44 +195,15 @@ class DeforestationForm extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // GPS Coordinates Section
-                  // Obx(() => BuildSectionCard(
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.start,
-                  //     children: [
-                  //       Row(
-                  //         children: [
-                  //           Icon(
-                  //             Icons.location_on,
-                  //             color: fPrimaryColour,
-                  //             size: 28,
-                  //           ),
-                  //           const SizedBox(width: 12),
-                  //           const Text(
-                  //             "GPS Coordinates",
-                  //             style: TextStyle(
-                  //               fontSize: 18,
-                  //               fontWeight: FontWeight.bold,
-                  //               color: Colors.black87,
-                  //             ),
-                  //           ),
-                  //         ],
-                  //       ),
-                  //       const SizedBox(height: 16),
-                  //       _buildLocationStatus(),
-                  //       const SizedBox(height: 16),
-                  //       _buildLocationDetails(),
-                  //     ],
-                  //   ),
-                  // )),
-                  //
                   const SizedBox(height: 16),
 
                   Obx(
-                        () => _buildSearchableDropdownField(
+                    () => _buildSearchableDropdownField(
                       title: "Community",
                       selectedItem: controller.selectedCommunity.value,
-                      displayText: controller.selectedCommunity.value?.community ?? "Select Community",
+                      displayText:
+                          controller.selectedCommunity.value?.community ??
+                          "Select Community",
                       onTap: () => _showCommunitySelectionBottomSheet(context),
                       isLoading: controller.isLoadingCommunities.value,
                       enabled: !controller.isLoadingCommunities.value,
@@ -244,28 +212,34 @@ class DeforestationForm extends StatelessWidget {
 
                   // GFW Direction Question
                   BuildSectionCard(
-                    child: Obx(() => BuildChoiceChips(
-                      label: "Were you directed to this location by Global Forest Watch (GFW)?",
-                      options: [
-                        {'value': 'yes', 'label': 'Yes'},
-                        {'value': 'no', 'label': 'No'},
-                      ],
-                      selectedValue: controller.formData.value.gfwDirection,
-                      onSelected: controller.updateGfwDirection,
-                    )),
+                    child: Obx(
+                      () => BuildChoiceChips(
+                        label:
+                            "Were you directed to this location by Global Forest Watch (GFW)?",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue: controller.formData.value.gfwDirection,
+                        onSelected: controller.updateGfwDirection,
+                      ),
+                    ),
                   ),
 
                   // Deforestation Question
                   BuildSectionCard(
-                    child: Obx(() => BuildChoiceChips(
-                      label: "Do you see deforestation at this location?",
-                      options: [
-                        {'value': 'yes', 'label': 'Yes'},
-                        {'value': 'no', 'label': 'No'},
-                      ],
-                      selectedValue: controller.formData.value.seeDeforestation,
-                      onSelected: controller.updateSeeDeforestation,
-                    )),
+                    child: Obx(
+                      () => BuildChoiceChips(
+                        label: "Do you see deforestation at this location?",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue:
+                            controller.formData.value.seeDeforestation,
+                        onSelected: controller.updateSeeDeforestation,
+                      ),
+                    ),
                   ),
 
                   // Causes Section (only show if deforestation is seen)
@@ -286,7 +260,9 @@ class DeforestationForm extends StatelessWidget {
                           ),
                           BuildSectionCard(
                             padding: const EdgeInsets.all(16),
-                            child: DeforestationCausesGrid(controller: controller),
+                            child: DeforestationCausesGrid(
+                              controller: controller,
+                            ),
                           ),
                         ],
                       );
@@ -296,15 +272,17 @@ class DeforestationForm extends StatelessWidget {
 
                   // Further Action Section
                   BuildSectionCard(
-                    child: Obx(() => BuildChoiceChips(
-                      label: "Do you think further action should be taken?",
-                      options: [
-                        {'value': 'yes', 'label': 'Yes'},
-                        {'value': 'no', 'label': 'No'},
-                      ],
-                      selectedValue: controller.formData.value.actionRequired,
-                      onSelected: controller.updateActionRequired,
-                    )),
+                    child: Obx(
+                      () => BuildChoiceChips(
+                        label: "Do you think further action should be taken?",
+                        options: [
+                          {'value': 'yes', 'label': 'Yes'},
+                          {'value': 'no', 'label': 'No'},
+                        ],
+                        selectedValue: controller.formData.value.actionRequired,
+                        onSelected: controller.updateActionRequired,
+                      ),
+                    ),
                   ),
 
                   // Why Action Section (only show if action is required)
@@ -324,10 +302,8 @@ class DeforestationForm extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
                             TextFieldWidget(
-                              controller: TextEditingController(
-                                text: controller.formData.value.whyAction ?? '',
-                              ),
-                              onChanged: controller.updateWhyAction,
+                              controller: controller.whyActionController,
+                              // onChanged: controller.updateWhyAction,
                               decoration: InputDecoration(
                                 hintText: "Explain why action is needed...",
                                 filled: true,
@@ -384,54 +360,68 @@ class DeforestationForm extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 20),
+
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 20,
+                      bottom: 20,
+                      right: 20,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                await controller.saveReportLocally();
+                                cameraService.clearPhoto();
+                                controller.updatePhotoBase64('');
+                              },
+                              icon: const Icon(Icons.save, size: 20),
+                              label: const Text("Save"),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                await controller.submitReportToServer();
+                                cameraService.clearPhoto();
+                                controller.updatePhotoBase64('');
+                              },
+                              icon: const Icon(Icons.wifi, size: 20),
+                              label: const Text("Submit"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: fPrimaryColour,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
-
-          // Submit Button
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: Obx(() => ElevatedButton(
-                onPressed: () => _showSubmissionOptions(context),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: fPrimaryColour,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: controller.isLoading.value
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-                    : const Text(
-                  "Finish",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )),
             ),
           ),
         ],
@@ -544,20 +534,22 @@ class DeforestationForm extends StatelessWidget {
                     : filteredCommunities.isEmpty
                     ? const Center(child: Text('No communities found'))
                     : ListView.builder(
-                  itemCount: filteredCommunities.length,
-                  itemBuilder: (context, index) {
-                    final community = filteredCommunities[index];
-                    return ListTile(
-                      title: Text(community.community ?? ''),
-                      onTap: () {
-                        controller.setSelectedCommunity(community);
-                        Navigator.pop(context);
-                      },
-                      selected: controller.selectedCommunity.value?.id == community.id,
-                      selectedTileColor: Colors.blue[50],
-                    );
-                  },
-                ),
+                        itemCount: filteredCommunities.length,
+                        itemBuilder: (context, index) {
+                          final community = filteredCommunities[index];
+                          return ListTile(
+                            title: Text(community.community ?? ''),
+                            onTap: () {
+                              controller.setSelectedCommunity(community);
+                              Navigator.pop(context);
+                            },
+                            selected:
+                                controller.selectedCommunity.value?.id ==
+                                community.id,
+                            selectedTileColor: Colors.blue[50],
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -675,13 +667,22 @@ class DeforestationForm extends StatelessWidget {
         children: [
           _buildCoordinateRow("Latitude", location.latitude.toStringAsFixed(6)),
           const SizedBox(height: 8),
-          _buildCoordinateRow("Longitude", location.longitude.toStringAsFixed(6)),
+          _buildCoordinateRow(
+            "Longitude",
+            location.longitude.toStringAsFixed(6),
+          ),
           if (location.altitude != null) ...[
             const SizedBox(height: 8),
-            _buildCoordinateRow("Altitude", "${location.altitude!.toStringAsFixed(2)}m"),
+            _buildCoordinateRow(
+              "Altitude",
+              "${location.altitude!.toStringAsFixed(2)}m",
+            ),
           ],
           const SizedBox(height: 8),
-          _buildCoordinateRow("Accuracy", "${location.accuracy?.toStringAsFixed(2)}m"),
+          _buildCoordinateRow(
+            "Accuracy",
+            "${location.accuracy?.toStringAsFixed(2)}m",
+          ),
         ],
       ),
     );
@@ -721,7 +722,7 @@ class DeforestationForm extends StatelessWidget {
                   icon: const Icon(Icons.camera_alt, size: 20),
                   label: const Text("Take Photo"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: fPrimaryColour,
+                    backgroundColor: fSecondaryColour,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -823,10 +824,7 @@ class DeforestationForm extends StatelessWidget {
                 ),
                 Text(
                   '${cameraService.imageSizeKB.toStringAsFixed(1)} KB',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ],
             ),
@@ -844,10 +842,7 @@ class DeforestationForm extends StatelessWidget {
             ),
             child: const Text(
               'Tap to view',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 10),
             ),
           ),
         ),
@@ -863,19 +858,13 @@ class DeforestationForm extends StatelessWidget {
         SizedBox(height: 12),
         Text(
           "No Photo Captured",
-          style: TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
         Text(
           "Tap to capture a photo of the deforestation area",
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.grey, fontSize: 12),
         ),
       ],
     );
@@ -937,7 +926,10 @@ class DeforestationForm extends StatelessWidget {
                   children: [
                     const Text(
                       'Captured Photo',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -964,7 +956,11 @@ class DeforestationForm extends StatelessWidget {
                           child: const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.error_outline, color: Colors.grey, size: 64),
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.grey,
+                                size: 64,
+                              ),
                               SizedBox(height: 16),
                               Text(
                                 'Failed to load image',
@@ -1016,7 +1012,11 @@ class DeforestationForm extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: Colors.grey[700],
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         Text(
           value,
@@ -1027,91 +1027,6 @@ class DeforestationForm extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  void _showSubmissionOptions(BuildContext context) {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Column(
-          children: [
-            Icon(Icons.cloud_upload, size: 48, color: fPrimaryColour),
-            SizedBox(height: 8),
-            Text(
-              "Submit Report",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "How would you like to submit this deforestation report?",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            SizedBox(height: 16),
-          ],
-        ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      Get.back();
-                      await controller.submitReportToServer();
-                      cameraService.clearPhoto();
-                      controller.updatePhotoBase64('');
-                    },
-                    icon: const Icon(Icons.wifi, size: 20),
-                    label: const Text("Submit"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: fPrimaryColour,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      Get.back();
-                      await controller.saveReportLocally();
-                      cameraService.clearPhoto();
-                      controller.updatePhotoBase64('');
-                    },
-                    icon: const Icon(Icons.save, size: 20),
-                    label: const Text("Save"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Get.back(),
-                  child: const Text("Cancel"),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1204,7 +1119,6 @@ class CameraService extends GetxController {
 
       // Convert to base64
       capturedImageBase64.value = base64Encode(jpegBytes);
-
     } catch (e) {
       errorMessage.value = 'Failed to process image: $e';
       rethrow;

@@ -6,10 +6,41 @@ import 'package:hcms_revived2/screens/Deforestation/history/edit/edit_deforstati
 import 'deforestation_history_controller.dart';
 
 class DeforestationHistoryScreen extends StatelessWidget {
-  final DeforestationHistoryController controller =
-  Get.put(DeforestationHistoryController());
+  final DeforestationHistoryController controller = Get.put(
+    DeforestationHistoryController(),
+  );
 
   DeforestationHistoryScreen({Key? key}) : super(key: key);
+
+  Future<void> _showSyncConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Pending Reports'),
+        content: const Text(
+          'Are you sure you want to sync all pending deforestation reports to the server?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('SYNC'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await controller.submitAllPendingReports(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +66,17 @@ class DeforestationHistoryScreen extends StatelessWidget {
             if (controller.currentTabIndex.value == 0 &&
                 controller.hasPendingReports) {
               return IconButton(
-                icon: const Icon(Icons.cloud_upload, color: Colors.white),
-                onPressed: controller.submitAllPendingReports,
-                tooltip: 'Submit All Pending Reports',
+                icon:
+                    // controller.isSyncing.value
+                    //     ?
+                    const Icon(Icons.cloud_upload, color: Colors.white),
+                // : const Icon(Icons.cloud_upload, color: Colors.white),
+                onPressed: () => _showSyncConfirmation(context),
+                tooltip: 'Sync Pending Reports',
               );
             }
             return const SizedBox();
           }),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: controller.refreshReports,
-            tooltip: 'Refresh',
-          ),
         ],
       ),
       body: Column(
@@ -54,39 +84,41 @@ class DeforestationHistoryScreen extends StatelessWidget {
           // Tab Bar
           Container(
             color: Colors.white,
-            child: Obx(() => TabBar(
-              controller: TabController(
-                length: 2,
-                initialIndex: controller.currentTabIndex.value,
-                vsync: Navigator.of(context),
+            child: Obx(
+              () => TabBar(
+                controller: TabController(
+                  length: 2,
+                  initialIndex: controller.currentTabIndex.value,
+                  vsync: Navigator.of(context),
+                ),
+                onTap: controller.changeTab,
+                labelColor: fPrimaryColour,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: fPrimaryColour,
+                tabs: const [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.pending, size: 20),
+                        SizedBox(width: 8),
+                        Text('Pending'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, size: 20),
+                        SizedBox(width: 8),
+                        Text('Submitted'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              onTap: controller.changeTab,
-              labelColor: fPrimaryColour,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: fPrimaryColour,
-              tabs: const [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.pending, size: 20),
-                      SizedBox(width: 8),
-                      Text('Pending'),
-                    ],
-                  ),
-                ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, size: 20),
-                      SizedBox(width: 8),
-                      Text('Submitted'),
-                    ],
-                  ),
-                ),
-              ],
-            )),
+            ),
           ),
 
           // Tab Count Indicators
@@ -173,9 +205,7 @@ class DeforestationHistoryScreen extends StatelessWidget {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: controller.refreshReports,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: fPrimaryColour,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: fPrimaryColour),
             child: const Text('Try Again'),
           ),
         ],
@@ -269,11 +299,7 @@ class DeforestationHistoryScreen extends StatelessWidget {
 
             if (report.community != null) ...[
               const SizedBox(height: 8),
-              _buildDetailRow(
-                Icons.people,
-                'Community',
-                report.community!,
-              ),
+              _buildDetailRow(Icons.people, 'Community', report.community!),
             ],
 
             const SizedBox(height: 8),
@@ -316,11 +342,11 @@ class DeforestationHistoryScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isPending ? Colors.orange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+        color: isPending
+            ? Colors.orange.withOpacity(0.1)
+            : Colors.green.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isPending ? Colors.orange : Colors.green,
-        ),
+        border: Border.all(color: isPending ? Colors.orange : Colors.green),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -414,7 +440,12 @@ class DeforestationHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value, {int maxLines = 1}) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value, {
+    int maxLines = 1,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -480,25 +511,42 @@ class DeforestationHistoryScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailItem('Community', report.community ?? 'Not specified'),
-              _buildDetailItem('GFW Directed', report.directedByGfw ?? 'Not specified'),
-              _buildDetailItem('See Deforestation', report.seeDeforestation ?? 'Not specified'),
-              if (report.deforestationCauses != null && report.deforestationCauses!.isNotEmpty)
-                _buildDetailItem('Causes', report.deforestationCauses!.join(', ')),
-              _buildDetailItem('Further Action', report.furtherActionRequired ?? 'Not specified'),
-              if (report.reasonForAction != null && report.reasonForAction!.isNotEmpty)
+              _buildDetailItem(
+                'Community',
+                report.community ?? 'Not specified',
+              ),
+              _buildDetailItem(
+                'GFW Directed',
+                report.directedByGfw ?? 'Not specified',
+              ),
+              _buildDetailItem(
+                'See Deforestation',
+                report.seeDeforestation ?? 'Not specified',
+              ),
+              if (report.deforestationCauses != null &&
+                  report.deforestationCauses!.isNotEmpty)
+                _buildDetailItem(
+                  'Causes',
+                  report.deforestationCauses!.join(', '),
+                ),
+              _buildDetailItem(
+                'Further Action',
+                report.furtherActionRequired ?? 'Not specified',
+              ),
+              if (report.reasonForAction != null &&
+                  report.reasonForAction!.isNotEmpty)
                 _buildDetailItem('Action Reason', report.reasonForAction!),
-              _buildDetailItem('Location', '${report.latitude}, ${report.longitude}'),
+              _buildDetailItem(
+                'Location',
+                '${report.latitude}, ${report.longitude}',
+              ),
               _buildDetailItem('Created', _formatDate(report.createdAt)),
               _buildDetailItem('Status', report.submissionStatus ?? 'pending'),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Close'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Close')),
         ],
       ),
     );

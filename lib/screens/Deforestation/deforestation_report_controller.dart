@@ -20,6 +20,9 @@ class DeforestationController extends GetxController {
   final RxString errorMessage = ''.obs;
   final RxBool autoLocationStarted = false.obs;
 
+  final whyActionController = TextEditingController();
+
+
   // Community related
   final RxList<CommunityModel> communities = <CommunityModel>[].obs;
   final Rx<CommunityModel?> selectedCommunity = Rx<CommunityModel?>(null);
@@ -140,12 +143,6 @@ class DeforestationController extends GetxController {
     });
   }
 
-  void updateWhyAction(String value) {
-    formData.update((val) {
-      val!.whyAction = value;
-    });
-  }
-
   void updateLocation(PlaceLocation location) {
     formData.update((val) {
       val!.location = location;
@@ -189,8 +186,7 @@ class DeforestationController extends GetxController {
       return 'Please specify the other cause';
     }
     if (formData.value.actionRequired == 'yes' &&
-        (formData.value.whyAction == null ||
-            formData.value.whyAction!.isEmpty)) {
+        (whyActionController.text.isEmpty)) {
       return 'Please explain why action should be taken';
     }
     return null;
@@ -207,6 +203,12 @@ class DeforestationController extends GetxController {
         errorMessage.value = validationError;
         return false;
       }
+
+      // update why action
+      formData.update((val) {
+        val!.whyAction = whyActionController.text;
+      });
+
 
       final report = formData.value.toReport();
       await _repository.saveReportLocally(report);
@@ -252,6 +254,11 @@ class DeforestationController extends GetxController {
         errorMessage.value = validationError;
         return false;
       }
+
+      // update why action
+      formData.update((val) {
+        val!.whyAction = whyActionController.text;
+      });
 
       final report = formData.value.toReport();
       final result = await APIMethods().submitDeforestationReportToServer(

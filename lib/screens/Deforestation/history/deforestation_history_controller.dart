@@ -1,8 +1,10 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/controller/api/api_methods.dart';
 import 'package:hcms_revived2/controller/models/deforestation_model.dart';
 import 'package:hcms_revived2/controller/repos/deforestation_repo.dart';
+import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 
 class DeforestationHistoryController extends GetxController {
   final DeforestationRepository _repository = DeforestationRepository();
@@ -89,42 +91,96 @@ class DeforestationHistoryController extends GetxController {
     }
   }
 
-  Future<void> submitAllPendingReports() async {
+  final RxBool isSyncing = false.obs;
+  final RxString syncStatus = ''.obs;
+
+  Future<void> submitAllPendingReports(BuildContext context) async {
     try {
-      isLoading.value = true;
-
-      final result = await _repository.submitPendingReports();
-
-      if (result['success'] == true) {
-        await loadReports();
+      isSyncing.value = true;
+      errorMessage.value = '';
+      
+      final pending = await _repository.getPendingReports();
+      
+      if (pending.isEmpty) {
         Get.snackbar(
-          'Success',
-          '${result['submitted']} report(s) submitted successfully',
+          'No Pending Reports',
+          'There are no pending reports to sync.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.blue,
+        );
+        return;
+      }
+
+      int successCount = 0;
+
+      Globals().startWait(context);
+      
+      for (final report in pending) {
+        try {
+          final result = await APIMethods().submitDeforestationReportToServer(report);
+          if (result['success'] == true) {
+            await _repository.markReportAsSubmitted(report.id!);
+            successCount++;
+          } else {
+            debugPrint('Failed to submit report ${report.id}: ${result['error']}');
+          }
+        } catch (e) {
+          debugPrint('Error submitting report ${report.id}: $e');
+        }
+      }
+      Globals().endWait(context);
+
+      // Refresh the reports
+      await loadReports();
+
+      if (successCount > 0) {
+        Get.snackbar(
+          'Sync Complete',
+          'Successfully synced $successCount out of ${pending.length} pending reports.',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.green,
-          colorText: Colors.white,
+          duration: const Duration(seconds: 5),
         );
       } else {
         Get.snackbar(
-          'Error',
-          result['error'] ?? 'Failed to submit reports',
+          'Sync Failed',
+          'Failed to sync any reports. Please check your connection and try again.',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
-          colorText: Colors.white,
         );
       }
     } catch (e) {
       Get.snackbar(
-        'Error',
-        'Failed to submit reports: $e',
+        'Sync Error',
+        'An error occurred while syncing: ${e.toString()}',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
-        colorText: Colors.white,
       );
     } finally {
-      isLoading.value = false;
+      isSyncing.value = false;
     }
   }
+
+  // Getter to check if there are pending reports
+  bool get hasPendingReports => pendingReports.isNotEmpty;
+  
+  // Getter to check if there are submitted reports
+  bool get hasSubmittedReports => submittedReports.isNotEmpty;
+  
+  // Get the current tab's reports
+  List<DeforestationReportModel> get currentTabReports {
+    return currentTabIndex.value == 0 ? pendingReports : submittedReports;
+  }
+  
+  // Change tab
+  void changeTab(int index) {
+    currentTabIndex.value = index;
+  }
+  
+  // Refresh reports
+  // Future<void> refreshReports() async {
+  //   await loadReports();
+  // }
 
   Future<void> deleteReport(int reportId) async {
     try {
@@ -171,21 +227,21 @@ class DeforestationHistoryController extends GetxController {
     }
   }
 
-  void changeTab(int index) {
-    currentTabIndex.value = index;
-  }
-
-  List<DeforestationReportModel> get currentTabReports {
-    switch (currentTabIndex.value) {
-      case 0: // Pending
-        return pendingReports;
-      case 1: // Submitted
-        return submittedReports;
-      default:
-        return [];
-    }
-  }
-
-  bool get hasPendingReports => pendingReports.isNotEmpty;
-  bool get hasSubmittedReports => submittedReports.isNotEmpty;
+  // void changeTab(int index) {
+  //   currentTabIndex.value = index;
+  // }
+  //
+  // List<DeforestationReportModel> get currentTabReports {
+  //   switch (currentTabIndex.value) {
+  //     case 0: // Pending
+  //       return pendingReports;
+  //     case 1: // Submitted
+  //       return submittedReports;
+  //     default:
+  //       return [];
+  //   }
+  // }
+  //
+  // bool get hasPendingReports => pendingReports.isNotEmpty;
+  // bool get hasSubmittedReports => submittedReports.isNotEmpty;
 }
