@@ -190,7 +190,6 @@ class PrivateSectorEngagementController extends GetxController {
 
   // Attempt to upload data
   Future<void> attemptLMBUpload() async {
-    debugPrint("Uploading data");
     if (!validateForm()) return;
 
     isLoading.value = true;
@@ -212,13 +211,7 @@ class PrivateSectorEngagementController extends GetxController {
 
       if (status == true) {
         saveToLocalDB("connected");
-        debugPrint("Data sent successfully!");
-        Navigator.pushAndRemoveUntil(
-          lmbScreenContext!,
-          MaterialPageRoute(builder: (context) => IndexPage()),
-          (route) => false,
-        );
-
+        Get.back();
         Get.snackbar(
           'Success',
           'Data sent successfully!',
@@ -226,11 +219,8 @@ class PrivateSectorEngagementController extends GetxController {
           colorText: Colors.white,
         );
         clearForm();
-        Get.back();
+        // Navigator.pop(lmbScreenContext!);
       } else if (status == "exist") {
-        debugPrint("Data already exists!");
-        Get.back();
-        saveToLocalDB("connected");
         Get.snackbar(
           'Info',
           'Data already exists',
@@ -238,16 +228,15 @@ class PrivateSectorEngagementController extends GetxController {
           colorText: Colors.white,
         );
       } else {
-        debugPrint("Error occurred: ${response["error"]}");
         Get.snackbar(
           'Error',
-          'Error occurred: ${response["error"]}',
+          'Data Exists already',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
       }
     } on SocketException catch (e) {
-      Globals().endWait(lmbScreenContext!);
+      // Globals().endWait(lmbScreenContext!);
       debugPrint("Socket exception: $e");
       saveToLocalDB("not connected");
       Get.snackbar(
@@ -258,11 +247,11 @@ class PrivateSectorEngagementController extends GetxController {
         duration: Duration(seconds: 5),
       );
       clearForm();
-      Navigator.pop(lmbScreenContext!);
-    } catch (e, stackTrace) {
-      Globals().endWait(lmbScreenContext!);
+      // Navigator.pop(lmbScreenContext!);
+    } catch (e, stackRace) {
+      // Globals().endWait(lmbScreenContext!);
       debugPrint("Upload error: $e");
-      debugPrint("Upload error: $stackTrace");
+      debugPrint("Upload error: $stackRace");
       Get.snackbar(
         'Error',
         'An unexpected error occurred: $e',

@@ -58,7 +58,7 @@ class _PickTreesMapState extends State<PickTreesMap> {
   List<String> pnValues = ['Planted', 'Natural'];
 
   // lod from local db later
-  List<String> treeSpeciesValues = ['specie 1', 'specie 2'];
+
 
   void _onPNChanged(String? value) {
     if (value != null) {
@@ -988,7 +988,7 @@ class _PickTreesMapState extends State<PickTreesMap> {
                         () => _buildDropdown(
                       title: "Tree Species",
                       value: treeSpeciesValue.value,
-                      items: treeSpeciesValues,
+                      items: pickTreeMapController.treeSpeciesValues,
                       onChanged: _onTreeSpeciesChanged,
                     ),
                   ),

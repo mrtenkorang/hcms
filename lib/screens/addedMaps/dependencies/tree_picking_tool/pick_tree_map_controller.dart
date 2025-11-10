@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_controller.dart';
 
@@ -45,6 +46,14 @@ class PickTreeMapController extends GetxController {
   var isFirstPolygon = false.obs;
   var emptyData = false.obs;
 
+  List<String> treeSpeciesValues = [];
+
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadTreeSpeciesData();
+  }
 
   // ============================================================
   // START CREATE MAP MARKER
@@ -623,4 +632,16 @@ class PickTreeMapController extends GetxController {
 //           backgroundColor: feedback["color"]);
 //     });
 //   }
+
+
+  loadTreeSpeciesData() async {
+    try {
+      final treeSpecies = await TreeSpeciesRepository().getAllTreeSpecies();
+      for (var element in treeSpecies) {
+        treeSpeciesValues.add(element.name);
+      }
+    } catch (e) {
+      debugPrint('Error loading tree species: $e');
+    }
+  }
 }

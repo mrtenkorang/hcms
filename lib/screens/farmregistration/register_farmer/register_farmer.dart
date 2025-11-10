@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hcms_revived2/boilerplate/constants.dart';
 import 'package:hcms_revived2/controller/models/communinty_model.dart';
 import 'package:hcms_revived2/screens/farmregistration/register_farmer/register_farmer_controller.dart';
+import 'package:hcms_revived2/screens/farmregistration/register_farmer/widgets/small_holder_category_dropdown.dart';
 
 class FarmerBiodataFormScreen extends StatelessWidget {
   final int? editId;
@@ -12,6 +13,9 @@ class FarmerBiodataFormScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.registerFarmerContext = context;
+    controller.loadSmallHolderCategories();
+
     // Load farmer data if in edit mode
     if (editId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -30,7 +34,7 @@ class FarmerBiodataFormScreen extends StatelessWidget {
           },
         ),
         title: Text(
-          editId != null ? 'Edit Farmer Biodata' : 'Add Farmer Biodata',
+          editId != null ? 'Edit Registered Farmer' : 'Register Farmer',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w500,
@@ -162,11 +166,47 @@ class FarmerBiodataFormScreen extends StatelessWidget {
                 ),
 
                 // Small Holder Category
-                _buildDropdown(
-                  label: 'Small Holder Category',
-                  value: controller.farmer.value.smallHolderCategory,
-                  items: controller.smallHolderCategories,
-                  onChanged: controller.updateSmallHolderCategory,
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Small Holder Category',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Obx(
+                            () => DropdownButton<String>(
+                          value: controller.smallHolderCategory.value,
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down),
+                          iconSize: 24,
+                          elevation: 16,
+                          underline: const SizedBox(),
+                          style: const TextStyle(color: Colors.black87, fontSize: 16),
+                          onChanged: (String? newValue) {
+                            controller.updateSmallHolderCategory(newValue);
+                          },
+                          items: controller.smallHolderCategories.map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
 
                 const SizedBox(height: 32),

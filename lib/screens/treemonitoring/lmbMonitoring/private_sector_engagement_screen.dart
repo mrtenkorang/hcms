@@ -41,15 +41,8 @@ class _PrivateSectorEngagementView extends StatelessWidget {
       foregroundColor: fPrimaryWhite,
       backgroundColor: fPrimaryColour,
       elevation: 0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(16),
-        ),
-      ),
       title: Row(
         children: [
-          Icon(Icons.handshake_outlined, size: 24),
-          SizedBox(width: 12),
           Text(
             "Private Sector Engagement",
             style: TextStyle(
@@ -625,112 +618,45 @@ class _PrivateSectorEngagementView extends StatelessWidget {
   }
 
   Widget _buildSubmitButton(BuildContext context) {
-    return Obx(() => Container(
-      width: double.infinity,
-      height: 56,
-      margin: const EdgeInsets.only(top: 8, bottom: 20),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: fPrimaryColour,
-          foregroundColor: fPrimaryWhite,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        onPressed: controller.isLoading.value ? null : _showSubmissionDialog,
-        child: controller.isLoading.value
-            ? SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(fPrimaryWhite),
-          ),
-        )
-            : const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon(Icons.send, size: 20),
-            // SizedBox(width: 8),
-            Text(
-              "Finish",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+    return Row(
+      children: [
+        // Save Offline button
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.save_alt, size: 20),
+              label: const Text('Save'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
+              onPressed: () {
+                Navigator.pop(context);
+                controller.saveLocally();
+              },
             ),
-          ],
-        ),
-      ),
-    ));
-  }
-
-  void _showSubmissionDialog() {
-    if (!controller.formKey.currentState!.validate()) {
-      return;
-    }
-
-    showDialog(
-      context: controller.lmbScreenContext!,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Confirm Submission"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Choose how you want to submit the data:"),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  // Save Offline button
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.save_alt, size: 20),
-                        label: const Text('Save'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          controller.saveLocally();
-                        },
-                      ),
-                    ),
-                  ),
-                  // Submit button
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.cloud_upload, size: 20),
-                      label: const Text('Submit'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () async {
-                        // Navigator.pop(context);
-                        await controller.attemptLMBUpload();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+        ),
+        // Submit button
+        Expanded(
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.cloud_upload, size: 20),
+            label: const Text('Submit'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
             ),
-          ],
-        );
-      },
+            onPressed: () async {
+              // Navigator.pop(context);
+              await controller.attemptLMBUpload();
+            },
+          ),
+        ),
+      ],
     );
   }
+
 }
