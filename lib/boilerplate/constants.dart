@@ -77,5 +77,5 @@ class SkipConstants {
 
 
 class MaxLocationAccuracy {
-  static double max = kDebugMode ? 30.0 : 100.0;
+  static double max = 4.0;
 }
