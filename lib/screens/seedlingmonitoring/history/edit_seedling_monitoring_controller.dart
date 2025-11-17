@@ -15,6 +15,7 @@ import 'package:hcms_revived2/controller/repos/community_repo.dart';
 import 'package:hcms_revived2/controller/repos/establishment_repo.dart';
 import 'package:hcms_revived2/controller/repos/farmer_from_server_repo.dart';
 import 'package:hcms_revived2/controller/repos/seedling_monitoring_reepo.dart';
+import 'package:hcms_revived2/controller/repos/tree_species_repo.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/double_value_trimmer.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/globals.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/polygon_drawing_tool/polygon_drawing_tool.dart';
@@ -92,6 +93,85 @@ class EditSeedlingMonitoringController extends GetxController {
   // Tree data management
   final RxList<Map<String, dynamic>> treeData = <Map<String, dynamic>>[].obs;
 
+  final RxMap<String, int> treeTypeCount = <String, int>{}.obs;
+
+  /// Counts the number of trees of each type in [treeData].
+  ///
+  /// This function clears the [treeTypeCount] map and then iterates over each
+  /// tree in [treeData]. For each tree, it retrieves the tree type and increments
+  /// the count for that tree type in [treeTypeCount].
+  ///
+  /// This function is useful for getting an overview of the distribution of tree
+  /// types in the survey.
+  ///
+  /// This function does not return anything, but it updates the [treeTypeCount]
+  /// map.
+  void getTreeTypeCount() {
+    // Clear the map first
+    treeTypeCount.clear();
+
+    if(treeData.isEmpty){
+      Globals().showSnackBar(
+          title: "No Trees Mapped",
+          message: "Please map at least one tree before proceeding.",
+          backgroundColor: Colors.red,
+          duration: 8
+      );
+      return;
+    }
+
+    // Iterate over each tree in treeData
+    for (var tree in treeData) {
+      // Get the tree type from the tree data. If the tree type is null,
+      // replace it with 'Unknown'.
+      final treeType = tree['treeType']?.toString() ?? 'Unknown';
+
+      // Increment the count for the current tree type in treeTypeCount. If the
+      // tree type is not yet in treeTypeCount, set its count to 1. Otherwise,
+      // increment its count by 1.
+      treeTypeCount[treeType] = (treeTypeCount[treeType] ?? 0) + 1;
+    }
+
+    // Print the updated treeTypeCount map for debugging purposes
+    debugPrint('Tree Type Counts: $treeTypeCount');
+  }
+
+
+  /// Verifies if the quantity of trees mapped matches the quantity planted for each species.
+  ///
+  /// Returns `true` if for every tree type in [treeTypeCount], the count matches
+  /// the value in [quantityPlantedControllers]. Returns `false` if any count doesn't match
+  /// or if a tree type is missing from either map.
+  bool verifyTreeSpeciesMappedQuantity() {
+    // First ensure we have the latest counts
+    getTreeTypeCount();
+
+    // Check if both maps have the same set of keys
+    final treeTypes = treeTypeCount.keys.toSet();
+    final plantedTypes = quantityPlantedControllers.keys.toSet();
+
+    // Check each tree type
+    for (final type in treeTypes) {
+      final mappedCount = treeTypeCount[type] ?? 0;
+      final plantedText = quantityPlantedControllers[type]?.text;
+      final plantedCount = int.tryParse(plantedText ?? '') ?? 0;
+
+      debugPrint('Checking $type: mapped=$mappedCount, planted=$plantedCount');
+
+      if (mappedCount > plantedCount) {
+        debugPrint('Mismatch for $type: mapped=$mappedCount, planted=$plantedCount');
+        Globals().showSnackBar(
+            title: "Mismatched",
+            message: "Number of trees mapped for $type ($mappedCount) doesn't match the quantity planted ($plantedCount).",
+            backgroundColor: Colors.red,
+            duration: 8
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Map data
   Set<Polyline> polyLines = HashSet<Polyline>();
   Set<Marker>? markers;
@@ -116,19 +196,55 @@ class EditSeedlingMonitoringController extends GetxController {
     update();
   }
 
-  final List<String> speciesList = [
-    "Prekese",
-    "Kokrodua_Afromosia",
-    "Dahoma",
-    "Edinam",
-    "Emire",
-    "Ofram",
-    "Mahogany_Dubini",
-    "Mansonia_Oprono",
-    "Okoro",
-    "Efoobodedwo_Utile",
-    "Bako",
-  ];
+  final RxList<String> speciesList = <String>[].obs;
+  final RxList<String> filteredSpeciesList = <String>[].obs;
+  final TextEditingController speciesSearchController = TextEditingController();
+
+  void filterSpecies(String query) {
+    if (query.isEmpty) {
+      filteredSpeciesList.assignAll(speciesList);
+    } else {
+      filteredSpeciesList.assignAll(
+        speciesList.where((species) => 
+          species.toLowerCase().contains(query.toLowerCase())
+        ).toList()
+      );
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    currentPage.value = 0;
+    _initializeForm();
+    loadUser();
+    loadTreeSpeciesData();
+    // Initialize with all species
+    ever(speciesList, (_) => filterSpecies(''));
+    
+    // Update filtered list when search text changes
+    speciesSearchController.addListener(() {
+      filterSpecies(speciesSearchController.text);
+    });
+  }
+
+  @override
+  void onClose() {
+    _disposeControllers();
+    speciesSearchController.dispose();
+    super.onClose();
+  }
+
+
+  loadTreeSpeciesData() async {
+    try {
+      final treeSpecies = await TreeSpeciesRepository().getAllTreeSpecies();
+      debugPrint('TREE SPECIES :::::::::::::: $treeSpecies');
+      speciesList.assignAll(treeSpecies.map((e) => e.name).toList());
+    } catch (e) {
+      debugPrint('Error loading tree species: $e');
+    }
+  }
 
   final List<String> waterSources = [
     "Rain_Fed",
@@ -158,13 +274,6 @@ class EditSeedlingMonitoringController extends GetxController {
     final cache = await CacheService.getInstance();
     _user = await cache.getUserInfo();
     update();
-  }
-
-  @override
-  void onInit() {
-    super.onInit();
-    currentPage.value = 0;
-    _initializeForm();
   }
 
   /// Sync controller with monitoring data - COMPLETELY INITIALIZES ALL FIELDS
@@ -409,11 +518,11 @@ class EditSeedlingMonitoringController extends GetxController {
     update();
   }
 
-  @override
-  void onClose() {
-    _disposeControllers();
-    super.onClose();
-  }
+  // @override
+  // void onClose() {
+  //   _disposeControllers();
+  //   super.onClose();
+  // }
 
   void _disposeControllers() {
     for (var controller in quantityReceivedControllers.values) {
@@ -783,7 +892,7 @@ class EditSeedlingMonitoringController extends GetxController {
         community: community.value,
         farmerIDNumber: farmerIDNumberController.text.trim(),
         farmerName: farmerNameController.text.trim(),
-        connectionStatus: "connected",
+        connectionStatus: "not connected",
         communityNotFound: communityNotFound.value,
         plantationType: plantationType.value,
         totalSizeAcres: double.tryParse(farmSizeController.text),

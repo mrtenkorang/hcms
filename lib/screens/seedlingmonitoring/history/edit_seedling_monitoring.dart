@@ -122,6 +122,40 @@ class _EditSeedlingMonitoringScreenState
       elevation: 1,
       centerTitle: true,
       iconTheme: const IconThemeData(color: fPrimaryColour),
+      actions: [
+        if(widget.monitoring.connectionStatus == "not connected")
+        TextButton(
+          onPressed: () async {
+            bool? confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Save and Continue Later'),
+                content: const Text(
+                  'Are you sure you want to save and continue later?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed == true) {
+              controller.saveDataOffline();
+            }
+          },
+          child: Text(
+            "Save",
+            style: TextStyle(color: AppColor.white, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 
@@ -210,11 +244,11 @@ class _EditSeedlingMonitoringScreenState
             ),
             _buildFarmerDetailRow(
               'Contact',
-              controller.selectedFarmer.value!.contact ?? 'N/A',
+              controller.selectedFarmer.value!.contact,
             ),
             _buildFarmerDetailRow(
-              'Community ID',
-              controller.selectedFarmer.value!.communityId?.toString() ?? 'N/A',
+              'Farmer code',
+              controller.selectedFarmer.value!.farmercode.toString(),
             ),
           ],
         ),
@@ -836,28 +870,50 @@ class _EditSeedlingMonitoringScreenState
   }
 
   Widget _buildSpeciesCheckboxes() {
-    return Obx(
-      () => Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: controller.speciesList.map((species) {
-          final isSelected = controller.speciesProvidedPlanted.contains(
-            species,
-          );
-          return FilterChip(
-            selected: isSelected,
-            label: Text(species.replaceAll('_', ' ')),
-            onSelected: (selected) {
-              controller.toggleSpeciesSelection(species, selected);
-            },
-            selectedColor: fPrimaryColour.withOpacity(0.2),
-            checkmarkColor: fPrimaryColour,
-            labelStyle: TextStyle(
-              color: isSelected ? fPrimaryColour : Colors.black87,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: TextFormField(
+            // controller: controller.searchController,
+            decoration: InputDecoration(
+              hintText: 'Search species...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
             ),
-          );
-        }).toList(),
-      ),
+            onChanged: (value) {
+              controller.filterSpecies(value);
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(
+              () => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.filteredSpeciesList.map((species) {
+              final isSelected = controller.speciesProvidedPlanted.contains(species);
+              return FilterChip(
+                selected: isSelected,
+                label: Text(species.replaceAll('_', ' ')),
+                onSelected: (selected) {
+                  controller.toggleSpeciesSelection(species, selected);
+                  controller.toggleSpeciesAlive(species, selected);
+                },
+                selectedColor: fPrimaryColour.withOpacity(0.2),
+                checkmarkColor: fPrimaryColour,
+                labelStyle: TextStyle(
+                  color: isSelected ? fPrimaryColour : Colors.black87,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -942,79 +998,81 @@ class _EditSeedlingMonitoringScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(
-            title: 'Seedling Survival',
-            subtitle:
-                'Monitor the survival status of seedlings and identify causes of mortality',
-          ),
-          const SizedBox(height: 24),
-          _buildSpeciesAliveSection(),
+          // const SectionHeader(
+          //   title: 'Seedling Survival',
+          //   subtitle:
+          //       'Monitor the survival status of seedlings and identify causes of mortality',
+          // ),
+          // const SizedBox(height: 24),
+          // _buildSpeciesAliveSection(),
+
+          _buildSeedlingMappingButton(),
           const SizedBox(height: 24),
           _buildReasonsForDeathSection(),
           const SizedBox(height: 24),
-          _buildSeedlingMappingButton(),
+
         ],
       ),
     );
   }
 
-  Widget _buildSpeciesAliveSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Species of Seedlings Alive',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Select all species that are currently alive',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        const SizedBox(height: 16),
-        Obx(
-          () => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: controller.speciesList.map((species) {
-              final isSelected = controller.speciesAlive.contains(species);
-              return FilterChip(
-                selected: isSelected,
-                label: Text(
-                  species.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                  ),
-                ),
-                onSelected: (selected) {
-                  controller.toggleSpeciesAlive(species, selected);
-                },
-                selectedColor: fPrimaryColour,
-                checkmarkColor: Colors.white,
-                backgroundColor: Colors.grey[100],
-                showCheckmark: true,
-              );
-            }).toList(),
-          ),
-        ),
-        Obx(
-          () => controller.speciesAlive.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Please select at least one species',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                )
-              : const SizedBox(),
-        ),
-      ],
-    );
-  }
+  // Widget _buildSpeciesAliveSection() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         'Species of Seedlings Alive',
+  //         style: TextStyle(
+  //           fontWeight: FontWeight.w600,
+  //           fontSize: 16,
+  //           color: Colors.black87,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       const Text(
+  //         'Select all species that are currently alive',
+  //         style: TextStyle(fontSize: 14, color: Colors.grey),
+  //       ),
+  //       const SizedBox(height: 16),
+  //       Obx(
+  //         () => Wrap(
+  //           spacing: 8,
+  //           runSpacing: 8,
+  //           children: controller.speciesList.map((species) {
+  //             final isSelected = controller.speciesAlive.contains(species);
+  //             return FilterChip(
+  //               selected: isSelected,
+  //               label: Text(
+  //                 species.replaceAll('_', ' '),
+  //                 style: TextStyle(
+  //                   color: isSelected ? Colors.white : Colors.black87,
+  //                 ),
+  //               ),
+  //               onSelected: (selected) {
+  //                 controller.toggleSpeciesAlive(species, selected);
+  //               },
+  //               selectedColor: fPrimaryColour,
+  //               checkmarkColor: Colors.white,
+  //               backgroundColor: Colors.grey[100],
+  //               showCheckmark: true,
+  //             );
+  //           }).toList(),
+  //         ),
+  //       ),
+  //       Obx(
+  //         () => controller.speciesAlive.isEmpty
+  //             ? const Padding(
+  //                 padding: EdgeInsets.only(top: 8.0),
+  //                 child: Text(
+  //                   'Please select at least one species',
+  //                   style: TextStyle(color: Colors.red, fontSize: 12),
+  //                 ),
+  //               )
+  //             : const SizedBox(),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildReasonsForDeathSection() {
     return Column(
@@ -1091,9 +1149,9 @@ class _EditSeedlingMonitoringScreenState
               : fPrimaryColour,
           verticalPadding: 16.0,
           onTap: () {
-            if (_validateSeedlingSurvivalPage()) {
+            // if (_validateSeedlingSurvivalPage()) {
               _navigateToSeedlingMapping();
-            }
+            // }
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1172,8 +1230,9 @@ class _EditSeedlingMonitoringScreenState
     Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (BuildContext context) => PickTreesMap(
+          isEdit: true,
           existingTreeData: controller.treeData,
-          survivedSeedlings: controller.speciesAlive,
+          survivedSeedlings: controller.speciesList,
           farm: mappedFarm,
         ),
       ),
