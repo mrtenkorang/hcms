@@ -231,7 +231,7 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool> with WidgetsBin
     if (_currentPosition == null) return;
 
     // Fast accuracy check
-    if (widget.persistMaxAccuracy == true && (_currentPosition!.accuracy ?? 100) > (widget.maxAccuracy ?? 30)) {
+    if ((_currentPosition!.accuracy ?? 0) >= (widget.maxAccuracy ?? 4)) {
       _showAccuracyError();
       return;
     }
@@ -242,7 +242,7 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool> with WidgetsBin
   void _showAccuracyError() {
     Get.snackbar(
       "Cannot record point",
-      "The accuracy must be ${widget.maxAccuracy ?? 3} or below",
+      "The accuracy must be ${widget.maxAccuracy ?? 4} or below",
       snackPosition: SnackPosition.BOTTOM,
       margin: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       backgroundColor: Colors.red,
@@ -333,20 +333,25 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool> with WidgetsBin
     return Container(
       key: _keys['gpsPanel'],
       width: double.infinity,
+      height: 30,
       color: _getAccuracyColor(_currentPosition?.accuracy),
       padding: const EdgeInsets.all(6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            _currentPosition != null
-                ? "Accuracy: ${_currentPosition!.accuracy?.toStringAsFixed(1) ?? "..."} m"
-                : "Getting location...",
-            style: const TextStyle(fontSize: 11, color: Colors.white),
+          Flexible(
+            child: Text(
+              _currentPosition != null
+                  ? "Accuracy: ${_currentPosition!.accuracy?.toStringAsFixed(1) ?? "..."} m"
+                  : "Getting location...",
+              style: const TextStyle(fontSize: 11, color: Colors.white),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           if (_currentPosition == null) ...[
             const SizedBox(width: 10),
             CustomButton(
+              isFullWidth: false,
               horizontalPadding: 10,
               backgroundColor: Colors.white,
               onTap: _forceEnableLocation,
@@ -381,15 +386,10 @@ class _PolygonDrawingToolState extends State<PolygonDrawingTool> with WidgetsBin
         },
         onTap: (coordinates) {
           if (_pickingPoints && _inputMethod == InputMethod.tapping) {
-            _addPoint(coordinates); // Fast tap response
+            // _addPoint(coordinates);
           }
         },
       ),
-      Positioned(child:  _buildControlButton(
-        key: _keys['clear'],
-        icon: Icons.clear,
-        onTap: _togglePointPicking,
-      ),),
       // Control buttons
       Positioned(right: 12, top: 12, child: _buildControlButtons()),
     ]);

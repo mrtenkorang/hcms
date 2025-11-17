@@ -17,6 +17,7 @@ import 'package:hcms_revived2/screens/addedMaps/dependencies/style.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/tree_picking_tool/pick_tree_map_controller.dart';
 import 'package:hcms_revived2/screens/addedMaps/dependencies/user_current_location.dart';
 import 'package:hcms_revived2/screens/farmregistration/tree_registration/tree_registration_controller.dart';
+import 'package:hcms_revived2/screens/seedlingmonitoring/history/edit_seedling_monitoring_controller.dart';
 import 'package:hcms_revived2/screens/seedlingmonitoring/seedling_monitoring_controller.dart';
 import 'package:hcms_revived2/utils/widgets/textFields/generic_text_field.dart';
 import 'package:hcms_revived2/utils/widgets/textFormats/app_text.dart';
@@ -30,10 +31,12 @@ class PickTreesMap extends StatefulWidget {
   final List? existingTreeData;
   final bool isTreeRegisterModeOther;
   final bool isTreeRegisterMode;
+  final bool isEdit;
 
   const PickTreesMap({
     super.key,
     required this.farm,
+    this.isEdit = false,
     required this.survivedSeedlings,
     this.isViewModePolygon = false,
     this.isViewMode = false,
@@ -48,7 +51,7 @@ class PickTreesMap extends StatefulWidget {
   _PickTreesMapState createState() => _PickTreesMapState();
 }
 
-class _PickTreesMapState extends State<PickTreesMap> {
+class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver {
   bool? pickingTrees = false;
   Timer? _locationTimer;
   final RxString selectedTreeType = ''.obs;
@@ -56,9 +59,10 @@ class _PickTreesMapState extends State<PickTreesMap> {
   var pnValue = ''.obs;
   var treeSpeciesValue = ''.obs;
   List<String> pnValues = ['Planted', 'Natural'];
+  final TextEditingController _searchController = TextEditingController();
+  final RxString _searchQuery = ''.obs;
 
   // lod from local db later
-
 
   void _onPNChanged(String? value) {
     if (value != null) {
@@ -126,6 +130,11 @@ class _PickTreesMapState extends State<PickTreesMap> {
   TreeRegistrationController treeRegistrationController = Get.put(
     TreeRegistrationController(),
   );
+
+  EditSeedlingMonitoringController editSeedlingMonitoringController = Get.put(
+    EditSeedlingMonitoringController(),
+  );
+
   GoogleMapController? mapController;
   LocationData? _locationData;
   String? _mapStyle;
@@ -174,7 +183,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
     _getBytesFromAsset('assets/images/tt.png', 64).then((onValue) {
       customIcon = BitmapDescriptor.fromBytes(onValue!);
     });
-    if (widget.existingTreeData != null && widget.existingTreeData!.isNotEmpty) {
+    if (widget.existingTreeData != null &&
+        widget.existingTreeData!.isNotEmpty) {
       for (int i = 0; i < widget.existingTreeData!.length; i++) {
         var tree = widget.existingTreeData![i];
         double lat = tree['latitude'];
@@ -205,7 +215,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
   }
 
   void _onExistingTreeMarkerTapped(int index) {
-    if (widget.existingTreeData != null && index < widget.existingTreeData!.length) {
+    if (widget.existingTreeData != null &&
+        index < widget.existingTreeData!.length) {
       var tree = widget.existingTreeData![index];
       _editingTreeIndex = index;
 
@@ -224,9 +235,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
 
   @override
   void dispose() {
-    _isDisposed = true;
-    _locationTimer?.cancel();
-    _positionStreamSubscription?.cancel();
+    _searchController.dispose();
+    _searchQuery.close();
     super.dispose();
   }
 
@@ -264,23 +274,23 @@ class _PickTreesMapState extends State<PickTreesMap> {
 
       // Get initial position quickly
       gl.Position initialPosition =
-      await gl.Geolocator.getCurrentPosition(
-        desiredAccuracy: gl.LocationAccuracy.best,
-        timeLimit: Duration(seconds: 5), // Timeout after 5 seconds
-      )
-          .catchError((error) {
-        // If current position fails, try with lower accuracy
-        return gl.Geolocator.getCurrentPosition(
-          desiredAccuracy: gl.LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 3),
-        );
-      })
-          .catchError((error) {
-        // If that also fails, use any available location
-        return gl.Geolocator.getCurrentPosition(
-          desiredAccuracy: gl.LocationAccuracy.low,
-        );
-      });
+          await gl.Geolocator.getCurrentPosition(
+                desiredAccuracy: gl.LocationAccuracy.best,
+                timeLimit: Duration(seconds: 5), // Timeout after 5 seconds
+              )
+              .catchError((error) {
+                // If current position fails, try with lower accuracy
+                return gl.Geolocator.getCurrentPosition(
+                  desiredAccuracy: gl.LocationAccuracy.medium,
+                  timeLimit: Duration(seconds: 3),
+                );
+              })
+              .catchError((error) {
+                // If that also fails, use any available location
+                return gl.Geolocator.getCurrentPosition(
+                  desiredAccuracy: gl.LocationAccuracy.low,
+                );
+              });
 
       _updateLocationData(initialPosition);
 
@@ -293,7 +303,7 @@ class _PickTreesMapState extends State<PickTreesMap> {
               timeLimit: Duration(seconds: 10), // Timeout for each update
             ),
           ).listen(
-                (gl.Position position) {
+            (gl.Position position) {
               _updateLocationData(position);
             },
             onError: (error) {
@@ -328,7 +338,7 @@ class _PickTreesMapState extends State<PickTreesMap> {
         userLong = position.longitude;
         locationIsEnabled = true;
         _locationMessage =
-        "Location accuracy: ${accuracy.truncateToDecimalPlaces(2)}m";
+            "Location accuracy: ${accuracy.truncateToDecimalPlaces(2)}m";
 
         // Auto-zoom to location when we first get good accuracy
         if (accuracy < 50 && (mapController != null)) {
@@ -416,51 +426,51 @@ class _PickTreesMapState extends State<PickTreesMap> {
             widget.isViewModePolygon
                 ? Container()
                 : Container(
-              key: _keyGPSStatusPanel,
-              width: double.infinity,
-              color: locationAccuracyColor(accuracy),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (accuracy <= 10)
-                    Icon(Icons.gps_fixed, color: Colors.white, size: 14),
-                  if (accuracy > 10 && accuracy <= 50)
-                    Icon(
-                      Icons.gps_not_fixed,
-                      color: Colors.white,
-                      size: 14,
+                    key: _keyGPSStatusPanel,
+                    width: double.infinity,
+                    color: locationAccuracyColor(accuracy),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (accuracy <= 10)
+                          Icon(Icons.gps_fixed, color: Colors.white, size: 14),
+                        if (accuracy > 10 && accuracy <= 50)
+                          Icon(
+                            Icons.gps_not_fixed,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        if (accuracy > 50)
+                          Icon(Icons.gps_off, color: Colors.white, size: 14),
+                        SizedBox(width: 6),
+                        AppText(
+                          text: _locationMessage,
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
+                        // if (_isGettingLocation)
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(left: 8.0),
+                        //     child: SizedBox(
+                        //       width: 12,
+                        //       height: 12,
+                        //       child: CircularProgressIndicator(
+                        //         strokeWidth: 1,
+                        //         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        //       ),
+                        //     ),
+                        //   ),
+                      ],
                     ),
-                  if (accuracy > 50)
-                    Icon(Icons.gps_off, color: Colors.white, size: 14),
-                  SizedBox(width: 6),
-                  AppText(
-                    text: _locationMessage,
-                    fontSize: 11,
-                    color: Colors.white,
                   ),
-                  // if (_isGettingLocation)
-                  //   Padding(
-                  //     padding: const EdgeInsets.only(left: 8.0),
-                  //     child: SizedBox(
-                  //       width: 12,
-                  //       height: 12,
-                  //       child: CircularProgressIndicator(
-                  //         strokeWidth: 1,
-                  //         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  //       ),
-                  //     ),
-                  //   ),
-                ],
-              ),
-            ),
             Expanded(
               child: Stack(
                 children: [
                   GoogleMap(
                     initialCameraPosition:
-                    pickTreeMapController.initialCameraPosition,
+                        pickTreeMapController.initialCameraPosition,
                     mapType: mapType,
                     compassEnabled: false,
                     myLocationEnabled: true,
@@ -490,8 +500,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
                       child: controlButton(
                         key: _keyIsDone,
                         backgroundColor:
-                        (mapType == MapType.hybrid ||
-                            mapType == MapType.satellite)
+                            (mapType == MapType.hybrid ||
+                                mapType == MapType.satellite)
                             ? Colors.white
                             : AppColor.primary,
                         child: Text(
@@ -512,145 +522,154 @@ class _PickTreesMapState extends State<PickTreesMap> {
                   widget.isViewModePolygon
                       ? Container()
                       : Positioned(
-                    bottom: 80,
-                    right: 10,
-                    child: controlButton(
-                      key: _keyZoomToUserButton,
-                      backgroundColor:
-                      (mapType == MapType.hybrid ||
-                          mapType == MapType.satellite)
-                          ? Colors.white
-                          : AppColor.primary,
-                      child: Icon(
-                        PhosphorIcons.crosshair,
-                        color:
-                        (mapType == MapType.hybrid ||
-                            mapType == MapType.satellite)
-                            ? AppColor.primary
-                            : Colors.white,
-                        size: 25,
-                      ),
-                      onTap: () =>
-                          zoomToCurrentLocation(userLat, userLong),
-                    ),
-                  ),
+                          bottom: 80,
+                          right: 10,
+                          child: controlButton(
+                            key: _keyZoomToUserButton,
+                            backgroundColor:
+                                (mapType == MapType.hybrid ||
+                                    mapType == MapType.satellite)
+                                ? Colors.white
+                                : AppColor.primary,
+                            child: Icon(
+                              PhosphorIcons.crosshair,
+                              color:
+                                  (mapType == MapType.hybrid ||
+                                      mapType == MapType.satellite)
+                                  ? AppColor.primary
+                                  : Colors.white,
+                              size: 25,
+                            ),
+                            onTap: () =>
+                                zoomToCurrentLocation(userLat, userLong),
+                          ),
+                        ),
                   widget.isViewModePolygon
                       ? Container()
                       : Positioned(
-                    right: 12,
-                    bottom: 140,
-                    child: Column(
-                      children: [
-                        controlButton(
-                          key: _keySelectBasemapButton,
-                          backgroundColor:
-                          (mapType == MapType.hybrid ||
-                              mapType == MapType.satellite)
-                              ? Colors.white
-                              : AppColor.primary,
-                          child: Icon(
-                            Icons.map_rounded,
-                            color:
-                            (mapType == MapType.hybrid ||
-                                mapType == MapType.satellite)
-                                ? AppColor.primary
-                                : Colors.white,
-                            size: 25,
+                          right: 12,
+                          bottom: 140,
+                          child: Column(
+                            children: [
+                              controlButton(
+                                key: _keySelectBasemapButton,
+                                backgroundColor:
+                                    (mapType == MapType.hybrid ||
+                                        mapType == MapType.satellite)
+                                    ? Colors.white
+                                    : AppColor.primary,
+                                child: Icon(
+                                  Icons.map_rounded,
+                                  color:
+                                      (mapType == MapType.hybrid ||
+                                          mapType == MapType.satellite)
+                                      ? AppColor.primary
+                                      : Colors.white,
+                                  size: 25,
+                                ),
+                                onTap: () => selectBasemapStyle(),
+                              ),
+                              SizedBox(height: 12),
+                              // controlButton(
+                              //   backgroundColor:
+                              //   (mapType == MapType.hybrid ||
+                              //       mapType == MapType.satellite)
+                              //       ? Colors.white
+                              //       : AppColor.primary,
+                              //   child: Icon(
+                              //     Icons.save,
+                              //     color:
+                              //     (mapType == MapType.hybrid ||
+                              //         mapType == MapType.satellite)
+                              //         ? AppColor.primary
+                              //         : Colors.white,
+                              //   ),
+                              //   onTap: () {
+                              //     // pickTreeMapController.saveTreeOffline();
+                              //   },
+                              // ),
+                            ],
                           ),
-                          onTap: () => selectBasemapStyle(),
                         ),
-                        SizedBox(height: 12),
-                        // controlButton(
-                        //   backgroundColor:
-                        //   (mapType == MapType.hybrid ||
-                        //       mapType == MapType.satellite)
-                        //       ? Colors.white
-                        //       : AppColor.primary,
-                        //   child: Icon(
-                        //     Icons.save,
-                        //     color:
-                        //     (mapType == MapType.hybrid ||
-                        //         mapType == MapType.satellite)
-                        //         ? AppColor.primary
-                        //         : Colors.white,
-                        //   ),
-                        //   onTap: () {
-                        //     // pickTreeMapController.saveTreeOffline();
-                        //   },
-                        // ),
-                      ],
-                    ),
-                  ),
                   widget.isViewModePolygon || widget.isViewMode
                       ? Container()
                       : Positioned(
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
-                    child: CustomButton(
-                      horizontalPadding: 10,
-                      isFullWidth: true,
-                      backgroundColor:
-                      (mapType == MapType.hybrid ||
-                          mapType == MapType.satellite)
-                          ? Colors.white
-                          : AppColor.primary,
-                      onTap: () async {
-                        if (accuracy <= 1000) {
-                          LatLng latLng = LatLng(userLat, userLong);
+                          bottom: 10,
+                          left: 10,
+                          right: 10,
+                          child: CustomButton(
+                            horizontalPadding: 10,
+                            isFullWidth: true,
+                            backgroundColor:
+                                (mapType == MapType.hybrid ||
+                                    mapType == MapType.satellite)
+                                ? Colors.white
+                                : AppColor.primary,
+                            onTap: () async {
+                              if (accuracy <= 4) {
+                                LatLng latLng = LatLng(userLat, userLong);
 
-                          bool treeLocationWithinFarm =
-                          isLocationInsidePolygon(
-                            latLng,
-                            pickTreeMapController.polygons,
-                          );
+                                bool treeLocationWithinFarm =
+                                    isLocationInsidePolygon(
+                                      latLng,
+                                      pickTreeMapController.polygons,
+                                    );
 
-                          Get.closeAllSnackbars();
+                                Get.closeAllSnackbars();
 
-                          showLocationPopup(
-                            context,
-                            lat: userLat,
-                            altitude: altitude,
-                            accuracy: accuracy,
-                            long: userLong,
-                            // farmRef: widget.farm["farm_reference"],
-                          );
-                        } else {
-                          Get.closeAllSnackbars();
-                          Get.snackbar(
-                            "Cannot capture tree",
-                            "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
-                            messageText: AppText(
-                              text:
-                              "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColor.white,
+                                // if (treeLocationWithinFarm) {
+                                  showLocationPopup(
+                                    context,
+                                    lat: userLat,
+                                    altitude: altitude,
+                                    accuracy: accuracy,
+                                    long: userLong,
+                                    // farmRef: widget.farm["farm_reference"],
+                                  );
+                                // } else {
+                                //   Globals().showSnackBar(
+                                //     title: "Invalid location",
+                                //     message: "Location is not within the farm",
+                                //     backgroundColor: Colors.red,
+                                //     duration: 5,
+                                //   );
+                                // }
+                              } else {
+                                Get.closeAllSnackbars();
+                                Get.snackbar(
+                                  "Cannot capture tree",
+                                  "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                  messageText: AppText(
+                                    text:
+                                        "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColor.white,
+                                  ),
+                                  colorText: AppColor.white,
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 20,
+                                    horizontal: 10,
+                                  ),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.error,
+                                  duration: const Duration(seconds: 3),
+                                );
+                              }
+                            },
+                            child: AppText(
+                              text: 'Capture tree',
+                              color:
+                                  (mapType == MapType.hybrid ||
+                                      mapType == MapType.satellite)
+                                  ? AppColor.primary
+                                  : Colors.white,
+                              fontSize: 16,
                             ),
-                            colorText: AppColor.white,
-                            snackPosition: SnackPosition.BOTTOM,
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 20,
-                              horizontal: 10,
-                            ),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.error,
-                            duration: const Duration(seconds: 3),
-                          );
-                        }
-                      },
-                      child: AppText(
-                        text: 'Capture tree',
-                        color:
-                        (mapType == MapType.hybrid ||
-                            mapType == MapType.satellite)
-                            ? AppColor.primary
-                            : Colors.white,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -890,16 +909,16 @@ class _PickTreesMapState extends State<PickTreesMap> {
   }
 
   void showLocationPopup(
-      BuildContext context, {
-        double? lat,
-        double? long,
-        double? altitude,
-        double? accuracy,
-        // String? farmRef,
-        bool isOpenAgain = false,
-        int? index,
-        Map<String, dynamic>? existingTreeData,
-      }) {
+    BuildContext context, {
+    double? lat,
+    double? long,
+    double? altitude,
+    double? accuracy,
+    // String? farmRef,
+    bool isOpenAgain = false,
+    int? index,
+    Map<String, dynamic>? existingTreeData,
+  }) {
     showDialog(
       context: pickTreeMapController.pickTreesMapScreenContext!,
       barrierDismissible: false,
@@ -913,7 +932,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
             pnValue.value = existingTreeData['pn'] ?? '';
             treeSpeciesValue.value = existingTreeData['species'] ?? '';
             _yoEstablishment.value = existingTreeData['yo_establishment'] ?? '';
-            treeSizeController.text = existingTreeData['size']?.toString() ?? '';
+            treeSizeController.text =
+                existingTreeData['size']?.toString() ?? '';
           }
         }
 
@@ -941,251 +961,316 @@ class _PickTreesMapState extends State<PickTreesMap> {
             child: SingleChildScrollView(
               child: widget.isTreeRegisterMode
                   ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppText(text: "Tree Coordinate"),
-                  AppText(
-                    text: "$lat, $long",
-                    color: AppColor.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  SizedBox(height: 5),
-                  Text("Enter tree name"),
-                  TextFieldWidget(
-                    controller: treeNameController,
-                    validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Please enter tree name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 5),
-                  Obx(
-                        () => _buildDropdown(
-                      title: "P/N",
-                      value: pnValue.value,
-                      items: pnValues,
-                      onChanged: _onPNChanged,
-                    ),
-                  ),
-                  Obx(
-                        () => pnValue.value.isEmpty
-                        ? const Padding(
-                      padding: EdgeInsets.only(left: 20, top: 4),
-                      child: Text(
-                        'This field is required',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 12,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const AppText(text: "Tree Coordinate"),
+                        AppText(
+                          text: "$lat, $long",
+                          color: AppColor.primary,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ),
-                    )
-                        : const SizedBox(),
-                  ),
-                  const SizedBox(height: 5),
-                  Obx(
-                        () => _buildDropdown(
-                      title: "Tree Species",
-                      value: treeSpeciesValue.value,
-                      items: pickTreeMapController.treeSpeciesValues,
-                      onChanged: _onTreeSpeciesChanged,
-                    ),
-                  ),
-                  Obx(
-                        () => treeSpeciesValue.value.isEmpty
-                        ? const Padding(
-                      padding: EdgeInsets.only(left: 20, top: 4),
-                      child: Text(
-                        'This field is required',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: 12,
+                        SizedBox(height: 5),
+                        Text("Enter tree name"),
+                        TextFieldWidget(
+                          controller: treeNameController,
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Please enter tree name';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
-                    )
-                        : const SizedBox(),
-                  ),
-
-                  SizedBox(height: 5),
-                  Text("Tree Size (dbh)"),
-                  TextFieldWidget(
-                    keyboardType: TextInputType.number,
-                    controller: treeSizeController,
-                    validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Please tree size';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  _buildYearOfEstablishment(),
-                ],
-              )
-                  : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const AppText(text: "Tree Coordinate"),
-                  AppText(
-                    text: "$lat, $long",
-                    color: AppColor.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 5),
-                  const AppText(text: "Tree type"),
-                  const SizedBox(height: 8),
-
-                  // Enhanced Chip Selection Section
-                  Obx(() {
-                    final aliveSpecies = widget.survivedSeedlings;
-
-                    if (aliveSpecies.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          'No tree types available',
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
+                        const SizedBox(height: 5),
+                        Obx(
+                          () => _buildDropdown(
+                            title: "P/N",
+                            value: pnValue.value,
+                            items: pnValues,
+                            onChanged: _onPNChanged,
                           ),
                         ),
-                      );
-                    }
+                        Obx(
+                          () => pnValue.value.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.only(left: 20, top: 4),
+                                  child: Text(
+                                    'This field is required',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(),
+                        ),
+                        const SizedBox(height: 5),
+                        Obx(
+                          () => _buildDropdown(
+                            title: "Tree Species",
+                            value: treeSpeciesValue.value,
+                            items: pickTreeMapController.treeSpeciesValues,
+                            onChanged: _onTreeSpeciesChanged,
+                          ),
+                        ),
+                        Obx(
+                          () => treeSpeciesValue.value.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.only(left: 20, top: 4),
+                                  child: Text(
+                                    'This field is required',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(),
+                        ),
 
-                    return SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        spacing: 8.0,
-                        runSpacing: 8.0,
-                        alignment: WrapAlignment.start,
-                        children: aliveSpecies.asMap().entries.map((
-                            entry,
-                            ) {
-                          // final index = entry.key;
-                          final species = entry.value;
+                        SizedBox(height: 5),
+                        Text("Tree Size (dbh)"),
+                        TextFieldWidget(
+                          keyboardType: TextInputType.number,
+                          controller: treeSizeController,
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Please tree size';
+                            }
+                            return null;
+                          },
+                        ),
 
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeInOut,
-                            child: FilterChip(
-                              label: Text(
-                                species,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: selectedTreeType.value == species
-                                      ? Colors.white
-                                      : AppColor.primary,
-                                ),
-                              ),
-                              selected: selectedTreeType.value == species,
-                              onSelected: (bool selected) {
-                                if (selected) {
-                                  selectedTreeType.value = species;
-                                  HapticFeedback.lightImpact();
-                                }
-                              },
-                              backgroundColor: Colors.grey[100],
-                              selectedColor: AppColor.primary,
-                              checkmarkColor: Colors.white,
-                              shape: RoundedRectangleBorder(
+                        _buildYearOfEstablishment(),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const AppText(text: "Tree Coordinate"),
+                        AppText(
+                          text: "$lat, $long",
+                          color: AppColor.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 5),
+                        const AppText(text: "Tree type"),
+                        const SizedBox(height: 8),
+
+                        // Search Field
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: TextFormField(
+                            controller: _searchController,
+                            onChanged: (value) => _searchQuery.value = value.toLowerCase(),
+                            decoration: InputDecoration(
+                              hintText: 'Search tree types...',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8.0),
-                                side: BorderSide(
-                                  color: selectedTreeType.value == species
-                                      ? AppColor.primary
-                                      : Colors.grey[300]!,
-                                  width: selectedTreeType.value == species
-                                      ? 1.5
-                                      : 1.0,
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                                borderSide: BorderSide(color: AppColor.primary, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        // Enhanced Chip Selection Section
+                        Obx(() {
+                          final aliveSpecies = widget.survivedSeedlings;
+                          final filteredSpecies = _searchQuery.isEmpty
+                              ? aliveSpecies
+                              : aliveSpecies.where((species) =>
+                                  species.toLowerCase().contains(_searchQuery.value)).toList();
+
+                          if (filteredSpecies.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                _searchQuery.isEmpty
+                                    ? 'No tree types available'
+                                    : 'No matching tree types found',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
                                 ),
                               ),
-                              elevation: selectedTreeType.value == species
-                                  ? 2.0
-                                  : 0.0,
-                              shadowColor: AppColor.primary.withOpacity(
-                                0.3,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12.0,
-                                vertical: 8.0,
-                              ),
-                              materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                            );
+                          }
+
+                          return SizedBox(
+                            width: double.infinity,
+                            child: Wrap(
+                              spacing: 8.0,
+                              runSpacing: 8.0,
+                              alignment: WrapAlignment.start,
+                              children: filteredSpecies.asMap().entries.map((
+                                entry,
+                              ) {
+                                // final index = entry.key;
+                                final species = entry.value;
+
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  curve: Curves.easeInOut,
+                                  child: FilterChip(
+                                    label: Text(
+                                      species,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: selectedTreeType.value == species
+                                            ? Colors.white
+                                            : AppColor.primary,
+                                      ),
+                                    ),
+                                    selected: selectedTreeType.value == species,
+                                    onSelected: (bool selected) {
+                                      if (selected) {
+                                        selectedTreeType.value = species;
+                                        HapticFeedback.lightImpact();
+                                      }
+                                    },
+                                    backgroundColor: Colors.grey[100],
+                                    selectedColor: AppColor.primary,
+                                    checkmarkColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      side: BorderSide(
+                                        color: selectedTreeType.value == species
+                                            ? AppColor.primary
+                                            : Colors.grey[300]!,
+                                        width: selectedTreeType.value == species
+                                            ? 1.5
+                                            : 1.0,
+                                      ),
+                                    ),
+                                    elevation: selectedTreeType.value == species
+                                        ? 2.0
+                                        : 0.0,
+                                    shadowColor: AppColor.primary.withOpacity(
+                                      0.3,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0,
+                                      vertical: 8.0,
+                                    ),
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           );
-                        }).toList(),
-                      ),
-                    );
-                  }),
+                        }),
 
-                  // Enhanced Error Message
-                  Obx(
-                        () => selectedTreeType.value.isEmpty
-                        ? AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Row(
+                        // Enhanced Error Message
+                        Obx(
+                          () => selectedTreeType.value.isEmpty
+                              ? AnimatedContainer(
+                                  duration: Duration(milliseconds: 300),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline,
+                                          color: Colors.red,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Please select a tree type',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : SizedBox.shrink(),
+                        ),
+
+                        // Clear Selections Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Please select a tree type',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                              ),
+                            // Clear Search
+                            if (_searchController.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  _searchController.clear();
+                                  _searchQuery.value = '';
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.clear,
+                                      color: Colors.grey,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Clear search',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            
+                            // Clear Selection
+                            Obx(
+                              () => selectedTreeType.value.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        selectedTreeType.value = '';
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.clear,
+                                            color: Colors.grey,
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          const Text(
+                                            'Clear selection',
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                              fontSize: 12,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ],
                         ),
-                      ),
-                    )
-                        : SizedBox.shrink(),
-                  ),
 
-                  // Clear Selection Option
-                  Obx(
-                        () => selectedTreeType.value.isNotEmpty
-                        ? Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          selectedTreeType.value = '';
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.clear,
-                              color: Colors.grey,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Clear selection',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                                decoration:
-                                TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                        : SizedBox.shrink(),
-                  ),
-
-                  const SizedBox(height: 16),
-                ],
-              ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
             ),
           ),
           actions: <Widget>[
@@ -1199,7 +1284,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
                     });
                   }
                   // Also remove from existing tree data if applicable
-                  if (widget.existingTreeData != null && index < widget.existingTreeData!.length) {
+                  if (widget.existingTreeData != null &&
+                      index < widget.existingTreeData!.length) {
                     widget.existingTreeData!.removeAt(index);
                   }
                   Navigator.of(context).pop();
@@ -1218,7 +1304,12 @@ class _PickTreesMapState extends State<PickTreesMap> {
               onPressed: () async {
                 // Call the _isTreeRegisterModeDone function if the isTreeRegisterMode is true
                 if (widget.isTreeRegisterMode) {
-                  _isTreeRegisterModeDone(lat!, long!, isOpenAgain: isOpenAgain, index: index);
+                  _isTreeRegisterModeDone(
+                    lat!,
+                    long!,
+                    isOpenAgain: isOpenAgain,
+                    index: index,
+                  );
                   return;
                 }
 
@@ -1236,7 +1327,8 @@ class _PickTreesMapState extends State<PickTreesMap> {
 
                 if (isOpenAgain && index != null) {
                   // Update existing tree
-                  if (widget.existingTreeData != null && index < widget.existingTreeData!.length) {
+                  if (widget.existingTreeData != null &&
+                      index < widget.existingTreeData!.length) {
                     widget.existingTreeData![index] = {
                       "latitude": lat,
                       "longitude": long,
@@ -1274,7 +1366,12 @@ class _PickTreesMapState extends State<PickTreesMap> {
                   tree["accuracy"] = accuracy;
                   tree["treeType"] = selectedTreeType.value;
 
-                  seedlingMonitoringController.treeData.add(tree);
+                  if(widget.isEdit){
+                    editSeedlingMonitoringController.treeData.add(tree);
+                  }else{
+                    seedlingMonitoringController.treeData.add(tree);
+                  }
+
                   _clearForm();
 
                   debugPrint("Tree added: $tree");
@@ -1318,8 +1415,27 @@ class _PickTreesMapState extends State<PickTreesMap> {
             TextButton(
               child: const Text('Finish'),
               onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                if (!widget.isEdit) {
+                  final bool res = seedlingMonitoringController
+                      .verifyTreeSpeciesMappedQuantity();
+
+                  debugPrint("verifyTreeSpeciesMappedQuantity NORMAL: $res");
+
+                  if (res) {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  }
+                } else {
+                  final bool res = editSeedlingMonitoringController
+                      .verifyTreeSpeciesMappedQuantity();
+
+                  debugPrint("verifyTreeSpeciesMappedQuantity: $res");
+
+                  if (res) {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  }
+                }
               },
             ),
           ],
@@ -1328,7 +1444,12 @@ class _PickTreesMapState extends State<PickTreesMap> {
     );
   }
 
-  void _isTreeRegisterModeDone(double lat, double long, {bool isOpenAgain = false, int? index}) {
+  void _isTreeRegisterModeDone(
+    double lat,
+    double long, {
+    bool isOpenAgain = false,
+    int? index,
+  }) {
     Map<String, dynamic> tree = {};
     tree["latitude"] = lat;
     tree["longitude"] = long;
@@ -1349,7 +1470,9 @@ class _PickTreesMapState extends State<PickTreesMap> {
             consumeTapEvents: true,
             onTap: () {
               // Find the index of this marker and open edit dialog
-              int markerIndex = markersList.indexWhere((marker) => marker.markerId == markerId);
+              int markerIndex = markersList.indexWhere(
+                (marker) => marker.markerId == markerId,
+              );
               if (markerIndex != -1) {
                 _onExistingTreeMarkerTapped(markerIndex);
               }
@@ -1480,7 +1603,7 @@ class _PickTreesMapState extends State<PickTreesMap> {
   }) {
     // Ensure the current value is valid
     final String? validValue =
-    (value != null && value.isNotEmpty && items.contains(value))
+        (value != null && value.isNotEmpty && items.contains(value))
         ? value
         : null;
 
