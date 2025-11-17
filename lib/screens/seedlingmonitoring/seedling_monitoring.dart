@@ -114,7 +114,40 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
       ),
       elevation: 1,
       centerTitle: true,
-      iconTheme: const IconThemeData(color: fPrimaryColour),
+      iconTheme: IconThemeData(color: fPrimaryColour),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            bool? confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Save and Continue Later'),
+                content: const Text(
+                  'Are you sure you want to save and continue later?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed == true) {
+              controller.saveDataOffline();
+            }
+          },
+          child: Text(
+            "Save",
+            style: TextStyle(color: AppColor.white, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 
@@ -203,11 +236,11 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
             ),
             _buildFarmerDetailRow(
               'Contact',
-              controller.selectedFarmer.value!.contact ?? 'N/A',
+              controller.selectedFarmer.value!.contact,
             ),
             _buildFarmerDetailRow(
-              'Community ID',
-              controller.selectedFarmer.value!.communityId?.toString() ?? 'N/A',
+              'Farmer Code',
+              controller.selectedFarmer.value!.farmercode,
             ),
           ],
         ),
@@ -682,6 +715,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
       () => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+
           if (!controller.communityNotFound.value) ...[
             const Text(
               'Community',
@@ -825,28 +859,50 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
   }
 
   Widget _buildSpeciesCheckboxes() {
-    return Obx(
-      () => Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: controller.speciesList.map((species) {
-          final isSelected = controller.speciesProvidedPlanted.contains(
-            species,
-          );
-          return FilterChip(
-            selected: isSelected,
-            label: Text(species.replaceAll('_', ' ')),
-            onSelected: (selected) {
-              controller.toggleSpeciesSelection(species, selected);
-            },
-            selectedColor: fPrimaryColour.withOpacity(0.2),
-            checkmarkColor: fPrimaryColour,
-            labelStyle: TextStyle(
-              color: isSelected ? fPrimaryColour : Colors.black87,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: TextFormField(
+            controller: controller.searchController,
+            decoration: InputDecoration(
+              hintText: 'Search species...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
             ),
-          );
-        }).toList(),
-      ),
+            onChanged: (value) {
+              controller.filterSpecies(value);
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Obx(
+          () => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.filteredSpeciesList.map((species) {
+              final isSelected = controller.speciesProvidedPlanted.contains(species);
+              return FilterChip(
+                selected: isSelected,
+                label: Text(species.replaceAll('_', ' ')),
+                onSelected: (selected) {
+                  controller.toggleSpeciesSelection(species, selected);
+                  controller.toggleSpeciesAlive(species, selected);
+                },
+                selectedColor: fPrimaryColour.withOpacity(0.2),
+                checkmarkColor: fPrimaryColour,
+                labelStyle: TextStyle(
+                  color: isSelected ? fPrimaryColour : Colors.black87,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -931,79 +987,77 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(
-            title: 'Seedling Survival',
-            subtitle:
-                'Monitor the survival status of seedlings and identify causes of mortality',
-          ),
-          const SizedBox(height: 24),
-          _buildSpeciesAliveSection(),
+          // const SectionHeader(
+          //   title: 'Seedling Survival',
+          //   subtitle:
+          //       'Monitor the survival status of seedlings and identify causes of mortality',
+          // ),
+          // const SizedBox(height: 24),
+          _buildSeedlingMappingButton(),
           const SizedBox(height: 24),
           _buildReasonsForDeathSection(),
-          const SizedBox(height: 24),
-          _buildSeedlingMappingButton(),
         ],
       ),
     );
   }
-
-  Widget _buildSpeciesAliveSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Species of Seedlings Alive',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Select all species that are currently alive',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-        const SizedBox(height: 16),
-        Obx(
-          () => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: controller.speciesList.map((species) {
-              final isSelected = controller.speciesAlive.contains(species);
-              return FilterChip(
-                selected: isSelected,
-                label: Text(
-                  species.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black87,
-                  ),
-                ),
-                onSelected: (selected) {
-                  controller.toggleSpeciesAlive(species, selected);
-                },
-                selectedColor: fPrimaryColour,
-                checkmarkColor: Colors.white,
-                backgroundColor: Colors.grey[100],
-                showCheckmark: true,
-              );
-            }).toList(),
-          ),
-        ),
-        Obx(
-          () => controller.speciesAlive.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Please select at least one species',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                )
-              : const SizedBox(),
-        ),
-      ],
-    );
-  }
+  //
+  // Widget _buildSpeciesAliveSection() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       const Text(
+  //         'Species of Seedlings Alive',
+  //         style: TextStyle(
+  //           fontWeight: FontWeight.w600,
+  //           fontSize: 16,
+  //           color: Colors.black87,
+  //         ),
+  //       ),
+  //       const SizedBox(height: 8),
+  //       const Text(
+  //         'Select all species that are currently alive',
+  //         style: TextStyle(fontSize: 14, color: Colors.grey),
+  //       ),
+  //       const SizedBox(height: 16),
+  //       Obx(
+  //         () => Wrap(
+  //           spacing: 8,
+  //           runSpacing: 8,
+  //           children: controller.speciesList.map((species) {
+  //             final isSelected = controller.speciesAlive.contains(species);
+  //             return FilterChip(
+  //               selected: isSelected,
+  //               label: Text(
+  //                 species.replaceAll('_', ' '),
+  //                 style: TextStyle(
+  //                   color: isSelected ? Colors.white : Colors.black87,
+  //                 ),
+  //               ),
+  //               onSelected: (selected) {
+  //                 controller.toggleSpeciesAlive(species, selected);
+  //               },
+  //               selectedColor: fPrimaryColour,
+  //               checkmarkColor: Colors.white,
+  //               backgroundColor: Colors.grey[100],
+  //               showCheckmark: true,
+  //             );
+  //           }).toList(),
+  //         ),
+  //       ),
+  //       Obx(
+  //         () => controller.speciesAlive.isEmpty
+  //             ? const Padding(
+  //                 padding: EdgeInsets.only(top: 8.0),
+  //                 child: Text(
+  //                   'Please select at least one species',
+  //                   style: TextStyle(color: Colors.red, fontSize: 12),
+  //                 ),
+  //               )
+  //             : const SizedBox(),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildReasonsForDeathSection() {
     return Column(
@@ -1074,9 +1128,9 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               : fPrimaryColour,
           verticalPadding: 16.0,
           onTap: () {
-            if (_validateSeedlingSurvivalPage()) {
-              _navigateToSeedlingMapping();
-            }
+            // if (_validateSeedlingSurvivalPage()) {
+            _navigateToSeedlingMapping();
+            // }
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1125,29 +1179,29 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     );
   }
 
-  bool _validateSeedlingSurvivalPage() {
-    if (controller.speciesAlive.isEmpty) {
-      Get.snackbar(
-        'Validation Error',
-        'Please select at least one species that is alive',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return false;
-    }
-
-    if (controller.reasonForDeath.isEmpty) {
-      Get.snackbar(
-        'Validation Error',
-        'Please select at least one reason for death',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return false;
-    }
-
-    return true;
-  }
+  // bool _validateSeedlingSurvivalPage() {
+  //   if (controller.speciesAlive.isEmpty) {
+  //     Get.snackbar(
+  //       'Validation Error',
+  //       'Please select at least one species that is alive',
+  //       backgroundColor: Colors.red,
+  //       colorText: Colors.white,
+  //     );
+  //     return false;
+  //   }
+  //
+  //   if (controller.reasonForDeath.isEmpty) {
+  //     Get.snackbar(
+  //       'Validation Error',
+  //       'Please select at least one reason for death',
+  //       backgroundColor: Colors.red,
+  //       colorText: Colors.white,
+  //     );
+  //     return false;
+  //   }
+  //
+  //   return true;
+  // }
 
   void _navigateToSeedlingMapping() {
     final mappedFarm = {"bounds": controller.polygon!.points};
@@ -1155,7 +1209,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (BuildContext context) => PickTreesMap(
-          survivedSeedlings: controller.speciesAlive,
+          survivedSeedlings: controller.speciesList,
           farm: mappedFarm,
         ),
       ),
@@ -1176,7 +1230,12 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           const SizedBox(height: 24),
           _buildWaterSourceSection(),
           const SizedBox(height: 24),
-          _buildWateringFrequencySection(),
+
+          Obx(
+            () => controller.sourceOfWater.contains("Rain_Fed")
+                ? const SizedBox.shrink()
+                : _buildWateringFrequencySection(),
+          ),
           const SizedBox(height: 24),
           _buildExtremeWeatherSection(),
           const SizedBox(height: 24),
@@ -1223,6 +1282,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                   ),
                 ),
                 onSelected: (selected) {
+                  debugPrint("THE SELECTED SOURCE IS $source");
                   controller.toggleWaterSource(source, selected);
                 },
                 selectedColor: fPrimaryColour,
@@ -1282,17 +1342,17 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
             }).toList(),
           ),
         ),
-        Obx(
-          () => controller.waterFrequency.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Please select watering frequency',
-                    style: TextStyle(color: Colors.red, fontSize: 12),
-                  ),
-                )
-              : const SizedBox(),
-        ),
+        // Obx(
+        //   () => controller.waterFrequency.isEmpty
+        //       ? const Padding(
+        //           padding: EdgeInsets.only(top: 8.0),
+        //           child: Text(
+        //             'Please select watering frequency',
+        //             style: TextStyle(color: Colors.red, fontSize: 12),
+        //           ),
+        //         )
+        //       : const SizedBox(),
+        // ),
       ],
     );
   }
@@ -1443,7 +1503,6 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     );
   }
 
-
   Widget _buildPestAndDiseaseSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1459,7 +1518,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 16),
         const Text('Have you noticed any pests on or around the seedlings?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1496,7 +1555,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                   hintText: "Describe the pests observed...",
                   prefixIcon: Icons.description,
                   value: controller.pestDescription.value,
-                  onChanged: (value) => controller.pestDescription.value = value,
+                  onChanged: (value) =>
+                      controller.pestDescription.value = value,
                 ),
             ],
           ),
@@ -1504,7 +1564,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 20),
         const Text('Have you noticed any signs of disease on the seedlings?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1541,7 +1601,8 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                   hintText: "Describe the disease symptoms observed...",
                   prefixIcon: Icons.description,
                   value: controller.diseaseDescription.value,
-                  onChanged: (value) => controller.diseaseDescription.value = value,
+                  onChanged: (value) =>
+                      controller.diseaseDescription.value = value,
                 ),
             ],
           ),
@@ -1565,7 +1626,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 16),
         const Text('Were any fertilizers or any soil amendments applied?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1610,7 +1671,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
         const SizedBox(height: 20),
         const Text('Were any pesticide or herbicide applied?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1753,7 +1814,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 Text(
                   'Save',
                   style: TextStyle(
-                    color:fPrimaryColour,
+                    color: fPrimaryColour,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

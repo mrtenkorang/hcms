@@ -106,7 +106,7 @@ class SeedlingMonitoringHistoryController extends GetxController {
       } else {
         Get.snackbar(
           'Sync Failed',
-          'Failed to sync any monitorings. Please check your connection and try again.',
+          'Failed to sync any monitorings, please try again',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
         );

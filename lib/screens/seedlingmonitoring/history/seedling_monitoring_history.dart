@@ -106,7 +106,7 @@ class _SeedlingMonitoringViewInitState
                       )
                     : const Icon(Icons.sync, color: Colors.white),
                 onPressed: controller.isSyncing.value ? null : () => _showSyncConfirmation(context),
-                tooltip: 'Sync Pending Monitorings',
+                tooltip: 'Sync Pending Monitoring',
               ),
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
@@ -340,13 +340,13 @@ class _SeedlingMonitoringViewInitState
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      community,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    // const SizedBox(height: 4),
+                    // Text(
+                    //   community,
+                    //   style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    //   maxLines: 1,
+                    //   overflow: TextOverflow.ellipsis,
+                    // ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
