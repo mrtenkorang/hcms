@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide DatePickerTheme;
+import 'package:flutter/services.dart';
+import 'package:hcms_revived2/helpers/services/notification_service.dart';
 import 'package:hcms_revived2/helpers/services/seedling_monitoring_services.dart';
 import 'package:hcms_revived2/theme/app_theme.dart';
 import 'package:get/get.dart';
@@ -26,6 +29,8 @@ import 'package:overlay_support/overlay_support.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Firebase imports commented out
 // import 'package:firebase_core/firebase_core.dart';
@@ -93,14 +98,48 @@ checkForInitialMessage() async {
 }
 */
 
+
+/// Background handler for FCM messages
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // NotificationService().handleMessage(message);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Firebase.initializeApp();
+
+  NotificationService().init();
   // changeBaseUrlValue();
+
+
+  // Handle background messages
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Firebase initialization commented out
   // await Firebase.initializeApp();
   // checkForInitialMessage();
+
+  // Request notification permission
+  final messaging = FirebaseMessaging.instance;
+  await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // Lock orientation
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Silence debug logs in release mode
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
+
 
   regSP = await SharedPreferences.getInstance();
 

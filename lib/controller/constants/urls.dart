@@ -13,6 +13,7 @@ class URLS {
   static const String categoryURL = "small-holder-categories/";
   static const String seedlingMonitoringURL = "monitoring/seedlings/";
   static const String privateSectorEngagementURL = "monitoring/lmb/";
+  static const String fcmTokenURL = "";
   static const String alternativeLivelihoodLogURL = "monitoring/alternative-livelihoods/";
 
 
