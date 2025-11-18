@@ -40,7 +40,6 @@ class _EditSeedlingMonitoringScreenState
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-
       UserCurrentLocation? userCurrentLocation = UserCurrentLocation(
         context: context,
       );
@@ -123,38 +122,38 @@ class _EditSeedlingMonitoringScreenState
       centerTitle: true,
       iconTheme: const IconThemeData(color: fPrimaryColour),
       actions: [
-        if(widget.monitoring.connectionStatus == "not connected")
-        TextButton(
-          onPressed: () async {
-            bool? confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Save and Continue Later'),
-                content: const Text(
-                  'Are you sure you want to save and continue later?',
+        if (widget.monitoring.connectionStatus == "not connected")
+          TextButton(
+            onPressed: () async {
+              bool? confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Save and Continue Later'),
+                  content: const Text(
+                    'Are you sure you want to save and continue later?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Save'),
+                    ),
+                  ],
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Save'),
-                  ),
-                ],
-              ),
-            );
+              );
 
-            if (confirmed == true) {
-              controller.saveDataOffline();
-            }
-          },
-          child: Text(
-            "Save",
-            style: TextStyle(color: AppColor.white, fontSize: 16),
+              if (confirmed == true) {
+                controller.saveDataOffline();
+              }
+            },
+            child: Text(
+              "Save",
+              style: TextStyle(color: AppColor.white, fontSize: 16),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -238,17 +237,25 @@ class _EditSeedlingMonitoringScreenState
               ),
             ),
             const SizedBox(height: 12),
+
             _buildFarmerDetailRow(
               'Name',
               controller.selectedFarmer.value!.farmerName,
             ),
+
             _buildFarmerDetailRow(
               'Contact',
               controller.selectedFarmer.value!.contact,
             ),
+
             _buildFarmerDetailRow(
               'Farmer code',
               controller.selectedFarmer.value!.farmercode.toString(),
+            ),
+
+            _buildFarmerDetailRow(
+              'Community',
+              controller.selectedFarmer.value!.communityName,
             ),
           ],
         ),
@@ -389,7 +396,9 @@ class _EditSeedlingMonitoringScreenState
       },
       filter: (farmer, query) {
         return farmer.farmerName.toLowerCase().contains(query.toLowerCase()) ||
-            (farmer.contact ?? '').contains(query);
+            (farmer.contact).contains(query) ||
+            (farmer.farmercode).toString().contains(query) ||
+            (farmer.communityName).contains(query);
       },
     );
   }
@@ -770,13 +779,16 @@ class _EditSeedlingMonitoringScreenState
               ],
             ),
           ] else ...[
-            _buildReactiveTextField(
-              label: 'Community Name',
-              hintText: 'Enter community name',
-              prefixIcon: Icons.location_city,
-              value: controller.customCommunityName.value,
-              onChanged: (value) =>
-                  controller.customCommunityName.value = value,
+            GetBuilder<EditSeedlingMonitoringController>(
+              builder: (controller) => _buildReactiveTextField(
+                controller: controller.customCommunityNameController,
+                label: 'Community Name',
+                hintText: 'Enter community name',
+                prefixIcon: Icons.location_city,
+                value: controller.customCommunityName.value,
+                onChanged: (value) =>
+                    controller.customCommunityName.value = value,
+              ),
             ),
             const SizedBox(height: 8),
             Row(
@@ -883,7 +895,10 @@ class _EditSeedlingMonitoringScreenState
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10.0),
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 16,
+              ),
             ),
             onChanged: (value) {
               controller.filterSpecies(value);
@@ -892,11 +907,13 @@ class _EditSeedlingMonitoringScreenState
         ),
         const SizedBox(height: 8),
         Obx(
-              () => Wrap(
+          () => Wrap(
             spacing: 8,
             runSpacing: 8,
             children: controller.filteredSpeciesList.map((species) {
-              final isSelected = controller.speciesProvidedPlanted.contains(species);
+              final isSelected = controller.speciesProvidedPlanted.contains(
+                species,
+              );
               return FilterChip(
                 selected: isSelected,
                 label: Text(species.replaceAll('_', ' ')),
@@ -1005,12 +1022,10 @@ class _EditSeedlingMonitoringScreenState
           // ),
           // const SizedBox(height: 24),
           // _buildSpeciesAliveSection(),
-
           _buildSeedlingMappingButton(),
           const SizedBox(height: 24),
           _buildReasonsForDeathSection(),
           const SizedBox(height: 24),
-
         ],
       ),
     );
@@ -1150,7 +1165,7 @@ class _EditSeedlingMonitoringScreenState
           verticalPadding: 16.0,
           onTap: () {
             // if (_validateSeedlingSurvivalPage()) {
-              _navigateToSeedlingMapping();
+            _navigateToSeedlingMapping();
             // }
           },
           child: Row(
@@ -1253,7 +1268,11 @@ class _EditSeedlingMonitoringScreenState
           const SizedBox(height: 24),
           _buildWaterSourceSection(),
           const SizedBox(height: 24),
-          _buildWateringFrequencySection(),
+          Obx(
+            () => controller.sourceOfWater.contains("Rain_Fed")
+                ? const SizedBox.shrink()
+                : _buildWateringFrequencySection(),
+          ),
           const SizedBox(height: 24),
           _buildExtremeWeatherSection(),
           const SizedBox(height: 24),
@@ -1514,8 +1533,8 @@ class _EditSeedlingMonitoringScreenState
           const SizedBox(height: 24),
           _buildAdditionalObservationsSection(),
           const SizedBox(height: 24),
-          if(widget.monitoring.connectionStatus == "not connected")
-          _buildSubmitButton(),
+          if (widget.monitoring.connectionStatus == "not connected")
+            _buildSubmitButton(),
         ],
       ),
     );
@@ -1536,7 +1555,7 @@ class _EditSeedlingMonitoringScreenState
         const SizedBox(height: 16),
         const Text('Have you noticed any pests on or around the seedlings?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1573,7 +1592,8 @@ class _EditSeedlingMonitoringScreenState
                   hintText: "Describe the pests observed...",
                   prefixIcon: Icons.description,
                   value: controller.pestDescription.value,
-                  onChanged: (value) => controller.pestDescription.value = value,
+                  onChanged: (value) =>
+                      controller.pestDescription.value = value,
                 ),
             ],
           ),
@@ -1581,7 +1601,7 @@ class _EditSeedlingMonitoringScreenState
         const SizedBox(height: 20),
         const Text('Have you noticed any signs of disease on the seedlings?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1618,7 +1638,8 @@ class _EditSeedlingMonitoringScreenState
                   hintText: "Describe the disease symptoms observed...",
                   prefixIcon: Icons.description,
                   value: controller.diseaseDescription.value,
-                  onChanged: (value) => controller.diseaseDescription.value = value,
+                  onChanged: (value) =>
+                      controller.diseaseDescription.value = value,
                 ),
             ],
           ),
@@ -1642,7 +1663,7 @@ class _EditSeedlingMonitoringScreenState
         const SizedBox(height: 16),
         const Text('Were any fertilizers or any soil amendments applied?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1687,7 +1708,7 @@ class _EditSeedlingMonitoringScreenState
         const SizedBox(height: 20),
         const Text('Were any pesticide or herbicide applied?'),
         Obx(
-              () => Column(
+          () => Column(
             children: [
               Row(
                 children: [
@@ -1863,7 +1884,7 @@ class _EditSeedlingMonitoringScreenState
                 Text(
                   'Save',
                   style: TextStyle(
-                    color:fPrimaryColour,
+                    color: fPrimaryColour,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),

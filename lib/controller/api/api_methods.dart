@@ -17,14 +17,14 @@ import 'package:http/http.dart' as http;
 class APIMethods {
   // Submit seedling monitoring
   Future<Map<String, dynamic>> submitSeedlingMonitoringToServer(
-    SeedlingMonitoringModel seedlingMonitoring,
+    Map<String, dynamic> seedlingMonitoring,
   ) async {
     try {
       final url = '${URLS.baseUrl}${URLS.seedlingMonitoringURL}';
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(seedlingMonitoring.toApiJson()),
+        body: json.encode(seedlingMonitoring),
       );
 
       debugPrint("THE RESPONSE :::::::::::: ${response.body}");

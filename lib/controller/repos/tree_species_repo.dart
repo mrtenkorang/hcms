@@ -25,4 +25,21 @@ class TreeSpeciesRepository {
     await _databaseHelper.deleteAllTreeSpecies();
 
   }
+
+
+
+
+
+  Future<void> bulkInsertTreeSpeciesSeedling(List<TreeSpeciesModel> treeSpecies) async {
+    await _databaseHelper.bulkInsertTreeSpeciesSeedling(treeSpecies);
+  }
+
+  Future<List<TreeSpeciesModel>> getAllTreeSpeciesSeedling() async {
+    return await _databaseHelper.getAllTreeSpeciesSeedling();
+  }
+
+  Future<void> deleteAllTreeSpeciesSeedling() async {
+    await _databaseHelper.deleteAllTreeSpeciesSeedling();
+
+  }
 }

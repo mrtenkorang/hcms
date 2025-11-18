@@ -1421,20 +1421,20 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
 
                   debugPrint("verifyTreeSpeciesMappedQuantity NORMAL: $res");
 
-                  if (res) {
+                  // if (res) {
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();
-                  }
+                  // }
                 } else {
                   final bool res = editSeedlingMonitoringController
                       .verifyTreeSpeciesMappedQuantity();
 
                   debugPrint("verifyTreeSpeciesMappedQuantity: $res");
 
-                  if (res) {
+                  // if (res) {
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();
-                  }
+                  // }
                 }
               },
             ),

@@ -52,6 +52,7 @@ class AppDatabaseHelper {
   static const String trainingLogTable = 'training_logs_tbl';
   static const String deforestationReportsTAble = 'deforestation_reports_tbl';
   static const String treeSpeciesTBL = 'tree_species_tbl';
+  static const String treeSpeciesTBLSeedling = 'tree_species_seedling_tbl';
 
   Future<void> _createDatabase(Database db, int version) async {
     await db.execute('''
@@ -89,7 +90,7 @@ class AppDatabaseHelper {
       )
     ''');
 
-        await db.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS categories(
     id INTEGER PRIMARY KEY,
     display_name TEXT NOT NULL,
@@ -101,13 +102,13 @@ class AppDatabaseHelper {
     )
     ''');
 
-        await db.execute('''
+    await db.execute('''
     CREATE INDEX IF NOT EXISTS idx_categories_display_name ON categories(display_name)
     ''');
-        await db.execute('''
+    await db.execute('''
     CREATE INDEX IF NOT EXISTS idx_categories_code ON categories(code)
     ''');
-        await db.execute('''
+    await db.execute('''
     CREATE INDEX IF NOT EXISTS idx_categories_is_active ON categories(is_active)
     ''');
 
@@ -275,6 +276,15 @@ class AppDatabaseHelper {
 
     await db.execute('''
       CREATE TABLE $treeSpeciesTBL(
+        id INTEGER PRIMARY KEY,
+        code TEXT,
+        name TEXT,
+        botanical TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE $treeSpeciesTBLSeedling(
         id INTEGER PRIMARY KEY,
         code TEXT,
         name TEXT,
@@ -699,7 +709,9 @@ class AppDatabaseHelper {
   }
 
   // get farmer by community id
-  Future<List<FarmerFromServerModel>> getFarmersByCommunityId(int communityId) async {
+  Future<List<FarmerFromServerModel>> getFarmersByCommunityId(
+    int communityId,
+  ) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       farmersFromServerTable,
@@ -2450,33 +2462,6 @@ class AppDatabaseHelper {
     await batch.commit();
   }
 
-  // Create - Insert single tree species
-  Future<int> insertTreeSpecies(TreeSpeciesModel treeSpecies) async {
-    final db = await database;
-    return await db.insert(
-      treeSpeciesTBL,
-      treeSpecies.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  // Bulk Insert
-  Future<void> insertTreeSpeciesBulk(
-    List<TreeSpeciesModel> treeSpeciesList,
-  ) async {
-    final db = await database;
-    final batch = db.batch();
-
-    for (final treeSpecies in treeSpeciesList) {
-      batch.insert(
-        treeSpeciesTBL,
-        treeSpecies.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-
-    await batch.commit();
-  }
 
   // Read - Get all tree species
   Future<List<TreeSpeciesModel>> getAllTreeSpecies() async {
@@ -2531,6 +2516,42 @@ class AppDatabaseHelper {
     return await db.delete(treeSpeciesTBL, where: 'id = ?', whereArgs: [id]);
   }
 
+
+
+  Future<void> bulkInsertTreeSpeciesSeedling(List<TreeSpeciesModel> treeSpecies) async {
+    final db = await database;
+    final batch = db.batch();
+
+    for (final species in treeSpecies) {
+      batch.insert(
+        treeSpeciesTBLSeedling,
+        species.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit();
+  }
+
+
+  // Read - Get all tree species
+  Future<List<TreeSpeciesModel>> getAllTreeSpeciesSeedling() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(treeSpeciesTBLSeedling);
+    return List.generate(maps.length, (i) {
+      return TreeSpeciesModel.fromMap(maps[i]);
+    });
+  }
+
+  // Delete all tree species
+  Future<int> deleteAllTreeSpeciesSeedling() async {
+    final db = await database;
+    return await db.delete(treeSpeciesTBLSeedling);
+  }
+
+
+
+
   // Delete all tree species
   Future<int> deleteAllTreeSpecies() async {
     final db = await database;
@@ -2554,7 +2575,6 @@ class AppDatabaseHelper {
     );
     return result.first['count'];
   }
-
 
   // Add these methods to your AppDatabaseHelper class
 
@@ -2626,7 +2646,7 @@ class AppDatabaseHelper {
   Future<bool> hasCategoriesData() async {
     final db = await database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM categories'
+      'SELECT COUNT(*) as count FROM categories',
     );
     return result.first['count'] > 0;
   }
@@ -2634,7 +2654,7 @@ class AppDatabaseHelper {
   Future<int> getCategoriesCount() async {
     final db = await database;
     final List<Map<String, dynamic>> result = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM categories'
+      'SELECT COUNT(*) as count FROM categories',
     );
     return result.first['count'];
   }

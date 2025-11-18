@@ -53,6 +53,11 @@ class _SyncPageState extends State<SyncPage> with SingleTickerProviderStateMixin
       icon: Icons.leaderboard,
     ),
     SyncStep(
+      title: "Tree Species Data for Seedling",
+      function: InitMethods().fetchTreeSpeciesSeedling,
+      icon: Icons.leaderboard,
+    ),
+    SyncStep(
       title: "Farmers Data",
       function: InitMethods().fetAllFarmers,
       icon: Icons.people,

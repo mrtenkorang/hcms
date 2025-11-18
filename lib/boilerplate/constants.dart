@@ -77,5 +77,5 @@ class SkipConstants {
 
 
 class MaxLocationAccuracy {
-  static double max = 4.0;
+  static double max = 5.0;
 }

@@ -242,6 +242,11 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
               'Farmer Code',
               controller.selectedFarmer.value!.farmercode,
             ),
+
+            _buildFarmerDetailRow(
+              'Community',
+              controller.selectedFarmer.value!.communityName,
+            ),
           ],
         ),
       ),
@@ -367,9 +372,18 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           farmer.farmerName,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        subtitle: Text(
-          farmer.contact ?? '',
-          style: TextStyle(color: Colors.grey[600]),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              farmer.contact,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            Text(
+              farmer.communityName,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
         ),
         trailing: controller.selectedFarmer.value?.id == farmer.id
             ? Icon(Icons.check_circle, color: fPrimaryColour)
@@ -381,7 +395,9 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
       },
       filter: (farmer, query) {
         return farmer.farmerName.toLowerCase().contains(query.toLowerCase()) ||
-            (farmer.contact ?? '').contains(query);
+            (farmer.contact).contains(query) ||
+            (farmer.farmercode).toString().contains(query) ||
+            (farmer.communityName).contains(query);
       },
     );
   }
@@ -562,9 +578,9 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
           const SizedBox(height: 24),
           _buildReactiveTextField(
-            readOnly: true,
+            // readOnly: true,
             controller: controller.surveyorNameController,
-            label: 'Surveyor Name',
+            label: 'Enumerator Name',
             hintText: 'Enter your full name',
             prefixIcon: Icons.person,
             value: controller.surveyorNameController.text,
@@ -609,6 +625,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
     required IconData prefixIcon,
     required String value,
     required ValueChanged<String> onChanged,
+    String? Function(String?)? validator,
     TextEditingController? controller,
     bool readOnly = false,
     int? maxLength,
@@ -626,12 +643,14 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
+          validator: validator,
           controller: controller,
           onChanged: onChanged,
           readOnly: readOnly,
           maxLength: maxLength,
           decoration: InputDecoration(
+
             filled: readOnly,
             fillColor: readOnly ? Colors.grey[200] : Colors.white,
             hintText: hintText,
@@ -1491,6 +1510,7 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
                 'Record pest and disease observations, maintenance activities, and additional comments',
           ),
           const SizedBox(height: 24),
+
           _buildPestAndDiseaseSection(),
           const SizedBox(height: 24),
           _buildMaintenanceSection(),
@@ -1551,6 +1571,12 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
 
               if (controller.pestsAround!.value == "Yes")
                 _buildReactiveTextField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'required';
+                    }
+                    return null;
+                  },
                   label: "Specify pest description",
                   hintText: "Describe the pests observed...",
                   prefixIcon: Icons.description,
@@ -1597,6 +1623,12 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
 
               if (controller.signsOfDisease!.value == "Yes")
                 _buildReactiveTextField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'required';
+                    }
+                    return null;
+                  },
                   label: "Specify disease signs",
                   hintText: "Describe the disease symptoms observed...",
                   prefixIcon: Icons.description,
@@ -1659,6 +1691,12 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
 
               if (controller.fertiliserApplied!.value == "Yes")
                 _buildReactiveTextField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'required';
+                    }
+                    return null;
+                  },
                   label: "Specify fertilizer type",
                   hintText: "Describe the fertilizer or soil amendment used...",
                   prefixIcon: Icons.description,
@@ -1704,6 +1742,12 @@ class _SeedlingMonitoringScreenState extends State<SeedlingMonitoringScreen> {
 
               if (controller.pesticideApplied!.value == "Yes")
                 _buildReactiveTextField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'required';
+                    }
+                    return null;
+                  },
                   label: "Specify pesticide/herbicide type",
                   hintText: "Describe the pesticide or herbicide used...",
                   prefixIcon: Icons.description,

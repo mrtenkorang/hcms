@@ -29,6 +29,11 @@ class SeedlingMonitoringHistoryController extends GetxController {
       errorMessage.value = '';
       
       final monitorings = await _repository.getAll();
+
+      for (final monitoring in monitorings) {
+        debugPrint("Monitoring: ${monitoring.customCommunityName}");
+      }
+
       allMonitorings.assignAll(monitorings);
       
       // Separate monitorings by status

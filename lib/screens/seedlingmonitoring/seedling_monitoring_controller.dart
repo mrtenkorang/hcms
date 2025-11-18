@@ -53,7 +53,7 @@ class SeedlingMonitoringController extends GetxController {
   final RxString customCommunityName = ''.obs;
   final TextEditingController farmerNameController = TextEditingController();
   final TextEditingController farmerIDNumberController =
-  TextEditingController();
+      TextEditingController();
 
   final TextEditingController searchController = TextEditingController();
   final RxList<String> filteredSpeciesList = <String>[].obs;
@@ -111,12 +111,12 @@ class SeedlingMonitoringController extends GetxController {
     // Clear the map first
     treeTypeCount.clear();
 
-    if(treeData.isEmpty){
+    if (treeData.isEmpty) {
       Globals().showSnackBar(
         title: "No Trees Mapped",
         message: "Please map at least one tree before proceeding.",
         backgroundColor: Colors.red,
-        duration: 8
+        duration: 8,
       );
       return;
     }
@@ -137,7 +137,6 @@ class SeedlingMonitoringController extends GetxController {
     debugPrint('Tree Type Counts: $treeTypeCount');
   }
 
-
   /// Verifies if the quantity of trees mapped matches the quantity planted for each species.
   ///
   /// Returns `true` if for every tree type in [treeTypeCount], the count matches
@@ -146,11 +145,11 @@ class SeedlingMonitoringController extends GetxController {
   bool verifyTreeSpeciesMappedQuantity() {
     // First ensure we have the latest counts
     getTreeTypeCount();
-    
+
     // Check if both maps have the same set of keys
     final treeTypes = treeTypeCount.keys.toSet();
     final plantedTypes = quantityPlantedControllers.keys.toSet();
-    
+
     // Check each tree type
     for (final type in treeTypes) {
       final mappedCount = treeTypeCount[type] ?? 0;
@@ -158,14 +157,17 @@ class SeedlingMonitoringController extends GetxController {
       final plantedCount = int.tryParse(plantedText ?? '') ?? 0;
 
       debugPrint('Checking $type: mapped=$mappedCount, planted=$plantedCount');
-      
+
       if (mappedCount > plantedCount) {
-        debugPrint('Mismatch for $type: mapped=$mappedCount, planted=$plantedCount');
+        debugPrint(
+          'Mismatch for $type: mapped=$mappedCount, planted=$plantedCount',
+        );
         Globals().showSnackBar(
           title: "Mismatched",
-          message: "Number of trees mapped for $type ($mappedCount) doesn't match the quantity planted ($plantedCount).",
+          message:
+              "Number of trees mapped for $type ($mappedCount) doesn't match the quantity planted ($plantedCount).",
           backgroundColor: Colors.red,
-          duration: 8
+          duration: 8,
         );
         return false;
       }
@@ -183,7 +185,7 @@ class SeedlingMonitoringController extends GetxController {
   DateFormat dateFormat = DateFormat('yyyy-MM-dd');
   final RxList<String> speciesList = <String>[].obs;
   final TextEditingController speciesSearchController = TextEditingController();
-  
+
   @override
   void onInit() {
     super.onInit();
@@ -192,16 +194,16 @@ class SeedlingMonitoringController extends GetxController {
     loadTreeSpecies();
     loadFarmerData();
     loadCommunities();
-    
+
     // Initialize with all species
     ever(speciesList, (_) => filterSpecies(''));
-    
+
     // Update filtered list when search text changes
     searchController.addListener(() {
       filterSpecies(searchController.text);
     });
   }
-  
+
   void filterSpecies(String query) {
     if (query.isEmpty) {
       filteredSpeciesList.assignAll(speciesList);
@@ -209,13 +211,14 @@ class SeedlingMonitoringController extends GetxController {
       debugPrint('Filtered species list: $filteredSpeciesList');
     } else {
       filteredSpeciesList.assignAll(
-        speciesList.where((species) => 
-          species.toLowerCase().contains(query.toLowerCase())
-        ).toList()
+        speciesList
+            .where(
+              (species) => species.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList(),
       );
     }
   }
-
 
   // Available options for dropdowns and selections
   final List<String> plantationTypes = [
@@ -228,7 +231,8 @@ class SeedlingMonitoringController extends GetxController {
 
   void loadTreeSpecies() async {
     try {
-      final treeSpecies = await TreeSpeciesRepository().getAllTreeSpecies();
+      final treeSpecies = await TreeSpeciesRepository()
+          .getAllTreeSpeciesSeedling();
       debugPrint('TREE SPECIES :::::::::::::: $treeSpecies');
       speciesList.assignAll(treeSpecies.map((e) => e.name).toList());
       filterSpecies(searchController.text);
@@ -271,6 +275,7 @@ class SeedlingMonitoringController extends GetxController {
     "Pest",
     "Vandalism",
     "Transportation_Shocks",
+    "none",
   ];
 
   UserModel? _user;
@@ -402,9 +407,7 @@ class SeedlingMonitoringController extends GetxController {
     quantityPlantedControllers.clear();
   }
 
-  validateMappedTreeLengthSpecies() {
-
-  }
+  validateMappedTreeLengthSpecies() {}
 
   // Environmental Conditions Methods
   void toggleWaterSource(String source, bool selected) {
@@ -526,7 +529,7 @@ class SeedlingMonitoringController extends GetxController {
     if (polygon != null) polys.add(polygon!);
 
     Get.to(
-          () => PolygonDrawingTool(
+      () => PolygonDrawingTool(
         layers: polys,
         initialPolygon: polygon,
         viewInitialPolygon: polygon != null,
@@ -587,10 +590,10 @@ class SeedlingMonitoringController extends GetxController {
         'points': polygon!.points
             .map(
               (point) => {
-            'latitude': point.latitude,
-            'longitude': point.longitude,
-          },
-        )
+                'latitude': point.latitude,
+                'longitude': point.longitude,
+              },
+            )
             .toList(),
         'strokeColor': polygon!.strokeColor.value,
         'fillColor': polygon!.fillColor.value,
@@ -629,6 +632,10 @@ class SeedlingMonitoringController extends GetxController {
   Future<void> submitDataOnline() async {
     isLoading.value = true;
     try {
+      if (!_validateFinalObservations()) {
+        return;
+      }
+
       List<SpeciesPlantingDetail> speciesPlantingDetails = [];
 
       for (final species in speciesProvidedPlanted) {
@@ -650,12 +657,15 @@ class SeedlingMonitoringController extends GetxController {
         }
       }
 
+      selectedCommunity.value = CommunityModel(id: 0, community: "0");
+
       // Create the monitoring model - Updated boolean conversions
       final monitoringModel = SeedlingMonitoringModel(
         surveyorName: surveyorNameController.text.trim(),
         enumeratorValue: _user!.id!.toString(),
         dateOfSurvey: dateOfSurvey.value,
         community: selectedCommunity.value!.id!.toString(),
+        customCommunityName: customCommunityName.value,
         farmerIDNumber: farmerIDNumberController.text.trim(),
         farmerName: farmerNameController.text.trim(),
         connectionStatus: "connected",
@@ -692,9 +702,13 @@ class SeedlingMonitoringController extends GetxController {
       final onLineData = monitoringModel.toApiJson();
       debugPrint("THE ONLINE DATA ::::::::: $onLineData");
 
+      onLineData["name_of_community"] = customCommunityName.value == ''
+          ? selectedCommunity.value!.community
+          : customCommunityName.value;
+
       Globals().startWait(seedlingMonitoringScreenContext!);
       final res = await APIMethods().submitSeedlingMonitoringToServer(
-        monitoringModel,
+        onLineData,
       );
       Globals().endWait(seedlingMonitoringScreenContext);
 
@@ -715,7 +729,9 @@ class SeedlingMonitoringController extends GetxController {
           backgroundColor: Colors.red,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint("THE SAVE ERROR ::::::::::::::: ${e}");
+      debugPrint("THE SAVE ERROR ::::::::::::::: ${stackTrace}");
       Get.snackbar(
         'Submission Error',
         'Failed to submit data: $e',
@@ -728,6 +744,10 @@ class SeedlingMonitoringController extends GetxController {
   }
 
   Future<void> saveDataOffline() async {
+    if (!_validateFinalObservations()) {
+      return;
+    }
+
     isLoading.value = true;
     try {
       List<SpeciesPlantingDetail> speciesPlantingDetails = [];
@@ -751,11 +771,16 @@ class SeedlingMonitoringController extends GetxController {
         }
       }
 
+      if(selectedCommunity.value == null) {
+        selectedCommunity.value = CommunityModel(id: 0, community: "0");
+      }
+
       // Create the monitoring model - Updated boolean conversions
       final monitoringModel = SeedlingMonitoringModel(
         surveyorName: surveyorNameController.text.trim(),
         enumeratorValue: _user!.id!.toString(),
         dateOfSurvey: dateOfSurvey.value,
+        customCommunityName: customCommunityName.value,
         community: selectedCommunity.value!.id!.toString(),
         farmerIDNumber: farmerIDNumberController.text.trim(),
         farmerName: farmerNameController.text.trim(),
@@ -830,7 +855,7 @@ class SeedlingMonitoringController extends GetxController {
         seedlingMonitoringScreenContext!.mounted) {
       Navigator.of(seedlingMonitoringScreenContext!).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const IndexPage()),
-            (Route<dynamic> route) => false,
+        (Route<dynamic> route) => false,
       );
     }
   }
@@ -938,6 +963,50 @@ class SeedlingMonitoringController extends GetxController {
   }
 
   bool _validateFinalObservations() {
+    // Check pest observation
+    if (pestsAround!.value == "Yes" && pestDescription.value.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please provide pest description when "Yes" is selected for pests around',
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+
+    // Check disease observation
+    if (signsOfDisease!.value == "Yes" && diseaseDescription.value.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please provide disease description when "Yes" is selected for signs of disease',
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+
+    // Check fertiliser application
+    if (fertiliserApplied!.value == "Yes" && fertiliserType.value.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please specify the type of fertilizer applied when "Yes" is selected',
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+
+    // Check pesticide application
+    if (pesticideApplied!.value == "Yes" && pesticideType.value.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please specify the type of pesticide applied when "Yes" is selected',
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+
     return true;
   }
 }

@@ -220,6 +220,47 @@ class InitMethods {
     }
   }
 
+  Future<bool> fetchTreeSpeciesSeedling() async {
+    try {
+
+      final url = '${URLS.baseUrl}${URLS.treeSpeciesURL}?seedling_monitoring=${true}';
+
+      debugPrint("URLS :::::::::::::: $url");
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> responseData = data is List
+            ? data
+            : (data['data'] as List? ?? []);
+        final List<TreeSpeciesModel> types = responseData
+            .map<TreeSpeciesModel>(
+              (item) => TreeSpeciesModel.fromJson(item as Map<String, dynamic>),
+        )
+            .toList();
+
+        await TreeSpeciesRepository().deleteAllTreeSpeciesSeedling();
+        await TreeSpeciesRepository().bulkInsertTreeSpeciesSeedling(types);
+
+        debugPrint('Successfully stored ${types.length} types');
+        return true;
+      } else {
+        debugPrint('SEEDLING SPECIE API failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Error fetching types: $e');
+      debugPrint('Error fetching types: $stackTrace');
+      return false;
+    }
+  }
+
   Future<bool> fetchMMDA() async {
     try {
       final response = await http.get(
