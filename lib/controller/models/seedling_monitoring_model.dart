@@ -319,6 +319,37 @@ class SeedlingMonitoringModel {
       };
     }
 
+    // Convert mappedFarmBoundaries to GeoJSON format if it exists
+    dynamic farmBoundaryJson;
+    if (mappedFarmBoundaries != null && mappedFarmBoundaries!.isNotEmpty) {
+      try {
+        // Try to parse the existing boundary data
+        final boundaryData = json.decode(mappedFarmBoundaries!);
+        
+        // If it's already in the correct format, use it as is
+        if (boundaryData is Map && boundaryData['type'] == 'Polygon' && boundaryData['coordinates'] != null) {
+          farmBoundaryJson = boundaryData;
+        } else if (boundaryData is List) {
+          // If it's a list of coordinates, convert to GeoJSON format
+          final coordinates = List<List<double>>.from(boundaryData);
+          if (coordinates.isNotEmpty && coordinates.first.length >= 2) {
+            // Close the polygon if it's not already closed
+            if (coordinates.isNotEmpty && coordinates.first != coordinates.last) {
+              coordinates.add(List.from(coordinates.first));
+            }
+            
+            farmBoundaryJson = {
+              "type": "Polygon",
+              "coordinates": [coordinates],
+            };
+          }
+        }
+      } catch (e) {
+        debugPrint('Error parsing farm boundary data: $e');
+        farmBoundaryJson = null;
+      }
+    }
+
     return {
       "name_of_surveyor": surveyorName,
       "date_of_survey": dateOfSurvey,
@@ -328,7 +359,7 @@ class SeedlingMonitoringModel {
       "type_of_plantation": plantationType,
       "species_provided_planted": speciesProvidedPlanted,
       "planted_species": plantedSpeciesDict,
-      "farm_boundary": mappedFarmBoundaries,
+      "farm_boundary": farmBoundaryJson,
       "species_alive": speciesAlive,
       "living_species_records": treeData,
       "total_seedlings_alive": totalSeedlingsAlive,
@@ -533,13 +564,6 @@ class SpeciesConstants {
     "Other",
   ];
 
-  static const List<String> plantationTypes = [
-    "Cocoa Farm",
-    "Woodlot",
-    "Degraded Area",
-    "Riparian",
-    "Others",
-  ];
 }
 
 // Extension for model validation

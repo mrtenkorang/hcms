@@ -48,6 +48,19 @@ class SeedlingMonitoringController extends GetxController {
 
   // General Information
   final TextEditingController surveyorNameController = TextEditingController();
+
+  // Plantation Type
+  final RxString plantationType = ''.obs;
+  final RxString otherPlantationType = ''.obs;
+  // Available options for dropdowns and selections
+  final List<String> plantationTypes = [
+    "Cocoa Farm",
+    "Woodlot",
+    "Degraded Area",
+    "Riparian",
+    "Modified Taungya System",
+    "Other",
+  ];
   final RxString dateOfSurvey = ''.obs;
   final RxBool communityNotFound = false.obs;
   final RxString customCommunityName = ''.obs;
@@ -56,10 +69,9 @@ class SeedlingMonitoringController extends GetxController {
       TextEditingController();
 
   final TextEditingController searchController = TextEditingController();
+  final TextEditingController otherSpeciesController = TextEditingController();
   final RxList<String> filteredSpeciesList = <String>[].obs;
-
-  // Plantation Details
-  final RxString plantationType = ''.obs;
+  final RxList<String> customSpeciesList = <String>[].obs;
   final RxString totalSizeAcres = ''.obs;
   final RxList<String> speciesProvidedPlanted = <String>[].obs;
 
@@ -207,6 +219,7 @@ class SeedlingMonitoringController extends GetxController {
   void filterSpecies(String query) {
     if (query.isEmpty) {
       filteredSpeciesList.assignAll(speciesList);
+      filteredSpeciesList.remove('Other');
 
       debugPrint('Filtered species list: $filteredSpeciesList');
     } else {
@@ -220,21 +233,13 @@ class SeedlingMonitoringController extends GetxController {
     }
   }
 
-  // Available options for dropdowns and selections
-  final List<String> plantationTypes = [
-    "Cocoa Farm",
-    "Woodlot",
-    "Degraded Area",
-    "Riparian",
-    "Others",
-  ];
-
   void loadTreeSpecies() async {
     try {
       final treeSpecies = await TreeSpeciesRepository()
           .getAllTreeSpeciesSeedling();
       debugPrint('TREE SPECIES :::::::::::::: $treeSpecies');
-      speciesList.assignAll(treeSpecies.map((e) => e.name).toList());
+      // Add 'Other' to the list of species
+      speciesList.assignAll([...treeSpecies.map((e) => e.name)]);
       filterSpecies(searchController.text);
     } catch (e) {
       debugPrint('Error loading tree species: $e');
@@ -340,18 +345,80 @@ class SeedlingMonitoringController extends GetxController {
     }
   }
 
+  var otherSelectedSpecie = ''.obs;
+
+  void toggleOtherSpecieSelected(String val) {
+    otherSelectedSpecie.value = val;
+    update();
+  }
+
+  bool isOtherSelected() {
+    return speciesProvidedPlanted.contains('Other') || otherSpeciesController.text.isNotEmpty;
+  }
+
   // Species Methods
   void toggleSpeciesSelection(String species, bool selected) {
     if (selected) {
-      speciesProvidedPlanted.add(species);
-      quantityReceivedControllers[species] = TextEditingController();
-      quantityPlantedControllers[species] = TextEditingController();
+      // If 'Other' is selected, add it to the list and update UI
+      if (species == 'Other') {
+        if (!speciesProvidedPlanted.contains('Other')) {
+          speciesProvidedPlanted.add('Other');
+          quantityReceivedControllers[species] = TextEditingController();
+          quantityPlantedControllers[species] = TextEditingController();
+        }
+        update();
+        return;
+      }
+      
+      // For regular species, add them immediately
+      if (!speciesProvidedPlanted.contains(species)) {
+        speciesProvidedPlanted.add(species);
+        quantityReceivedControllers[species] = TextEditingController();
+        quantityPlantedControllers[species] = TextEditingController();
+      }
     } else {
-      speciesProvidedPlanted.remove(species);
-      quantityPlantedControllers.remove(species);
-      quantityReceivedControllers.remove(species);
-      plantingDates.remove(species);
+      // If deselecting 'Other', clear the custom species
+      if (species == 'Other') {
+        otherSpeciesController.clear();
+        for (var custom in customSpeciesList) {
+          speciesProvidedPlanted.remove(custom);
+          quantityPlantedControllers.remove(custom);
+          quantityReceivedControllers.remove(custom);
+          plantingDates.remove(custom);
+        }
+        customSpeciesList.clear();
+        speciesProvidedPlanted.remove('Other');
+      } else {
+        // For regular species, remove them
+        speciesProvidedPlanted.remove(species);
+        quantityPlantedControllers.remove(species);
+        quantityReceivedControllers.remove(species);
+        plantingDates.remove(species);
+      }
     }
+    update();
+    markFormAsDirty();
+  }
+  
+  // Add a custom species when the user types in the 'Other' text field
+  void addCustomSpecies(String customName) {
+    if (customName.trim().isEmpty) return;
+    
+    final speciesName = customName.trim();
+    
+    // Add to custom species list if not already there
+    if (!customSpeciesList.contains(speciesName)) {
+      customSpeciesList.add(speciesName);
+    }
+    
+    // Add to main species list if not already there
+    if (!speciesProvidedPlanted.contains(speciesName)) {
+      speciesProvidedPlanted.add(speciesName);
+      quantityReceivedControllers[speciesName] = TextEditingController();
+      quantityPlantedControllers[speciesName] = TextEditingController();
+    }
+    
+    update();
     markFormAsDirty();
   }
 
@@ -670,10 +737,12 @@ class SeedlingMonitoringController extends GetxController {
         farmerName: farmerNameController.text.trim(),
         connectionStatus: "connected",
         communityNotFound: communityNotFound.value,
-        plantationType: plantationType.value,
+        plantationType: otherPlantationType.value.isNotEmpty
+            ? otherPlantationType.value
+            : plantationType.value,
         totalSizeAcres: double.tryParse(farmSizeController.text),
         speciesProvidedPlanted: speciesProvidedPlanted.toList(),
-        mappedFarmBoundaries: _getPolygonAsGeoJson(),
+        mappedFarmBoundaries: _getPolygonAsJson(),
         mappedAreaHectares: double.tryParse(totalSizeAcres.value),
         totalSeedlingsAlive: treeData.length,
         speciesAlive: speciesAlive.toList(),
@@ -705,6 +774,7 @@ class SeedlingMonitoringController extends GetxController {
       onLineData["name_of_community"] = customCommunityName.value == ''
           ? selectedCommunity.value!.community
           : customCommunityName.value;
+      onLineData["farm_boundary"] = _getPolygonAsGeoJson();
 
       Globals().startWait(seedlingMonitoringScreenContext!);
       final res = await APIMethods().submitSeedlingMonitoringToServer(
@@ -720,6 +790,8 @@ class SeedlingMonitoringController extends GetxController {
           colorText: Colors.white,
           backgroundColor: Colors.green,
         );
+        polygon = null;
+        selectedFarmer.value = null;
         _resetFormAndNavigate();
       } else {
         Get.snackbar(
@@ -771,7 +843,7 @@ class SeedlingMonitoringController extends GetxController {
         }
       }
 
-      if(selectedCommunity.value == null) {
+      if (selectedCommunity.value == null) {
         selectedCommunity.value = CommunityModel(id: 0, community: "0");
       }
 
@@ -786,10 +858,12 @@ class SeedlingMonitoringController extends GetxController {
         farmerName: farmerNameController.text.trim(),
         connectionStatus: "not connected",
         communityNotFound: communityNotFound.value,
-        plantationType: plantationType.value,
+        plantationType: otherPlantationType.value.isNotEmpty
+            ? otherPlantationType.value
+            : plantationType.value,
         totalSizeAcres: double.tryParse(farmSizeController.text),
         speciesProvidedPlanted: speciesProvidedPlanted.toList(),
-        mappedFarmBoundaries: _getPolygonAsGeoJson(),
+        mappedFarmBoundaries: _getPolygonAsJson(),
         mappedAreaHectares: double.tryParse(totalSizeAcres.value),
         totalSeedlingsAlive: treeData.length,
         speciesAlive: speciesAlive.toList(),
@@ -820,6 +894,8 @@ class SeedlingMonitoringController extends GetxController {
 
       final res = await SeedlingMonitoringRepository().create(monitoringModel);
       if (res > 0) {
+        polygon = null;
+        selectedFarmer.value = null;
         Get.snackbar(
           'Success',
           'Data saved offline successfully!',

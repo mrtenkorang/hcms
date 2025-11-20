@@ -754,12 +754,22 @@ class _EditSeedlingMonitoringScreenState
                       : controller.community.value,
                   isExpanded: true,
                   hint: const Text('Select community'),
-                  items: controller.communities.map((community) {
-                    return DropdownMenuItem<String>(
-                      value: community.id?.toString() ?? '',
-                      child: Text(community.community ?? ''),
-                    );
-                  }).toList(),
+                  items: [
+                    DropdownMenuItem<String>(
+                      value: controller.community.value,
+                      enabled: false,
+                      child: Text('Select community', style: TextStyle(color: Colors.grey)),
+                    ),
+                    // Add actual community items with unique values
+                    ...controller.communities.map((community) {
+                      // Use a combination of ID and name to ensure uniqueness
+                      final uniqueValue = '${community.id}_${community.community}';
+                      return DropdownMenuItem<String>(
+                        value: uniqueValue,
+                        child: Text(community.community ?? 'Unnamed Community'),
+                      );
+                    }),
+                  ],
                   onChanged: (value) {
                     controller.community.value = value ?? '';
                   },
@@ -858,21 +868,47 @@ class _EditSeedlingMonitoringScreenState
           ),
           child: DropdownButtonHideUnderline(
             child: Obx(
-              () => DropdownButton<String>(
-                value: controller.plantationType.value.isEmpty
-                    ? null
-                    : controller.plantationType.value,
-                isExpanded: true,
-                hint: const Text('Select plantation type'),
-                items: controller.plantationTypes.map((type) {
-                  return DropdownMenuItem<String>(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  controller.plantationType.value = value ?? '';
-                },
+              () => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButton<String>(
+                    value: controller.plantationType.value.isEmpty
+                        ? null
+                        : controller.plantationType.value,
+                    isExpanded: true,
+                    hint: const Text('Select plantation type'),
+                    items: controller.plantationTypes.map((type) {
+                      return DropdownMenuItem<String>(
+                        value: type,
+                        child: Text(type),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      controller.plantationType.value = value ?? '';
+                      // Clear other plantation type when changing selection
+                      if (value != 'Other') {
+                        controller.otherPlantationType.value = '';
+                      }
+                    },
+                  ),
+                  if (controller.plantationType.value == 'Other')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: TextField(
+                        controller: TextEditingController(text: controller.otherPlantationType.value)
+                          ..selection = TextSelection.collapsed(offset: controller.otherPlantationType.value.length),
+                        decoration: const InputDecoration(
+                          hintText: 'Please specify plantation type',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          controller.otherPlantationType.value = value;
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -882,59 +918,168 @@ class _EditSeedlingMonitoringScreenState
   }
 
   Widget _buildSpeciesCheckboxes() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextFormField(
-            // controller: controller.searchController,
-            decoration: InputDecoration(
-              hintText: 'Search species...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 0,
-                horizontal: 16,
-              ),
-            ),
-            onChanged: (value) {
-              controller.filterSpecies(value);
-            },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(
+            title: 'Species Selection',
+            subtitle: 'Select or add the species that were planted',
           ),
-        ),
-        const SizedBox(height: 8),
-        Obx(
-          () => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: controller.filteredSpeciesList.map((species) {
-              final isSelected = controller.speciesProvidedPlanted.contains(
-                species,
-              );
-              return FilterChip(
-                selected: isSelected,
-                label: Text(species.replaceAll('_', ' ')),
-                onSelected: (selected) {
-                  controller.toggleSpeciesSelection(species, selected);
-                  controller.toggleSpeciesAlive(species, selected);
-                },
-                selectedColor: fPrimaryColour.withOpacity(0.2),
-                checkmarkColor: fPrimaryColour,
-                labelStyle: TextStyle(
-                  color: isSelected ? fPrimaryColour : Colors.black87,
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: TextFormField(
+              controller: controller.searchController,
+              decoration: InputDecoration(
+                hintText: 'Search species...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
                 ),
-              );
-            }).toList(),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 16,
+                ),
+              ),
+              onChanged: (value) {
+                controller.filterSpecies(value);
+              },
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Obx(() {
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ...controller.filteredSpeciesList.map((species) {
+                  final isSelected = controller.speciesProvidedPlanted.contains(species);
+                  final isOther = species == 'Other';
+                  final otherIsSelected = isOther && controller.isOtherSelected();
+                  
+                  // Use a timestamp to ensure unique keys
+                  // final uniqueKey = 'species-chip-${DateTime.now().millisecondsSinceEpoch}-$species-${isSelected || otherIsSelected}';
+                  return FilterChip(
+                    // key: ValueKey(uniqueKey),
+                    selected: isSelected || otherIsSelected,
+                    label: Text(species.replaceAll('_', ' ')),
+                    onSelected: (selected) {
+                      controller.toggleSpeciesSelection(species, selected);
+                      if (isOther && selected) {
+                        // Focus on the text field when 'Other' is selected
+                        FocusScope.of(context).requestFocus(FocusNode());
+                      } else if (!isOther) {
+                        // Toggle species alive status for non-other species
+                        controller.toggleSpeciesAlive(species, selected);
+                      }
+                    },
+                    selectedColor: fPrimaryColour.withOpacity(0.2),
+                    checkmarkColor: fPrimaryColour,
+                    labelStyle: TextStyle(
+                      color: (isSelected || otherIsSelected) 
+                          ? fPrimaryColour 
+                          : Colors.black87,
+                    ),
+                  );
+                }),
+                
+                // Show text field if 'Other' is selected or has text
+                // if (controller.isOtherSelected())
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Specify other species if not provided"),
+                        SizedBox(height: 5,),
+                        TextField(
+                          controller: controller.otherSpeciesController,
+                          decoration: InputDecoration(
+                            hintText: 'Specify other species',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            suffixIcon:
+                            controller
+                                .otherSpeciesController
+                                .text
+                                .isNotEmpty
+                                ? IconButton(
+                              icon: const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                              onPressed: () {
+                                // Add the custom species when checkmark is pressed
+                                if (controller.otherSpeciesController.text
+                                    .trim()
+                                    .isNotEmpty) {
+                                  controller.addCustomSpecies(
+                                    controller.otherSpeciesController.text
+                                        .trim(),
+                                  );
+                                }
+                              },
+                            )
+                                : null,
+                          ),
+                          onSubmitted: (value) {
+                            if (value.trim().isNotEmpty) {
+                              controller.addCustomSpecies(value.trim());
+                            }
+                          },
+                          onChanged: (value) {
+                            // Update the 'Other' chip selection based on whether there's text
+                            if (value.trim().isEmpty) {
+                              controller.toggleSpeciesSelection('Other', false);
+                            } else if (!controller.speciesProvidedPlanted
+                                .contains('Other')) {
+                              controller.toggleSpeciesSelection('Other', true);
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            controller.filteredSpeciesList.add(
+                              controller.otherSpeciesController.text.trim(),
+                            );
+                            controller.toggleSpeciesSelection(
+                              controller.otherSpeciesController.text.trim(),
+                              true,
+                            );
+                            controller.speciesList.add(
+                              controller.otherSpeciesController.text.trim(),
+                            );
+                            setState(() {
+                              controller.otherSpeciesController.clear();
+                            });
+                          },
+                          child: Text('Add to species'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
+
+        ],
+      ),
     );
   }
 
   Widget _buildSpeciesDetailsPage() {
+    controller.speciesProvidedPlanted.remove('Other');
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -944,18 +1089,16 @@ class _EditSeedlingMonitoringScreenState
             title: 'Species Planting Details',
             subtitle: 'Detailed information about each planted species',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Obx(
-            () => Column(
+                () => Column(
               children: controller.speciesProvidedPlanted.map((species) {
                 return SpeciesExpansionTile(
                   species: species,
                   quantityReceivedController:
-                      controller.quantityReceivedControllers[species]!,
+                  controller.quantityReceivedControllers[species]!,
                   quantityPlantedController:
-                      controller.quantityPlantedControllers[species]!,
-                  // onQuantityReceivedChanged: (value) => controller.setQuantityReceived(species, value),
-                  // onQuantityPlantedChanged: (value) => controller.setQuantityPlanted(species, value),
+                  controller.quantityPlantedControllers[species]!,
                   onDateSelected: (date) {
                     controller.setPlantingDate(species, date);
                   },

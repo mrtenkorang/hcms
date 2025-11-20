@@ -606,7 +606,7 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
                                 ? Colors.white
                                 : AppColor.primary,
                             onTap: () async {
-                              if (accuracy <= 4) {
+                              if (accuracy <= 5) {
                                 LatLng latLng = LatLng(userLat, userLong);
 
                                 bool treeLocationWithinFarm =
@@ -638,10 +638,10 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
                                 Get.closeAllSnackbars();
                                 Get.snackbar(
                                   "Cannot capture tree",
-                                  "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                  "Location accuracy must be below 5m",
                                   messageText: AppText(
                                     text:
-                                        "Location accuracy too low: ${accuracy.truncateToDecimalPlaces(2)}m",
+                                        "Location accuracy must be below 5m",
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                     color: AppColor.white,
@@ -1107,69 +1107,156 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
                             );
                           }
 
-                          return SizedBox(
-                            width: double.infinity,
-                            child: Wrap(
-                              spacing: 8.0,
-                              runSpacing: 8.0,
-                              alignment: WrapAlignment.start,
-                              children: filteredSpecies.asMap().entries.map((
-                                entry,
-                              ) {
-                                // final index = entry.key;
-                                final species = entry.value;
+                          return Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: Wrap(
+                                  spacing: 8.0,
+                                  runSpacing: 8.0,
+                                  alignment: WrapAlignment.start,
+                                  children: filteredSpecies.asMap().entries.map((
+                                    entry,
+                                  ) {
+                                    // final index = entry.key;
+                                    final species = entry.value;
 
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  curve: Curves.easeInOut,
-                                  child: FilterChip(
-                                    label: Text(
-                                      species,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: selectedTreeType.value == species
-                                            ? Colors.white
-                                            : AppColor.primary,
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeInOut,
+                                      child: FilterChip(
+                                        label: Text(
+                                          species,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: selectedTreeType.value == species
+                                                ? Colors.white
+                                                : AppColor.primary,
+                                          ),
+                                        ),
+                                        selected: selectedTreeType.value == species,
+                                        onSelected: (bool selected) {
+                                          if (selected) {
+                                            selectedTreeType.value = species;
+                                            HapticFeedback.lightImpact();
+                                          }
+                                        },
+                                        backgroundColor: Colors.grey[100],
+                                        selectedColor: AppColor.primary,
+                                        checkmarkColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8.0),
+                                          side: BorderSide(
+                                            color: selectedTreeType.value == species
+                                                ? AppColor.primary
+                                                : Colors.grey[300]!,
+                                            width: selectedTreeType.value == species
+                                                ? 1.5
+                                                : 1.0,
+                                          ),
+                                        ),
+                                        elevation: selectedTreeType.value == species
+                                            ? 2.0
+                                            : 0.0,
+                                        shadowColor: AppColor.primary.withOpacity(
+                                          0.3,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12.0,
+                                          vertical: 8.0,
+                                        ),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
                                       ),
-                                    ),
-                                    selected: selectedTreeType.value == species,
-                                    onSelected: (bool selected) {
-                                      if (selected) {
-                                        selectedTreeType.value = species;
-                                        HapticFeedback.lightImpact();
-                                      }
-                                    },
-                                    backgroundColor: Colors.grey[100],
-                                    selectedColor: AppColor.primary,
-                                    checkmarkColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      side: BorderSide(
-                                        color: selectedTreeType.value == species
-                                            ? AppColor.primary
-                                            : Colors.grey[300]!,
-                                        width: selectedTreeType.value == species
-                                            ? 1.5
-                                            : 1.0,
-                                      ),
-                                    ),
-                                    elevation: selectedTreeType.value == species
-                                        ? 2.0
-                                        : 0.0,
-                                    shadowColor: AppColor.primary.withOpacity(
-                                      0.3,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12.0,
-                                      vertical: 8.0,
-                                    ),
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+
+                              // Padding(
+                              //   padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                              //   child: SizedBox(
+                              //     width: double.infinity,
+                              //     child: Column(
+                              //       crossAxisAlignment: CrossAxisAlignment.start,
+                              //       children: [
+                              //         const Text("Specify other species if not provided"),
+                              //         SizedBox(height: 5,),
+                              //         TextField(
+                              //           controller: controller.otherSpeciesController,
+                              //           decoration: InputDecoration(
+                              //             hintText: 'Specify other species',
+                              //             contentPadding: const EdgeInsets.symmetric(
+                              //               horizontal: 12,
+                              //               vertical: 12,
+                              //             ),
+                              //             border: const OutlineInputBorder(),
+                              //             isDense: true,
+                              //             suffixIcon:
+                              //             controller
+                              //                 .otherSpeciesController
+                              //                 .text
+                              //                 .isNotEmpty
+                              //                 ? IconButton(
+                              //               icon: const Icon(
+                              //                 Icons.check_circle,
+                              //                 color: Colors.green,
+                              //               ),
+                              //               onPressed: () {
+                              //                 // Add the custom species when checkmark is pressed
+                              //                 if (controller.otherSpeciesController.text
+                              //                     .trim()
+                              //                     .isNotEmpty) {
+                              //                   controller.addCustomSpecies(
+                              //                     controller.otherSpeciesController.text
+                              //                         .trim(),
+                              //                   );
+                              //                 }
+                              //               },
+                              //             )
+                              //                 : null,
+                              //           ),
+                              //           onSubmitted: (value) {
+                              //             if (value.trim().isNotEmpty) {
+                              //               controller.addCustomSpecies(value.trim());
+                              //             }
+                              //           },
+                              //           onChanged: (value) {
+                              //             // Update the 'Other' chip selection based on whether there's text
+                              //             if (value.trim().isEmpty) {
+                              //               controller.toggleSpeciesSelection('Other', false);
+                              //             } else if (!controller.speciesProvidedPlanted
+                              //                 .contains('Other')) {
+                              //               controller.toggleSpeciesSelection('Other', true);
+                              //             }
+                              //           },
+                              //         ),
+                              //
+                              //         const SizedBox(height: 8),
+                              //         TextButton(
+                              //           onPressed: () {
+                              //             controller.filteredSpeciesList.add(
+                              //               controller.otherSpeciesController.text.trim(),
+                              //             );
+                              //             controller.toggleSpeciesSelection(
+                              //               controller.otherSpeciesController.text.trim(),
+                              //               true,
+                              //             );
+                              //             controller.speciesList.add(
+                              //               controller.otherSpeciesController.text.trim(),
+                              //             );
+                              //             setState(() {
+                              //               controller.otherSpeciesController.clear();
+                              //             });
+                              //           },
+                              //           child: Text('Add to species'),
+                              //         ),
+                              //       ],
+                              //     ),
+                              //   ),
+                              // ),
+                            ],
                           );
                         }),
 
@@ -1421,6 +1508,7 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
 
                   debugPrint("verifyTreeSpeciesMappedQuantity NORMAL: $res");
 
+                  widget.farm.clear();
                   // if (res) {
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();
@@ -1431,6 +1519,7 @@ class _PickTreesMapState extends State<PickTreesMap> with WidgetsBindingObserver
 
                   debugPrint("verifyTreeSpeciesMappedQuantity: $res");
 
+                  widget.farm.clear();
                   // if (res) {
                     Navigator.of(context).pop();
                     Navigator.of(context).pop();

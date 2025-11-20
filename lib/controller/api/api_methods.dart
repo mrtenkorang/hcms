@@ -38,7 +38,8 @@ class APIMethods {
           'message': 'Seedling monitoring submitted successfully',
         };
       } else if (response.statusCode == 400) {
-        return {'success': false, 'error': 'A record with same farmer exists'};
+        debugPrint("THE RESPONSE BAD REQUEST :::::::::::: ${response.body}");
+        return {'success': false, 'error': response.body};
       } else {
         debugPrint("THE RESPONSE :::::::::::: ${response.body}");
         return {
