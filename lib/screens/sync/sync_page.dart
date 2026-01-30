@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hcms_revived2/controller/api/init_methods/init_methods.dart';
+import 'package:hcms_revived2/controller/internet/internet.dart';
 import 'package:hcms_revived2/screens/home/index.dart';
 import '../version/version_check_screen.dart';
 
@@ -93,6 +94,14 @@ class _SyncPageState extends State<SyncPage> with SingleTickerProviderStateMixin
   }
 
   Future<void> _startSync({bool retryOnlyFailed = false}) async {
+
+    if(! await ConnectionVerify.connectionIsAvailable()){
+
+      Get.offAll(() => const IndexPage());
+
+      return;
+    }
+
     setState(() {
       _isSyncing = true;
       if (!retryOnlyFailed) {
@@ -140,7 +149,7 @@ class _SyncPageState extends State<SyncPage> with SingleTickerProviderStateMixin
         await _handleSyncError(e, index, step.title);
       }
 
-      await Future.delayed(const Duration(milliseconds: 300));
+      // await Future.delayed(const Duration(milliseconds: 300));
     }
 
     await _completeSyncProcess();
